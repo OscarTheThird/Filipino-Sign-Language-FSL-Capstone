@@ -202,21 +202,12 @@ body {
     margin-bottom: 40px;
 }
 
-.logo {
-    width: 90px; /* slightly larger to fit image */
-    height: auto;
-    margin: 0 auto 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.logo img {
-    width: 100%;
+/* Simplified logo styling - removed container, direct centering, larger size */
+.logo-image {
+    width: 120px;
     height: auto;
     display: block;
-    border-radius: 50%; /* keep circular look; remove this if you want original shape */
-    box-shadow: 0 6px 20px rgba(30, 64, 175, 0.3); /* optional: matches old design */
+    margin: 0 auto 8px;
 }
 
 .hand-icon {

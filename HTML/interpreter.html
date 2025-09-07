@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/CSS/interpreter.css">
+    <title>GestSure - Interpreter</title>
+</head>
+
+<body>
+    <!-- Header Navigation -->
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-links">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="interpreter.html" class="nav-link active">Interpreter</a>
+                <a href="lessons.html" class="nav-link">Lessons</a>
+            </div>
+            <div class="logo-nav">
+                <img src="/PICTURES/logo.png" alt="GestSure Logo" class="nav-logo">
+                <span class="nav-brand">GestSure</span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Left Section - Camera Feed -->
+        <section class="camera-section">
+            <div class="camera-container">
+                <video class="camera-feed" id="cameraFeed" autoplay muted>
+                    Your browser does not support the video element.
+                </video>
+                <canvas class="tracking-overlay" id="trackingOverlay"></canvas>
+            </div>
+            
+            <!-- Camera Controls -->
+            <div class="camera-controls">
+                <button class="control-btn" id="startBtn">
+                    <span>▶</span> Start Camera
+                </button>
+                <button class="control-btn stop" id="stopBtn" style="display: none;">
+                    <span>⏹</span> Stop Camera
+                </button>
+            </div>
+
+            <!-- Status Indicator -->
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">Ready to start detection</span>
+            </div>
+        </section>
+
+        <!-- Right Section - Message Display -->
+        <section class="message-section">
+            <div class="message-header">
+                <h2 class="message-title">Message</h2>
+                <p class="message-subtitle">Real-time sign language interpretation</p>
+            </div>
+
+            <div class="message-display">
+                <div class="background-watermark">GestSure</div>
+                <div class="message-content">
+                    <div class="detected-text" id="detectedText">Hello, Thank</div>
+                    <div class="confidence-score" id="confidenceScore">Confidence: 94%</div>
+                    <div class="placeholder-text" id="placeholderText" style="display: none;">
+                        Start the camera to begin sign language detection.<br>
+                        Position your hands clearly within the camera view.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message History -->
+            <div class="message-history">
+                <h3 class="history-title">Recent Detections</h3>
+                <div class="history-item">
+                    Hello
+                    <span class="history-time">2:34 PM</span>
+                </div>
+                <div class="history-item">
+                    Thank you
+                    <span class="history-time">2:33 PM</span>
+                </div>
+                <div class="history-item">
+                    Good morning
+                    <span class="history-time">2:32 PM</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Camera and detection functionality
+        let isDetecting = false;
+        let detectionInterval;
+        
+        // DOM elements
+        const cameraFeed = document.getElementById('cameraFeed');
+        const trackingOverlay = document.getElementById('trackingOverlay');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const detectedText = document.getElementById('detectedText');
+        const confidenceScore = document.getElementById('confidenceScore');
+        const placeholderText = document.getElementById('placeholderText');
+
+        // Sample detection data for demo
+        const sampleDetections = [
+            { text: "Hello", confidence: 94 },
+            { text: "Thank you", confidence: 89 },
+            { text: "Good morning", confidence: 92 },
+            { text: "How are you?", confidence: 87 },
+            { text: "Nice to meet you", confidence: 91 },
+            { text: "Please", confidence: 95 },
+            { text: "Sorry", confidence: 88 },
+            { text: "Yes", confidence: 96 }
+        ];
+        
+        let currentDetectionIndex = 0;
+
+        // Initialize camera
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    } 
+                });
+                cameraFeed.srcObject = stream;
+                
+                // Update UI
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'inline-flex';
+                statusText.textContent = 'Detecting sign language...';
+                statusDot.style.background = '#10b981';
+                
+                // Hide placeholder and show detection
+                placeholderText.style.display = 'none';
+                detectedText.style.display = 'block';
+                confidenceScore.style.display = 'block';
+                
+                // Start detection simulation
+                startDetection();
+                
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                statusText.textContent = 'Camera access denied';
+                statusDot.style.background = '#ef4444';
+            }
+        }
+
+        // Stop camera
+        function stopCamera() {
+            const stream = cameraFeed.srcObject;
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                cameraFeed.srcObject = null;
+            }
+            
+            // Update UI
+            startBtn.style.display = 'inline-flex';
+            stopBtn.style.display = 'none';
+            statusText.textContent = 'Ready to start detection';
+            statusDot.style.background = '#64748b';
+            
+            // Show placeholder and hide detection
+            placeholderText.style.display = 'block';
+            detectedText.style.display = 'none';
+            confidenceScore.style.display = 'none';
+            
+            // Stop detection
+            stopDetection();
+        }
+
+        // Start detection simulation
+        function startDetection() {
+            isDetecting = true;
+            detectionInterval = setInterval(() => {
+                if (isDetecting) {
+                    const detection = sampleDetections[currentDetectionIndex];
+                    updateDetection(detection.text, detection.confidence);
+                    currentDetectionIndex = (currentDetectionIndex + 1) % sampleDetections.length;
+                    
+                    // Add to history occasionally
+                    if (Math.random() > 0.7) {
+                        addToHistory(detection.text);
+                    }
+                }
+            }, 2000);
+        }
+
+        // Stop detection
+        function stopDetection() {
+            isDetecting = false;
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+            }
+        }
+
+        // Update detection display
+        function updateDetection(text, confidence) {
+            detectedText.textContent = text;
+            confidenceScore.textContent = `Confidence: ${confidence}%`;
+            
+            // Trigger animation
+            detectedText.style.animation = 'none';
+            setTimeout(() => {
+                detectedText.style.animation = 'fadeIn 0.5s ease-in';
+            }, 10);
+        }
+
+        // Add detection to history
+        function addToHistory(text) {
+            const historyContainer = document.querySelector('.message-history');
+            const existingItems = historyContainer.querySelectorAll('.history-item');
+            
+            // Create new history item
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            historyItem.innerHTML = `
+                ${text}
+                <span class="history-time">${currentTime}</span>
+            `;
+            
+            // Insert at the beginning (after title)
+            const historyTitle = historyContainer.querySelector('.history-title');
+            historyTitle.parentNode.insertBefore(historyItem, historyTitle.nextSibling);
+            
+            // Keep only last 5 items
+            if (existingItems.length >= 5) {
+                existingItems[existingItems.length - 1].remove();
+            }
+        }
+
+        // Canvas setup for hand tracking visualization (placeholder)
+        function setupCanvas() {
+            const canvas = trackingOverlay;
+            const video = cameraFeed;
+            
+            // Resize canvas to match video
+            const resizeCanvas = () => {
+                canvas.width = video.videoWidth || video.clientWidth;
+                canvas.height = video.videoHeight || video.clientHeight;
+            };
+            
+            video.addEventListener('loadedmetadata', resizeCanvas);
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startCamera);
+        stopBtn.addEventListener('click', stopCamera);
+
+        // Initialize
+        setupCanvas();
+
+        // Auto-resize video feed
+        cameraFeed.addEventListener('loadedmetadata', () => {
+            setupCanvas();
+        });
+    </script>
+</body>
+
+</html>

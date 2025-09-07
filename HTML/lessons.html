@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GestSure - Lessons</title>
+    <link rel="stylesheet" href="/CSS/lessons.css">
+</head>
+
+<body>
+    <!-- Header Navigation -->
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-links">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="interpreter.html" class="nav-link">Interpreter</a>
+                <a href="lessons.html" class="nav-link active">Lessons</a>
+            </div>
+            <div class="logo-nav">
+                <img src="/PICTURES/logo.png" alt="GestSure Logo" class="nav-logo">
+                <span class="nav-brand">GestSure</span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Background Watermark -->
+        <div class="background-watermark">GestSure</div>
+        
+        <!-- Page Header -->
+        <h1 class="page-title">Sign Language Lessons</h1>
+        <p class="page-subtitle">Choose a category to start learning ASL</p>
+
+        <!-- Categories Grid -->
+        <div class="categories-grid">
+            <!-- Alphabet Category -->
+            <div class="category-card" data-category="alphabet">
+                <div class="category-icon alphabet-icon">ABC</div>
+                <h3 class="category-title">Alphabet</h3>
+                <p class="category-description">Learn the 26 letters of the ASL alphabet with interactive practice</p>
+                <div class="progress-indicator">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">0/26 completed</div>
+                </div>
+            </div>
+
+            <!-- Numbers Category -->
+            <div class="category-card" data-category="numbers">
+                <div class="category-icon numbers-icon">
+                    <div style="display: flex; gap: 5px;">
+                        <span style="color: #10b981;">5</span>
+                        <span style="color: #f59e0b;">6</span>
+                        <span style="color: #ef4444;">9</span>
+                    </div>
+                </div>
+                <h3 class="category-title">Numbers</h3>
+                <p class="category-description">Master numbers 0-9 and basic counting in sign language</p>
+                <div class="progress-indicator">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">0/10 completed</div>
+                </div>
+            </div>
+
+            <!-- Greetings Category -->
+            <div class="category-card" data-category="greetings">
+                <div class="category-icon greetings-icon">👋</div>
+                <h3 class="category-title">Greetings</h3>
+                <p class="category-description">Common greetings and polite expressions for everyday conversations</p>
+                <div class="progress-indicator">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">0/15 completed</div>
+                </div>
+            </div>
+
+            <!-- Emotions Category -->
+            <div class="category-card" data-category="emotions">
+                <div class="category-icon emotions-icon">
+                    <div style="display: flex; gap: 0px; font-size: 2.5rem;">
+                        <span style="color: #fbbf24;">😊</span>
+                        <span style="color: #06b6d4;">😢</span>
+                    </div>
+                </div>
+                <h3 class="category-title">Emotions</h3>
+                <p class="category-description">Express feelings and emotions through sign language</p>
+                <div class="progress-indicator">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">0/12 completed</div>
+                </div>
+            </div>
+
+            <!-- Colors Category -->
+            <div class="category-card" data-category="colors">
+                <div class="category-icon colors-icon">
+                    <div class="color-wheel"></div>
+                </div>
+                <h3 class="category-title">Colors</h3>
+                <p class="category-description">Learn to sign different colors and describe objects</p>
+                <div class="progress-indicator">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">0/10 completed</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="action-btn" id="startLearningBtn">
+                <span>🚀</span> Start Learning
+            </button>
+            <button class="action-btn secondary" id="practiceBtn">
+                <span>✨</span> Practice Mode
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // Category selection and interaction
+        const categoryCards = document.querySelectorAll('.category-card');
+        const startLearningBtn = document.getElementById('startLearningBtn');
+        const practiceBtn = document.getElementById('practiceBtn');
+        
+        let selectedCategory = null;
+
+        // Sample progress data (using regular variables instead of localStorage)
+        const progressData = {
+            alphabet: { completed: 0, total: 26 },
+            numbers: { completed: 0, total: 10 },
+            greetings: { completed: 0, total: 15 },
+            emotions: { completed: 0, total: 12 },
+            colors: { completed: 0, total: 10 }
+        };
+
+        // Update progress bar for a category
+        function updateProgressBar(category) {
+            const card = document.querySelector(`[data-category="${category}"]`);
+            const progressFill = card.querySelector('.progress-fill');
+            const progressText = card.querySelector('.progress-text');
+            
+            const data = progressData[category];
+            const percentage = (data.completed / data.total) * 100;
+            
+            progressFill.style.width = `${percentage}%`;
+            progressText.textContent = `${data.completed}/${data.total} completed`;
+            
+            // Add completion indicator
+            if (data.completed === data.total) {
+                card.classList.add('completed');
+                if (!card.querySelector('.completion-badge')) {
+                    const badge = document.createElement('div');
+                    badge.className = 'completion-badge';
+                    badge.innerHTML = '✓ Completed';
+                    card.appendChild(badge);
+                }
+            }
+        }
+
+        // Update all progress bars
+        function updateAllProgressBars() {
+            Object.keys(progressData).forEach(category => {
+                updateProgressBar(category);
+            });
+        }
+
+        // Handle category card clicks
+        categoryCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove active class from all cards
+                categoryCards.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked card
+                card.classList.add('active');
+                
+                // Update selected category
+                selectedCategory = card.dataset.category;
+                
+                // Update button states
+                startLearningBtn.disabled = false;
+                practiceBtn.disabled = false;
+                
+                // Visual feedback
+                card.style.transform = 'translateY(-10px) scale(1.02)';
+                setTimeout(() => {
+                    card.style.transform = 'translateY(-10px)';
+                }, 150);
+            });
+
+            // Add hover effects
+            card.addEventListener('mouseenter', () => {
+                if (!card.classList.contains('active')) {
+                    card.style.transform = 'translateY(-10px)';
+                }
+            });
+
+            card.addEventListener('mouseleave', () => {
+                if (!card.classList.contains('active')) {
+                    card.style.transform = 'translateY(0)';
+                }
+            });
+        });
+
+        // Handle start learning button
+        startLearningBtn.addEventListener('click', () => {
+            if (selectedCategory) {
+                // Simulate starting lesson
+                alert(`Starting ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} lessons!\n\nThis would navigate to the lesson interface.`);
+                
+                // Simulate some progress for demo
+                if (progressData[selectedCategory].completed < progressData[selectedCategory].total) {
+                    progressData[selectedCategory].completed += 1;
+                    updateProgressBar(selectedCategory);
+                }
+            } else {
+                alert('Please select a category first!');
+            }
+        });
+
+        // Handle practice button
+        practiceBtn.addEventListener('click', () => {
+            if (selectedCategory) {
+                alert(`Starting practice mode for ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}!\n\nThis would open the practice interface.`);
+            } else {
+                alert('Please select a category first!');
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAllProgressBars();
+            startLearningBtn.disabled = true;
+            practiceBtn.disabled = true;
+        });
+
+        // Add some demo progress for visual effect
+        setTimeout(() => {
+            progressData.alphabet.completed = 8;
+            progressData.greetings.completed = 5;
+            progressData.numbers.completed = 10; // Completed
+            updateAllProgressBars();
+        }, 1000);
+    </script>
+</body>
+
+</html>
