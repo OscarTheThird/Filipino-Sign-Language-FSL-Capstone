@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/CSS/login.css">
+    <title>GestSure - Login</title>
+</head>
+<body>
+    <div class="login-container">
+        <div class="left-panel">
+            <img src="/PICTURES/image1.png" alt="Two people communicating" class="illustration">
+        </div>
+        
+        <div class="right-panel">
+            <div class="logo-section">
+                <div class="logo">
+                    <div class="logo-placeholder">
+                        <div class="logo-icon">
+                            <span class="hand-icon">✋</span>
+                        </div>
+                        <div class="chat-bubble-logo">
+                            <div class="chat-lines"></div>
+                        </div>
+                    </div>
+                </div>
+                <h1 class="brand-name">
+                    <span class="gest">Gest</span><span class="sure">Sure</span>
+                </h1>
+                <p class="brand-tagline">Instant Sign Language Interpreter</p>
+            </div>
+
+            <h2 class="form-title">LOGIN</h2>
+
+            <form onsubmit="event.preventDefault(); window.location.href='home.html';">
+                <div class="form-group">
+                    <label class="form-label">EMAIL</label>
+                    <input type="email" class="form-input" placeholder="Enter your email address" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">PASSWORD</label>
+                    <input type="password" class="form-input" placeholder="Enter your password" required>
+                </div>
+
+                <button type="submit" class="login-btn">
+                    LOGIN
+                </button>
+            </form>
+
+            <div class="form-footer">
+                Don't have an account? <a href="register.html">create account</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
