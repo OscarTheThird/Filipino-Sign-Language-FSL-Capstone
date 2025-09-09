@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -41,26 +41,61 @@
                 </div>
             </div>
         </section>
-        <!-- Right Section -->
+        <!-- Right Section with Auto-Sliding Carousel -->
         <section class="right-section">
             <div class="video-container">
                 <div class="video-frame">
-                    <img src="/PICTURES/person-video.jpg" alt="Person using sign language" class="video-placeholder">
+                    <div class="carousel-container">
+                        <div class="carousel-slides" id="carouselSlides">
+                            <!-- Slide 1 -->
+                            <div class="carousel-slide">
+                                <img src="/PICTURES/Home/1.png" alt="Sign Language Gesture 1" class="slide-image">
+                            </div>
+                            <!-- Slide 2 -->
+                            <div class="carousel-slide">
+                                <img src="/PICTURES/Home/2.png" alt="Sign Language Gesture 2" class="slide-image">
+                            </div>
+                            <!-- Slide 3 -->
+                            <div class="carousel-slide">
+                                <img src="/PICTURES/Home/3.png" alt="Sign Language Gesture 3" class="slide-image">
+                            </div>
+                            <!-- Slide 4 -->
+                            <div class="carousel-slide">
+                                <img src="/PICTURES/Home/4.png" alt="Sign Language Gesture 4" class="slide-image">
+                            </div>
+                            <!-- Slide 5 -->
+                            <div class="carousel-slide">
+                                <img src="/PICTURES/Home/5.png" alt="Sign Language Gesture 5" class="slide-image">
+                            </div>
+                            <!-- Slide 6 -->
+                            <div class="carousel-slide">
+                                <img src="/PICTURES/Home/6.png" alt="Sign Language Gesture 6" class="slide-image">
+                            </div>
+                            <!-- Slide 7 -->
+                            <div class="carousel-slide">
+                                <img src="/PICTURES/Home/7.png" alt="Sign Language Gesture 7" class="slide-image">
+                            </div>
+                            <!-- Slide 8 -->
+                            <div class="carousel-slide">
+                                <img src="/PICTURES/Home/8.png" alt="Sign Language Gesture 8" class="slide-image">
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="video-controls">
-                    <div class="control-dots">
-                        <span class="dot active"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
+                    <div class="control-dots" id="controlDots">
+                        <span class="dot active" data-slide="0"></span>
+                        <span class="dot" data-slide="1"></span>
+                        <span class="dot" data-slide="2"></span>
+                        <span class="dot" data-slide="3"></span>
+                        <span class="dot" data-slide="4"></span>
+                        <span class="dot" data-slide="5"></span>
+                        <span class="dot" data-slide="6"></span>
+                        <span class="dot" data-slide="7"></span>
                     </div>
                 </div>
                 <div class="status-text">
-                    <p>This person is [Preset Word Recognition].</p>
+                    <p>This person is <span class="current-slide-info" id="currentSlideInfo">demonstrating sign language</span>.</p>
                     <p>Here are some useful words and sentences for effective communication.</p>
                 </div>
             </div>
@@ -94,6 +129,7 @@
                             <input type="password" class="form-input" id="login-password" placeholder="Enter your password" required>
                             <button type="button" class="show-hide-btn" onclick="togglePasswordVisibility('login-password', this)">Show</button>
                         </div>
+                        <div id="login-error" style="color: #e11d48; display: none; margin-bottom: 8px; font-size: 14px;"></div>
                         <button type="submit" class="login-btn">
                             LOGIN
                         </button>
@@ -159,7 +195,7 @@
                             <input type="password" class="form-input" id="register-confirm-password" placeholder="Confirm your password" required>
                             <button type="button" class="show-hide-btn" onclick="togglePasswordVisibility('register-confirm-password', this)">Show</button>
                         </div>
-                        <div class="form-footer" id="register-error" style="color: #e11d48; display: none; margin-bottom: 8px;"></div>
+                        <div id="register-error" style="color: #e11d48; display: none; margin-bottom: 8px; font-size: 14px;"></div>
                         <button type="submit" class="register-btn">
                             REGISTER
                         </button>
@@ -171,127 +207,10 @@
             </div>
         </div>
     </div>
-
-    <script>
-        // Modal control
-        function openLoginModal() {
-            document.getElementById('loginModal').style.display = 'block';
-        }
-        function closeLoginModal() {
-            document.getElementById('loginModal').style.display = 'none';
-        }
-        function openRegisterModal() {
-            document.getElementById('registerModal').style.display = 'block';
-        }
-        function closeRegisterModal() {
-            document.getElementById('registerModal').style.display = 'none';
-        }
-        function switchToRegisterModal(e) {
-            e.preventDefault();
-            closeLoginModal();
-            openRegisterModal();
-        }
-        function switchToLoginModal(e) {
-            e.preventDefault();
-            closeRegisterModal();
-            openLoginModal();
-        }
-        window.onclick = function(event) {
-            const loginModal = document.getElementById('loginModal');
-            const registerModal = document.getElementById('registerModal');
-            if (event.target === loginModal) closeLoginModal();
-            if (event.target === registerModal) closeRegisterModal();
-        }
-
-        // Password show/hide
-        function togglePasswordVisibility(inputId, btn) {
-            const input = document.getElementById(inputId);
-            if (input.type === "password") {
-                input.type = "text";
-                btn.textContent = "Hide";
-            } else {
-                input.type = "password";
-                btn.textContent = "Show";
-            }
-        }
-
-        // Login state
-        function isLoggedIn() {
-            return !!localStorage.getItem('gestsure-loggedin');
-        }
-        function setLoggedIn(state) {
-            if(state) {
-                localStorage.setItem('gestsure-loggedin', '1');
-            } else {
-                localStorage.removeItem('gestsure-loggedin');
-            }
-            updateNavAuthButtons();
-        }
-        function updateNavAuthButtons() {
-            const loginBtn = document.querySelector('.login-nav-btn');
-            const registerBtn = document.querySelector('.register-nav-btn');
-            const logoutBtn = document.querySelector('.logout-nav-btn');
-            if(isLoggedIn()) {
-                loginBtn.style.display = 'none';
-                registerBtn.style.display = 'none';
-                logoutBtn.style.display = 'inline-block';
-            } else {
-                loginBtn.style.display = 'inline-block';
-                registerBtn.style.display = 'inline-block';
-                logoutBtn.style.display = 'none';
-            }
-        }
-        function handleLogout() {
-            setLoggedIn(false);
-            window.location.href = "home.html";
-        }
-
-        // Intercept nav links if not logged in
-        document.addEventListener('DOMContentLoaded', function() {
-            updateNavAuthButtons();
-
-            document.querySelectorAll('.nav-link').forEach(function(link) {
-                // Don't block Home link
-                if(link.getAttribute('data-route') === 'home') return;
-                link.addEventListener('click', function(e) {
-                    if(!isLoggedIn()) {
-                        e.preventDefault();
-                        openLoginModal();
-                        window.intendedRoute = link.getAttribute('href');
-                    }
-                });
-            });
-
-            // Handle login form submission
-            document.getElementById('loginForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                setLoggedIn(true);
-                closeLoginModal();
-                if(window.intendedRoute) {
-                    window.location.href = window.intendedRoute;
-                    window.intendedRoute = null;
-                } else {
-                    updateNavAuthButtons();
-                }
-            });
-
-            // Handle register form submission with password match validation
-            document.getElementById('registerForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const pass = document.getElementById('register-password').value;
-                const confirm = document.getElementById('register-confirm-password').value;
-                const errorDiv = document.getElementById('register-error');
-                if (pass !== confirm) {
-                    errorDiv.textContent = "Passwords do not match!";
-                    errorDiv.style.display = 'block';
-                    return;
-                }
-                errorDiv.style.display = 'none';
-                setLoggedIn(true);
-                closeRegisterModal();
-                updateNavAuthButtons();
-            });
-        });
-    </script>
+    
+    <!-- Load scripts as modules -->
+    <script type="module" src="/JAVASCRIPT/firebase.js"></script>
+    <script type="module" src="/JAVASCRIPT/home.js"></script>
+    
 </body>
 </html>
