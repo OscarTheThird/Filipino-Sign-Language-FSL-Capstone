@@ -249,8 +249,7 @@ function handleSwipe() {
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
     preloadImages();
-    updateNavButtons();
-    
+    updateLesson(); // <--- FIX: initialize first slide content
     // Add a subtle loading fade-in effect
     const lessonCard = document.querySelector('.lesson-card');
     lessonCard.style.opacity = '0';
