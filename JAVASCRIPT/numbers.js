@@ -1,46 +1,345 @@
-// Filipino Alphabet A-Z (with example words)
-const alphabetData = [
-    { letter: '1', desc: `<strong>Number 1</strong><br>Ex. "Isa ang araw ng pahinga sa isang linggo."`, img: '/PICTURES/fsl_numbers/1.png' },
-    { letter: '2', desc: `<strong>Number 2</strong><br>Ex. "Dalawa ang mata ng tao."`, img: '/PICTURES/fsl_numbers/2.png' },
-    { letter: '3', desc: `<strong>Number 3</strong><br>Ex. "Tatlo ang pagkain sa isang araw: almusal, tanghalian, hapunan."`, img: '/PICTURES/fsl_numbers/3.png' },
-    { letter: '4', desc: `<strong>Number 4</strong><br>Ex. "Apat ang gulong ng kotse."`, img: '/PICTURES/fsl_numbers/4.png' },
-    { letter: '5', desc: `<strong>Number 5</strong><br>Ex. "Lima ang daliri sa isang kamay."`, img: '/PICTURES/fsl_numbers/5.png' },
-    { letter: '6', desc: `<strong>Number 6</strong><br>Ex. "Anim ang itlog sa lalagyan."`, img: '/PICTURES/fsl_numbers/6.png' },
-    { letter: '7', desc: `<strong>Number 7</strong><br>Ex. "Pito ang araw sa isang linggo."`, img: '/PICTURES/fsl_numbers/7.png' },
-    { letter: '8', desc: `<strong>Number 8</strong><br>Ex. "Walo ang paa ng gagamba."`, img: '/PICTURES/fsl_numbers/8.png' },
-    { letter: '9', desc: `<strong>Number 9</strong><br>Ex. "Siyam ang bituin sa watawat ng Pilipinas."`, img: '/PICTURES/fsl_numbers/9.png' },
-    { letter: '10', desc: `<strong>Number 10</strong><br>Ex. "Sampu ang estudyante sa silid-aralan."`, img: '/PICTURES/fsl_numbers/10.png' }
+// Filipino Sign Language Numbers Data
+const numbersData = [
+    { number: '1', desc: `<strong>Number 1</strong><br>Ex. "Isa ang araw ng pahinga sa isang linggo."`, img: '/PICTURES/fsl_numbers/1.png' },
+    { number: '2', desc: `<strong>Number 2</strong><br>Ex. "Dalawa ang mata ng tao."`, img: '/PICTURES/fsl_numbers/2.png' },
+    { number: '3', desc: `<strong>Number 3</strong><br>Ex. "Tatlo ang pagkain sa isang araw: almusal, tanghalian, hapunan."`, img: '/PICTURES/fsl_numbers/3.png' },
+    { number: '4', desc: `<strong>Number 4</strong><br>Ex. "Apat ang gulong ng kotse."`, img: '/PICTURES/fsl_numbers/4.png' },
+    { number: '5', desc: `<strong>Number 5</strong><br>Ex. "Lima ang daliri sa isang kamay."`, img: '/PICTURES/fsl_numbers/5.png' },
+    { number: '6', desc: `<strong>Number 6</strong><br>Ex. "Anim ang itlog sa lalagyan."`, img: '/PICTURES/fsl_numbers/6.png' },
+    { number: '7', desc: `<strong>Number 7</strong><br>Ex. "Pito ang araw sa isang linggo."`, img: '/PICTURES/fsl_numbers/7.png' },
+    { number: '8', desc: `<strong>Number 8</strong><br>Ex. "Walo ang paa ng gagamba."`, img: '/PICTURES/fsl_numbers/8.png' },
+    { number: '9', desc: `<strong>Number 9</strong><br>Ex. "Siyam na bituin sa watawat ng Pilipinas."`, img: '/PICTURES/fsl_numbers/9.png' },
+    { number: '10', desc: `<strong>Number 10</strong><br>Ex. "Sampu ang estudyante sa silid-aralan."`, img: '/PICTURES/fsl_numbers/10.png' }
 ];
 
-
 let current = 0;
+let isAnimating = false;
 
-function updateLesson() {
-    document.getElementById('letter').textContent = alphabetData[current].letter;
-    document.getElementById('desc').innerHTML = `<p>${alphabetData[current].desc}</p>`;
-    document.getElementById('signImg').src = alphabetData[current].img;
-    document.getElementById('signImg').alt = `Hand sign for ${alphabetData[current].letter}`;
+// Preload images for smoother transitions
+function preloadImages() {
+    numbersData.forEach(item => {
+        const img = new Image();
+        img.src = item.img;
+    });
 }
 
-document.getElementById('prevBtn').onclick = function () {
-    current = (current === 0) ? alphabetData.length - 1 : current - 1;
-    updateLesson();
-};
-document.getElementById('nextBtn').onclick = function () {
-    current = (current === alphabetData.length - 1) ? 0 : current + 1;
-    updateLesson();
-};
+function updateLesson(direction = 'next') {
+    if (isAnimating) return;
+    
+    isAnimating = true;
+    
+    const numberEl = document.getElementById('letter');
+    const descEl = document.getElementById('desc');
+    const imgEl = document.getElementById('signImg');
+    const leftContent = document.querySelector('.lesson-left');
+    const rightContent = document.querySelector('.lesson-right');
+    
+    // Determine animation direction
+    const slideOutClass = direction === 'next' ? 'slide-out-left' : 'slide-out-right';
+    const slideInClass = direction === 'next' ? 'slide-in-right' : 'slide-in-left';
+    
+    // Add exit animation classes
+    leftContent.classList.add(slideOutClass);
+    rightContent.classList.add(slideOutClass);
+    
+    // Update content after a short delay for smooth transition
+    setTimeout(() => {
+        // Update the content
+        numberEl.innerHTML = numbersData[current].number + 
+            ` <span class="number-visual" style="font-size:0.7em; color:#6d42c7; margin-left:8px;">${'●'.repeat(parseInt(numbersData[current].number) <= 5 ? parseInt(numbersData[current].number) : 5)}${parseInt(numbersData[current].number) > 5 ? '...' : ''}</span>`;
+        descEl.innerHTML = `<p>${numbersData[current].desc}</p>`;
+        imgEl.src = numbersData[current].img;
+        imgEl.alt = `Hand sign for ${numbersData[current].number}`;
+        
+        // Remove old classes and add entrance animation
+        leftContent.classList.remove(slideOutClass);
+        rightContent.classList.remove(slideOutClass);
+        leftContent.classList.add(slideInClass);
+        rightContent.classList.add(slideInClass);
+        
+        // Update navigation button visibility
+        updateNavButtons();
+        
+        // Update number-based styling
+        updateNumberStyling();
+        
+        // Clean up animation classes after animation completes
+        setTimeout(() => {
+            leftContent.classList.remove(slideInClass);
+            rightContent.classList.remove(slideInClass);
+            isAnimating = false;
+        }, 400);
+        
+    }, 200);
+}
 
-// Hotkeys: left/right arrow
+function updateNavButtons() {
+    const prevBtn = document.getElementById('prevBtn');
+    
+    if (current === 0) {
+        prevBtn.style.opacity = '0.3';
+        prevBtn.style.pointerEvents = 'none';
+    } else {
+        prevBtn.style.opacity = '1';
+        prevBtn.style.pointerEvents = 'auto';
+    }
+}
+
+// Add number-based styling
+function updateNumberStyling() {
+    const lessonCard = document.querySelector('.lesson-card');
+    const currentNumber = numbersData[current].number;
+    
+    // Remove existing number classes
+    lessonCard.className = lessonCard.className.replace(/number-\d+/g, '');
+    
+    // Add current number class
+    lessonCard.classList.add(`number-${currentNumber}`);
+}
+
+// Add CSS animations dynamically
+function addAnimationStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .lesson-left, .lesson-right {
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .slide-out-left {
+            transform: translateX(-50px);
+            opacity: 0;
+        }
+        
+        .slide-out-right {
+            transform: translateX(50px);
+            opacity: 0;
+        }
+        
+        .slide-in-left {
+            transform: translateX(50px);
+            opacity: 0;
+            animation: slideInLeft 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        
+        .slide-in-right {
+            transform: translateX(-50px);
+            opacity: 0;
+            animation: slideInRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        
+        @keyframes slideInLeft {
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideInRight {
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .nav-arrow {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .nav-arrow:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+        
+        .nav-arrow:hover {
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .lesson-image {
+            transition: all 0.3s ease;
+        }
+        
+        .lesson-image:hover {
+            transform: scale(1.02);
+        }
+        
+        #letter {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .lesson-card:not(.animating) #letter:hover {
+            transform: scale(1.05);
+        }
+        
+        .number-visual {
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        
+        .number-visual:hover {
+            transform: scale(1.2);
+            color: #9333ea !important;
+        }
+        
+        /* Progressive color scheme based on numbers */
+        .number-1 #letter { color: #ef4444; }
+        .number-2 #letter { color: #f97316; }
+        .number-3 #letter { color: #eab308; }
+        .number-4 #letter { color: #22c55e; }
+        .number-5 #letter { color: #06b6d4; }
+        .number-6 #letter { color: #3b82f6; }
+        .number-7 #letter { color: #8b5cf6; }
+        .number-8 #letter { color: #a855f7; }
+        .number-9 #letter { color: #ec4899; }
+        .number-10 #letter { color: #f59e0b; }
+        
+        /* Animated counting effect */
+        .number-visual {
+            animation: countPulse 0.6s ease-in-out;
+        }
+        
+        @keyframes countPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+        
+        /* Special effects for milestone numbers */
+        .number-5 .lesson-card,
+        .number-10 .lesson-card {
+            box-shadow: 0 15px 40px rgba(109, 66, 199, 0.15);
+        }
+        
+        .number-10 #letter {
+            background: linear-gradient(45deg, #f59e0b, #dc2626);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Enhanced navigation with direction awareness
+function navigatePrevious() {
+    if (isAnimating) return;
+    
+    const newIndex = (current === 0) ? numbersData.length - 1 : current - 1;
+    current = newIndex;
+    updateLesson('prev');
+}
+
+function navigateNext() {
+    if (isAnimating) return;
+    
+    const newIndex = (current === numbersData.length - 1) ? 0 : current + 1;
+    current = newIndex;
+    updateLesson('next');
+}
+
+// Event listeners
+document.getElementById('prevBtn').onclick = navigatePrevious;
+document.getElementById('nextBtn').onclick = navigateNext;
+
+// Enhanced keyboard navigation with number keys
 document.addEventListener('keydown', function (e) {
+    if (isAnimating) return;
+    
     if (e.key === "ArrowLeft") {
-        current = (current === 0) ? alphabetData.length - 1 : current - 1;
-        updateLesson();
+        e.preventDefault();
+        navigatePrevious();
     } else if (e.key === "ArrowRight") {
-        current = (current === alphabetData.length - 1) ? 0 : current + 1;
-        updateLesson();
+        e.preventDefault();
+        navigateNext();
+    } else if (e.key === "Home") {
+        e.preventDefault();
+        if (current !== 0) {
+            current = 0;
+            updateLesson('prev');
+        }
+    } else if (e.key === "End") {
+        e.preventDefault();
+        if (current !== numbersData.length - 1) {
+            current = numbersData.length - 1;
+            updateLesson('next');
+        }
+    }
+    // Number key shortcuts
+    else if (e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        const targetIndex = parseInt(e.key) - 1;
+        if (targetIndex < numbersData.length && targetIndex !== current) {
+            const direction = targetIndex > current ? 'next' : 'prev';
+            current = targetIndex;
+            updateLesson(direction);
+        }
+    } else if (e.key === '0') {
+        e.preventDefault();
+        if (current !== 9) { // Index 9 is number 10
+            current = 9;
+            updateLesson('next');
+        }
     }
 });
 
-// Initially show 'A'
-updateLesson();
+// Touch/swipe support for mobile
+let touchStartX = 0;
+let touchEndX = 0;
+
+document.addEventListener('touchstart', function(e) {
+    touchStartX = e.changedTouches[0].screenX;
+});
+
+document.addEventListener('touchend', function(e) {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+});
+
+function handleSwipe() {
+    const swipeThreshold = 50;
+    const swipeDistance = touchEndX - touchStartX;
+    
+    if (Math.abs(swipeDistance) > swipeThreshold && !isAnimating) {
+        if (swipeDistance > 0) {
+            navigatePrevious();
+        } else {
+            navigateNext();
+        }
+    }
+}
+
+// Initialize the lesson
+document.addEventListener('DOMContentLoaded', function() {
+    addAnimationStyles();
+    preloadImages();
+    updateNavButtons();
+    updateNumberStyling();
+    
+    // Add a subtle loading fade-in effect
+    const lessonCard = document.querySelector('.lesson-card');
+    lessonCard.style.opacity = '0';
+    lessonCard.style.transform = 'translateY(20px)';
+    
+    setTimeout(() => {
+        lessonCard.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        lessonCard.style.opacity = '1';
+        lessonCard.style.transform = 'translateY(0)';
+    }, 100);
+});
+
+// Add visual feedback for button presses
+document.querySelectorAll('.nav-arrow').forEach(btn => {
+    btn.addEventListener('mousedown', function() {
+        this.style.transform = 'translateY(-50%) scale(0.95)';
+    });
+    
+    btn.addEventListener('mouseup', function() {
+        this.style.transform = 'translateY(-50%) scale(1)';
+    });
+    
+    btn.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(-50%) scale(1)';
+    });
+});
+
+// Initially show '1'
+setTimeout(() => {
+    updateLesson();
+}, 50);
