@@ -154,31 +154,42 @@ body {
     display: block;
 }
 
-/* Arrows */
 .nav-arrow {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: none;
-    border: none;
+    background: #f8fafc; /* Matches lesson-card background, change as needed */
+    border: 2px solid #6d42c7; /* Accent color border */
+    border-radius: 50%;
     font-size: 2.2rem;
     color: #222c3c;
     cursor: pointer;
     padding: 0 12px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 2;
-    transition: color 0.2s;
-    opacity: 0.7;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+    opacity: 0.85;
+    box-shadow: 0 2px 8px rgba(109,66,199,0.08);
 }
+
 .nav-arrow.left {
-    left: 12px;
+    left: 22px; /* a bit further inside */
 }
 .nav-arrow.right {
-    right: 12px;
+    right: 22px;
 }
+
 .nav-arrow:hover {
-    color: #6d42c7;
+    color: #fff;
+    background: #6d42c7;
+    border-color: #6d42c7;
     opacity: 1;
 }
+
 
 /* Responsive Design (Copied and adapted from lessons.css) */
 @media (max-width: 1200px) {

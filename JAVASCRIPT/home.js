@@ -1,47 +1,29 @@
 // Import Firebase modules
-import { auth, db } from "./firebase.js";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import {
-  doc,
-  setDoc,
-  collection,
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { auth } from "./firebase.js";
 
-// Modal functions
+// Modal functions and shared UI logic (NO login/register/handleLogin/handleRegister)
 function openLoginModal() {
   document.getElementById("loginModal").style.display = "block";
 }
-
 function closeLoginModal() {
   document.getElementById("loginModal").style.display = "none";
 }
-
 function openRegisterModal() {
   document.getElementById("registerModal").style.display = "block";
 }
-
 function closeRegisterModal() {
   document.getElementById("registerModal").style.display = "none";
 }
-
 function switchToRegisterModal(e) {
   e.preventDefault();
   closeLoginModal();
   openRegisterModal();
 }
-
 function switchToLoginModal(e) {
   e.preventDefault();
   closeRegisterModal();
   openLoginModal();
 }
-
-// Close modals when clicking outside
 window.onclick = function (event) {
   const loginModal = document.getElementById("loginModal");
   const registerModal = document.getElementById("registerModal");
@@ -69,7 +51,7 @@ function togglePasswordVisibility(inputId, btn) {
   }
 }
 
-// Authentication state management
+// Authentication state management for nav buttons
 function updateNavAuthButtons() {
   const loginBtn = document.querySelector(".login-nav-btn");
   const registerBtn = document.querySelector(".register-nav-btn");
@@ -89,7 +71,8 @@ function updateNavAuthButtons() {
 // Handle logout
 async function handleLogout() {
   try {
-    await signOut(auth);
+    await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js")
+      .then(({ signOut }) => signOut(auth));
     window.location.href = "home.html";
   } catch (error) {
     console.error("Logout error:", error);
@@ -113,10 +96,8 @@ function initializeEyeIcons() {
 // Setup password input listeners to show/hide toggle button
 function setupPasswordToggleListeners() {
   const passwordInputs = document.querySelectorAll('input[type="password"]');
-
   passwordInputs.forEach((input) => {
     const toggleBtn = input.parentElement.querySelector(".show-hide-btn");
-
     if (toggleBtn) {
       // Show button when user starts typing
       input.addEventListener("input", function () {
@@ -124,7 +105,6 @@ function setupPasswordToggleListeners() {
           toggleBtn.style.display = "block";
         } else {
           toggleBtn.style.display = "none";
-          // Reset to password type when empty
           this.type = "password";
           toggleBtn.innerHTML = `
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -150,155 +130,7 @@ function setupPasswordToggleListeners() {
   });
 }
 
-// Show loading state
-function showLoading(button, text = "Loading...") {
-  button.disabled = true;
-  button.textContent = text;
-}
-
-// Hide loading state
-function hideLoading(button, text) {
-  button.disabled = false;
-  button.textContent = text;
-}
-
-// Show error message
-function showError(message, isLogin = true) {
-  const errorDiv = document.getElementById(
-    isLogin ? "login-error" : "register-error"
-  );
-  if (!errorDiv) {
-    // Create error div if it doesn't exist
-    const newErrorDiv = document.createElement("div");
-    newErrorDiv.id = isLogin ? "login-error" : "register-error";
-    newErrorDiv.style.color = "#e11d48";
-    newErrorDiv.style.marginBottom = "8px";
-    newErrorDiv.style.fontSize = "14px";
-
-    const form = document.getElementById(
-      isLogin ? "loginForm" : "registerForm"
-    );
-    const submitButton = form.querySelector(
-      isLogin ? ".login-btn" : ".register-btn"
-    );
-    form.insertBefore(newErrorDiv, submitButton);
-  }
-
-  const targetErrorDiv = document.getElementById(
-    isLogin ? "login-error" : "register-error"
-  );
-  targetErrorDiv.textContent = message;
-  targetErrorDiv.style.display = "block";
-}
-
-// Hide error message
-function hideError(isLogin = true) {
-  const errorDiv = document.getElementById(
-    isLogin ? "login-error" : "register-error"
-  );
-  if (errorDiv) {
-    errorDiv.style.display = "none";
-  }
-}
-
-// Handle user registration
-async function handleRegister(formData) {
-  const registerBtn = document.querySelector(".register-btn");
-  showLoading(registerBtn, "Creating Account...");
-  hideError(false);
-
-  try {
-    // Create user with email and password
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      formData.email,
-      formData.password
-    );
-
-    // Save additional user data to Firestore
-    await setDoc(doc(db, "users", userCredential.user.uid), {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      age: parseInt(formData.age),
-      gender: formData.gender,
-      email: formData.email,
-      createdAt: new Date().toISOString(),
-    });
-
-    closeRegisterModal();
-    alert("Registration successful! Welcome to GestSure!");
-  } catch (error) {
-    console.error("Registration error:", error);
-    let errorMessage = "Registration failed. Please try again.";
-
-    switch (error.code) {
-      case "auth/email-already-in-use":
-        errorMessage =
-          "Email is already registered. Please use a different email.";
-        break;
-      case "auth/invalid-email":
-        errorMessage = "Please enter a valid email address.";
-        break;
-      case "auth/weak-password":
-        errorMessage = "Password should be at least 6 characters long.";
-        break;
-      case "auth/operation-not-allowed":
-        errorMessage =
-          "Email/password accounts are not enabled. Please contact support.";
-        break;
-    }
-
-    showError(errorMessage, false);
-  } finally {
-    hideLoading(registerBtn, "REGISTER");
-  }
-}
-
-// Handle user login
-async function handleLogin(email, password) {
-  const loginBtn = document.querySelector(".login-btn");
-  showLoading(loginBtn, "Signing In...");
-  hideError(true);
-
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-    closeLoginModal();
-
-    // Redirect to intended route if exists
-    if (window.intendedRoute) {
-      window.location.href = window.intendedRoute;
-      window.intendedRoute = null;
-    }
-  } catch (error) {
-    console.error("Login error:", error);
-    let errorMessage = "Login failed. Please try again.";
-
-    switch (error.code) {
-      case "auth/user-not-found":
-        errorMessage = "No account found with this email address.";
-        break;
-      case "auth/wrong-password":
-        errorMessage = "Incorrect password. Please try again.";
-        break;
-      case "auth/invalid-email":
-        errorMessage = "Please enter a valid email address.";
-        break;
-      case "auth/too-many-requests":
-        errorMessage = "Too many failed attempts. Please try again later.";
-        break;
-      case "auth/user-disabled":
-        errorMessage =
-          "This account has been disabled. Please contact support.";
-        break;
-    }
-
-    showError(errorMessage, true);
-  } finally {
-    hideLoading(loginBtn, "LOGIN");
-  }
-}
-
-// Make functions globally available
+// Make modal and nav functions available globally
 window.openLoginModal = openLoginModal;
 window.closeLoginModal = closeLoginModal;
 window.openRegisterModal = openRegisterModal;
@@ -308,26 +140,27 @@ window.switchToLoginModal = switchToLoginModal;
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.handleLogout = handleLogout;
 
-// Initialize app
+// Shared UI initialization
 document.addEventListener("DOMContentLoaded", function () {
   initializeEyeIcons();
   setupPasswordToggleListeners();
 
   // Listen for authentication state changes
-  onAuthStateChanged(auth, (user) => {
-    updateNavAuthButtons();
-    if (user) {
-      console.log("User is signed in:", user.email);
-    } else {
-      console.log("User is signed out");
-    }
-  });
+  import("https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js")
+    .then(({ onAuthStateChanged }) => {
+      onAuthStateChanged(auth, (user) => {
+        updateNavAuthButtons();
+        if (user) {
+          console.log("User is signed in:", user.email);
+        } else {
+          console.log("User is signed out");
+        }
+      });
+    });
 
   // Intercept nav links if not logged in
   document.querySelectorAll(".nav-link").forEach(function (link) {
-    // Don't block Home link
     if (link.getAttribute("data-route") === "home") return;
-
     link.addEventListener("click", function (e) {
       if (!auth.currentUser) {
         e.preventDefault();
@@ -336,64 +169,9 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   });
-
-  // Handle login form submission
-  document.getElementById("loginForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const email = e.target.querySelector('input[type="email"]').value;
-    const password = e.target.querySelector('input[type="password"]').value;
-
-    handleLogin(email, password);
-  });
-
-  // Handle register form submission
-  document
-    .getElementById("registerForm")
-    .addEventListener("submit", function (e) {
-      e.preventDefault();
-
-      // Get form data
-      const formInputs = e.target.querySelectorAll(".form-input");
-      const formData = {
-        firstName: formInputs[0].value.trim(),
-        lastName: formInputs[1].value.trim(),
-        age: formInputs[2].value,
-        gender: formInputs[3].value,
-        email: formInputs[4].value.trim(),
-        password: formInputs[5].value,
-        confirmPassword: formInputs[6].value,
-      };
-
-      // Validate password match
-      if (formData.password !== formData.confirmPassword) {
-        showError("Passwords do not match!", false);
-        return;
-      }
-
-      // Validate password length
-      if (formData.password.length < 6) {
-        showError("Password must be at least 6 characters long.", false);
-        return;
-      }
-
-      // Validate required fields
-      if (
-        !formData.firstName ||
-        !formData.lastName ||
-        !formData.age ||
-        !formData.gender ||
-        !formData.email
-      ) {
-        showError("Please fill in all required fields.", false);
-        return;
-      }
-
-      handleRegister(formData);
-    });
 });
 
-
+// Carousel code
 class AutoCarousel {
   constructor() {
     this.currentSlide = 0;

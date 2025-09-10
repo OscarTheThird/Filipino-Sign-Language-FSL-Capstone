@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GestSure - Alphabet Lesson</title>
-    <link rel="stylesheet" href="/CSS/alphabet.css">
+    <link rel="stylesheet" href="/CSS/colors.css">
+    <title>GestSure - Colors Lesson</title>
 </head>
 <body>
-    <!-- Header Navigation (Copied from lessons.html) -->
+    <!-- Header Navigation -->
     <header class="header">
         <nav class="navbar">
             <div class="nav-links">
@@ -21,30 +21,33 @@
             </div>
         </nav>
     </header>
+
     <!-- Main Content -->
     <main class="main-content">
         <div class="lesson-container">
-            <h1 class="lesson-title">Alphabet</h1>
+            <h1 class="lesson-title">Colors</h1>
             <div class="lesson-card">
                 <button class="nav-arrow left" aria-label="Previous" id="prevBtn">&lt;</button>
                 <div class="lesson-left">
-                    <span class="lesson-letter" id="letter">A</span>
+                    <span class="lesson-color" id="color">
+                        Black
+                        <div class="color-swatch" id="colorSwatch" style="background-color: #000000;"></div>
+                    </span>
                     <div class="lesson-desc" id="desc">
                         <p>
-                            <strong>The first letter of the Filipino alphabet.</strong><br>
-                            —often used to begin words and names.<br>
-                            Ex. "A is for aso (dog)."
+                            <strong>The darkest color, absence of light.</strong><br>
+                            Often associated with elegance and mystery.<br>
+                            Filipino: "Itim"
                         </p>
                     </div>
                 </div>
                 <div class="lesson-right">
-                    <img src="/PICTURES/hand-a.png" alt="Hand sign for A" class="lesson-image" id="signImg">
+                    <img src="/PICTURES/fsl_colors/black.png" alt="Hand sign for Black" class="lesson-image" id="signImg">
                 </div>
                 <button class="nav-arrow right" aria-label="Next" id="nextBtn">&gt;</button>
             </div>
         </div>
     </main>
-    <script src="/JAVASCRIPT/alphabet.js"></script>       
+        <script src="/JAVASCRIPT/colors.js"></script>   
 </body>
 </html>
-

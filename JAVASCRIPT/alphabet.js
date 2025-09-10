@@ -35,6 +35,14 @@ function updateLesson() {
     document.getElementById('desc').innerHTML = `<p>${alphabetData[current].desc}</p>`;
     document.getElementById('signImg').src = alphabetData[current].img;
     document.getElementById('signImg').alt = `Hand sign for ${alphabetData[current].letter}`;
+
+    // Hide the left arrow if on the first slide, show otherwise
+    const prevBtn = document.getElementById('prevBtn');
+    if (current === 0) {
+        prevBtn.style.visibility = 'hidden';
+    } else {
+        prevBtn.style.visibility = 'visible';
+    }
 }
 
 document.getElementById('prevBtn').onclick = function () {
@@ -56,6 +64,5 @@ document.addEventListener('keydown', function (e) {
         updateLesson();
     }
 });
-
 // Initially show 'A'
 updateLesson();

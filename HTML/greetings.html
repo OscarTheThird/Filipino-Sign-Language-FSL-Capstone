@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/CSS/greetings.css">
+    <title>GestSure - Greetings Lesson</title>
+  </head>
+  <body>
+    <!-- Header Navigation -->
+    <header class="header">
+      <nav class="navbar">
+        <div class="nav-links">
+          <a href="home.html" class="nav-link">Home</a>
+          <a href="interpreter.html" class="nav-link">Interpreter</a>
+          <a href="lessons.html" class="nav-link active">Lessons</a>
+        </div>
+        <div class="logo-nav">
+          <img src="/PICTURES/logo.png" alt="GestSure Logo" class="nav-logo" />
+          <span class="nav-brand">GestSure</span>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="lesson-container">
+        <h1 class="lesson-title">Greetings</h1>
+        <div class="lesson-card">
+          <button class="nav-arrow left" aria-label="Previous" id="prevBtn">
+            &lt;
+          </button>
+          <div class="lesson-left">
+            <span class="lesson-greeting" id="greeting">Good Morning</span>
+            <div class="lesson-desc" id="desc">
+              <p>
+                <strong>A warm greeting used in the morning.</strong><br />
+                Used from early morning until around noon.<br />
+                Filipino: "Magandang umaga"
+              </p>
+            </div>
+          </div>
+          <div class="lesson-right">
+            <img
+              src="/PICTURES/fsl_greetings/goodmorning.png"
+              alt="Hand sign for Good Morning"
+              class="lesson-image"
+              id="signImg"
+            />
+          </div>
+          <button class="nav-arrow right" aria-label="Next" id="nextBtn">
+            &gt;
+          </button>
+        </div>
+      </div>
+    </main>
+    <script src="/JAVASCRIPT/greetings.js"></script>
+  </body>
+</html>
