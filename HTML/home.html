@@ -22,7 +22,15 @@
                 <span class="nav-brand">GestSure</span>
                 <button class="login-nav-btn" onclick="openLoginModal()">Login</button>
                 <button class="register-nav-btn" onclick="openRegisterModal()">Register</button>
-                <button class="logout-nav-btn" style="display:none;" onclick="handleLogout()">Logout</button>
+                <!-- Profile Icon and Dropdown Menu -->
+                <div class="profile-menu-container" style="display:none;">
+                    <button class="profile-icon-btn" id="profileIconBtn" aria-haspopup="true" aria-expanded="false">
+<img src="/PICTURES/Home/logo-profile.png" alt="Profile" class="profile-icon-img">                    </button>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <a href="#" class="profile-dropdown-item" id="menuProfile">Profile</a>
+                        <a href="#" class="profile-dropdown-item" id="menuLogout">Logout</a>
+                    </div>
+                </div>
             </div>
         </nav>
     </header>

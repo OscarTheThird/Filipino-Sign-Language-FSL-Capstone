@@ -55,16 +55,24 @@ function togglePasswordVisibility(inputId, btn) {
 function updateNavAuthButtons() {
   const loginBtn = document.querySelector(".login-nav-btn");
   const registerBtn = document.querySelector(".register-nav-btn");
-  const logoutBtn = document.querySelector(".logout-nav-btn");
-
+  const profileMenu = document.querySelector(".profile-menu-container");
+  const profileIconImg = document.querySelector(".profile-icon-img");
   if (auth.currentUser) {
     loginBtn.style.display = "none";
     registerBtn.style.display = "none";
-    logoutBtn.style.display = "inline-block";
+    profileMenu.style.display = "flex";
+    // Set user photo if available, else fallback
+    if (auth.currentUser.photoURL) {
+      profileIconImg.src = auth.currentUser.photoURL;
+    } else {
+      profileIconImg.src = "/PICTURES/default-avatar.png";
+    }
   } else {
     loginBtn.style.display = "inline-block";
     registerBtn.style.display = "inline-block";
-    logoutBtn.style.display = "none";
+    profileMenu.style.display = "none";
+    // Reset profile image
+    profileIconImg.src = "/PICTURES/default-avatar.png";
   }
 }
 
@@ -78,6 +86,51 @@ async function handleLogout() {
     console.error("Logout error:", error);
     alert("Error signing out. Please try again.");
   }
+}
+
+// Profile menu: toggle dropdown
+function setupProfileDropdown() {
+  const profileMenu = document.querySelector(".profile-menu-container");
+  const profileBtn = document.getElementById("profileIconBtn");
+  const dropdown = document.getElementById("profileDropdown");
+  // Open/close menu
+  profileBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    const isOpen = profileMenu.classList.contains("open");
+    document.querySelectorAll('.profile-menu-container.open').forEach(el => el.classList.remove('open'));
+    if (!isOpen) {
+      profileMenu.classList.add("open");
+      profileBtn.setAttribute("aria-expanded", "true");
+    } else {
+      profileMenu.classList.remove("open");
+      profileBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+  // Close menu on outside click
+  document.addEventListener("click", function (e) {
+    if (!profileMenu.contains(e.target)) {
+      profileMenu.classList.remove("open");
+      profileBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+  // Keyboard accessibility
+  profileBtn.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" || e.key === "Tab") {
+      profileMenu.classList.remove("open");
+      profileBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+  // Menu actions
+  document.getElementById("menuLogout").onclick = (e) => {
+    e.preventDefault();
+    profileMenu.classList.remove("open");
+    handleLogout();
+  };
+  document.getElementById("menuProfile").onclick = (e) => {
+    e.preventDefault();
+    alert("Profile feature coming soon!"); // Placeholder
+    profileMenu.classList.remove("open");
+  };
 }
 
 // Initialize eye icons and hide them initially
@@ -144,6 +197,7 @@ window.handleLogout = handleLogout;
 document.addEventListener("DOMContentLoaded", function () {
   initializeEyeIcons();
   setupPasswordToggleListeners();
+  setupProfileDropdown();
 
   // Listen for authentication state changes
   import("https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js")
@@ -182,7 +236,6 @@ class AutoCarousel {
 
     this.slides = document.getElementById("carouselSlides");
     this.dots = document.querySelectorAll(".dot");
-    this.playPauseBtn = document.getElementById("playPauseBtn");
     this.currentSlideInfo = document.getElementById("currentSlideInfo");
 
     this.slideTexts = [
@@ -206,11 +259,6 @@ class AutoCarousel {
   }
 
   setupEventListeners() {
-    // Play/Pause button
-    this.playPauseBtn.addEventListener("click", () => {
-      this.togglePlayPause();
-    });
-
     // Dot navigation
     this.dots.forEach((dot, index) => {
       dot.addEventListener("click", () => {
@@ -279,28 +327,6 @@ class AutoCarousel {
   restartAutoPlay() {
     this.pauseAutoPlay();
     this.startAutoPlay();
-  }
-
-  togglePlayPause() {
-    this.isPlaying = !this.isPlaying;
-
-    if (this.isPlaying) {
-      this.startAutoPlay();
-      this.playPauseBtn.innerHTML = `
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                        </svg>
-                    `;
-      this.playPauseBtn.title = "Pause";
-    } else {
-      this.pauseAutoPlay();
-      this.playPauseBtn.innerHTML = `
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="m7 4 10 6L7 20V4z"/>
-                        </svg>
-                    `;
-      this.playPauseBtn.title = "Play";
-    }
   }
 }
 
