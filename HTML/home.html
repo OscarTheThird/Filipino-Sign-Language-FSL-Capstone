@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/CSS/home.css">
     <title>GestSure - Home</title>
 </head>
+
 <body>
     <!-- Header Navigation -->
     <header class="header">
@@ -30,14 +32,15 @@
         <section class="left-section">
             <div class="brand-section">
                 <div class="main-logo">
-                    <img src="/PICTURES/logo.png" alt="GestSure Logo" class="logo-image">
+                    <img src="/PICTURES/logo.png" alt="GestSure Logo" class="main-logo-image">
                 </div>
                 <h1 class="main-title">GestSure</h1>
                 <p class="main-tagline">INSTANT SIGN LANGUAGE INTERPRETER</p>
                 <div class="description">
                     <p><strong>
-                        Advanced sign that seamlessly interprets ASL and Machine Learning with computer vision to interpret sign language, provide real-time translation, and enhance ASL communication.
-                    </strong></p>
+                            Advanced sign that seamlessly interprets ASL and Machine Learning with computer vision to
+                            interpret sign language, provide real-time translation, and enhance ASL communication.
+                        </strong></p>
                 </div>
             </div>
         </section>
@@ -95,7 +98,8 @@
                     </div>
                 </div>
                 <div class="status-text">
-                    <p>This person is <span class="current-slide-info" id="currentSlideInfo">demonstrating sign language</span>.</p>
+                    <p>This person is <span class="current-slide-info" id="currentSlideInfo">demonstrating sign
+                            language</span>.</p>
                     <p>Here are some useful words and sentences for effective communication.</p>
                 </div>
             </div>
@@ -126,10 +130,13 @@
                         </div>
                         <div class="form-group password-group">
                             <label class="form-label">PASSWORD</label>
-                            <input type="password" class="form-input" id="login-password" placeholder="Enter your password" required>
-                            <button type="button" class="show-hide-btn" onclick="togglePasswordVisibility('login-password', this)">Show</button>
+                            <input type="password" class="form-input" id="login-password"
+                                placeholder="Enter your password" required>
+                            <button type="button" class="show-hide-btn"
+                                onclick="togglePasswordVisibility('login-password', this)">Show</button>
                         </div>
-                        <div id="login-error" style="color: #e11d48; display: none; margin-bottom: 8px; font-size: 14px;"></div>
+                        <div id="login-error"
+                            style="color: #e11d48; display: none; margin-bottom: 8px; font-size: 14px;"></div>
                         <button type="submit" class="login-btn">
                             LOGIN
                         </button>
@@ -187,15 +194,20 @@
                         </div>
                         <div class="form-group password-group">
                             <label class="form-label">PASSWORD</label>
-                            <input type="password" class="form-input" id="register-password" placeholder="Create a password" required>
-                            <button type="button" class="show-hide-btn" onclick="togglePasswordVisibility('register-password', this)">Show</button>
+                            <input type="password" class="form-input" id="register-password"
+                                placeholder="Create a password" required>
+                            <button type="button" class="show-hide-btn"
+                                onclick="togglePasswordVisibility('register-password', this)">Show</button>
                         </div>
                         <div class="form-group password-group">
                             <label class="form-label">CONFIRM PASSWORD</label>
-                            <input type="password" class="form-input" id="register-confirm-password" placeholder="Confirm your password" required>
-                            <button type="button" class="show-hide-btn" onclick="togglePasswordVisibility('register-confirm-password', this)">Show</button>
+                            <input type="password" class="form-input" id="register-confirm-password"
+                                placeholder="Confirm your password" required>
+                            <button type="button" class="show-hide-btn"
+                                onclick="togglePasswordVisibility('register-confirm-password', this)">Show</button>
                         </div>
-                        <div id="register-error" style="color: #e11d48; display: none; margin-bottom: 8px; font-size: 14px;"></div>
+                        <div id="register-error"
+                            style="color: #e11d48; display: none; margin-bottom: 8px; font-size: 14px;"></div>
                         <button type="submit" class="register-btn">
                             REGISTER
                         </button>
@@ -207,10 +219,11 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Load scripts as modules -->
     <script type="module" src="/JAVASCRIPT/firebase.js"></script>
     <script type="module" src="/JAVASCRIPT/home.js"></script>
-    
+
 </body>
+
 </html>

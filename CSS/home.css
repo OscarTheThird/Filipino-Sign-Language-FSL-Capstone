@@ -123,6 +123,14 @@ body {
   margin-bottom: 30px;
 }
 
+/* Main logo - significantly larger size */
+.main-logo-image {
+  width: 250px; /* Increased from 150px to 200px */
+  height: auto;
+  margin: 0 auto;
+}
+
+/* Keep other logos at their original sizes */
 .logo-image {
   width: 120px;
   height: auto;
@@ -237,7 +245,7 @@ body {
     font-size: 2.7rem;
   }
   .main-logo img {
-    width: 80px;
+    width: 200px;
   }
   .left-section,
   .right-section {
@@ -249,7 +257,11 @@ body {
   .video-frame {
     min-height: 220px;
   }
+  .main-logo-image {
+    width: 160px; /* Adjusted for tablet size */
+  }
 }
+
 @media (max-width: 900px) {
   .main-content {
     flex-direction: column;
@@ -277,6 +289,9 @@ body {
   }
   .main-logo {
     margin-bottom: 18px;
+  }
+  .main-logo-image {
+    width: 150px; /* Adjusted for mobile size */
   }
   .logo-image {
     width: 60px;
@@ -332,6 +347,9 @@ body {
   }
   .main-title {
     font-size: 1.1rem;
+  }
+  .main-logo-image {
+    width: 112px; /* Adjusted for small mobile size */
   }
 }
 
