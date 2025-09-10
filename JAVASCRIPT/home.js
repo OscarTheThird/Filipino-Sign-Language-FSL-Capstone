@@ -65,14 +65,14 @@ function updateNavAuthButtons() {
     if (auth.currentUser.photoURL) {
       profileIconImg.src = auth.currentUser.photoURL;
     } else {
-      profileIconImg.src = "/PICTURES/default-avatar.png";
+      profileIconImg.src = "/PICTURES/Home/profile.png";
     }
   } else {
     loginBtn.style.display = "inline-block";
     registerBtn.style.display = "inline-block";
     profileMenu.style.display = "none";
     // Reset profile image
-    profileIconImg.src = "/PICTURES/default-avatar.png";
+    profileIconImg.src = "/PICTURES/Home/profile.png";
   }
 }
 
