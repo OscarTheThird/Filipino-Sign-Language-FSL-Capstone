@@ -143,36 +143,21 @@ body {
     overflow: hidden;
 }
 
+/* REMOVE blue gradient line above cards */
 .category-card::before {
     content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 5px;
-    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-    transform: scaleX(0);
-    transition: transform 0.3s ease;
+    display: none;
 }
 
-.category-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
-    border-color: #3b82f6;
-}
-
-.category-card:hover::before {
-    transform: scaleX(1);
-}
-
+/* Remove blue border and shadow from active state */
 .category-card.active {
-    border-color: #3b82f6 !important;
-    box-shadow: 0 25px 60px rgba(59, 130, 246, 0.2) !important;
+    border-color: #f1f5f9 !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15) !important;
     transform: translateY(-10px) !important;
 }
 
 .category-card.active::before {
-    transform: scaleX(1) !important;
+    display: none !important;
 }
 
 /* Category Icons */
@@ -184,52 +169,35 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 4rem;
-    font-weight: 800;
-    color: white;
+    background: none; /* No colored backgrounds */
     transition: all 0.3s ease;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
 }
 
-/* Alphabet Icon */
-.alphabet-icon {
-    background: linear-gradient(135deg, #ef4444, #f97316);
-    font-size: 3rem;
-    letter-spacing: -2px;
+/* Remove individual colored backgrounds
+.alphabet-icon, .numbers-icon, .greetings-icon, .emotions-icon, .colors-icon {
+    background: none;
 }
-
-/* Numbers Icon */
-.numbers-icon {
-    background: linear-gradient(135deg, #10b981, #059669);
-    font-size: 2.5rem;
-}
-
-/* Greetings Icon */
-.greetings-icon {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    font-size: 5rem;
-}
-
-/* Emotions Icon */
-.emotions-icon {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    font-size: 3.5rem;
-}
-
-/* Colors Icon */
-.colors-icon {
-    background: linear-gradient(135deg, #ec4899, #be185d);
-}
-
-.color-wheel {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: conic-gradient(from 0deg, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ef4444);
-}
+*/
 
 .category-card:hover .category-icon {
     transform: scale(1.1) rotate(5deg);
+}
+
+/* Category icon images - fill and curve */
+.category-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    margin: 0;
+    border-radius: 20px; /* Curved image corners */
+    box-shadow: none;
+    background: none;
+    max-width: none;
+    max-height: none;
 }
 
 /* Category Title */
@@ -278,65 +246,72 @@ body {
     font-weight: 600;
 }
 
-/* Action Buttons */
-.action-buttons {
-    display: flex;
-    gap: 30px;
+/* Minimal and professional modal styles */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.13);
+    z-index: 9999;
     justify-content: center;
-    position: relative;
-    z-index: 1;
-}
-
-.action-btn {
-    background: #3b82f6;
-    color: white;
-    border: none;
-    padding: 18px 40px;
-    border-radius: 15px;
-    font-size: 1.2rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
     align-items: center;
-    gap: 12px;
-    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
 }
-
-.action-btn:hover {
-    background: #2563eb;
-    transform: translateY(-3px);
-    box-shadow: 0 15px 40px rgba(59, 130, 246, 0.4);
+.modal-box {
+    background: #fff;
+    padding: 1.7rem 1.2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    min-width: 280px;
+    max-width: 90vw;
+    text-align: center;
 }
-
-.action-btn.secondary {
-    background: #64748b;
-    box-shadow: 0 10px 30px rgba(100, 116, 139, 0.3);
+.modal-box h2 {
+    margin: 0 0 0.45em 0;
+    font-size: 1.18rem;
+    color: #222;
+    font-weight: 600;
 }
-
-.action-btn.secondary:hover {
-    background: #475569;
-    box-shadow: 0 15px 40px rgba(100, 116, 139, 0.4);
+.modal-box p {
+    font-size: 1rem;
+    color: #444;
+    margin: 0 0 1.25em 0;
 }
-
-.action-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.7rem;
 }
-
-.completion-badge {
-    position: absolute;
-    top: 15px;
-    right: 15px;
+.modal-btn {
+    padding: 0.5em 1.2em;
+    border-radius: 6px;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    background: #f3f4f6;
+    color: #222;
+    transition: background 0.17s;
+}
+.modal-btn.continue {
     background: #10b981;
-    color: white;
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+    color: #fff;
+}
+.modal-btn.continue:hover {
+    background: #059669;
+}
+.modal-btn.cancel:hover {
+    background: #e5e7eb;
+}
+.modal-close {
+    display: none;
+}
+@media (max-width: 480px) {
+    .modal-box {
+        padding: 1rem 0.5rem;
+    }
+    .modal-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
 }
 
 /* Responsive Design */
@@ -352,7 +327,13 @@ body {
     .category-icon {
         width: 120px;
         height: 120px;
-        font-size: 3.5rem;
+    }
+
+    .category-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 20px;
     }
 
     .page-title {
@@ -372,6 +353,18 @@ body {
 
     .main-content {
         padding: 30px;
+    }
+
+    .category-icon {
+        width: 100px;
+        height: 100px;
+    }
+
+    .category-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 20px;
     }
 
     .page-title {
@@ -404,18 +397,19 @@ body {
     }
 
     .category-icon {
-        width: 100px;
-        height: 100px;
-        font-size: 3rem;
+        width: 80px;
+        height: 80px;
+    }
+
+    .category-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 20px;
     }
 
     .page-title {
         font-size: 1.8rem;
-    }
-
-    .action-buttons {
-        flex-direction: column;
-        gap: 15px;
     }
 
     .background-watermark {

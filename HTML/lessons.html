@@ -36,8 +36,10 @@
         <!-- Categories Grid -->
         <div class="categories-grid">
             <!-- Alphabet Category -->
-            <div class="category-card" data-category="alphabet">
-                <div class="category-icon alphabet-icon">ABC</div>
+            <div class="category-card" data-category="alphabet" id="alphabetCard">
+                <div class="category-icon alphabet-icon">
+                    <img src="/PICTURES/Logo_Lessons/alphabet.png" alt="Alphabet Icon" class="category-img">
+                </div>
                 <h3 class="category-title">Alphabet</h3>
                 <p class="category-description">Learn the 26 letters of the ASL alphabet with interactive practice</p>
                 <div class="progress-indicator">
@@ -49,13 +51,9 @@
             </div>
 
             <!-- Numbers Category -->
-            <div class="category-card" data-category="numbers">
+            <div class="category-card" data-category="numbers" id="numbersCard">
                 <div class="category-icon numbers-icon">
-                    <div style="display: flex; gap: 5px;">
-                        <span style="color: #10b981;">5</span>
-                        <span style="color: #f59e0b;">6</span>
-                        <span style="color: #ef4444;">9</span>
-                    </div>
+                    <img src="/PICTURES/Logo_Lessons/number.png" alt="Numbers Icon" class="category-img">
                 </div>
                 <h3 class="category-title">Numbers</h3>
                 <p class="category-description">Master numbers 0-9 and basic counting in sign language</p>
@@ -68,8 +66,10 @@
             </div>
 
             <!-- Greetings Category -->
-            <div class="category-card" data-category="greetings">
-                <div class="category-icon greetings-icon">👋</div>
+            <div class="category-card" data-category="greetings" id="greetingsCard">
+                <div class="category-icon greetings-icon">
+                    <img src="/PICTURES/Logo_Lessons/greetings.png" alt="Greetings Icon" class="category-img">
+                </div>
                 <h3 class="category-title">Greetings</h3>
                 <p class="category-description">Common greetings and polite expressions for everyday conversations</p>
                 <div class="progress-indicator">
@@ -81,12 +81,9 @@
             </div>
 
             <!-- Emotions Category -->
-            <div class="category-card" data-category="emotions">
+            <div class="category-card" data-category="emotions" id="emotionsCard">
                 <div class="category-icon emotions-icon">
-                    <div style="display: flex; gap: 0px; font-size: 2.5rem;">
-                        <span style="color: #fbbf24;">😊</span>
-                        <span style="color: #06b6d4;">😢</span>
-                    </div>
+                    <img src="/PICTURES/Logo_Lessons/emotion.png" alt="Emotions Icon" class="category-img">
                 </div>
                 <h3 class="category-title">Emotions</h3>
                 <p class="category-description">Express feelings and emotions through sign language</p>
@@ -99,9 +96,9 @@
             </div>
 
             <!-- Colors Category -->
-            <div class="category-card" data-category="colors">
+            <div class="category-card" data-category="colors" id="colorsCard">
                 <div class="category-icon colors-icon">
-                    <div class="color-wheel"></div>
+                    <img src="/PICTURES/Logo_Lessons/color.png" alt="Colors Icon" class="category-img">
                 </div>
                 <h3 class="category-title">Colors</h3>
                 <p class="category-description">Learn to sign different colors and describe objects</p>
@@ -113,17 +110,22 @@
                 </div>
             </div>
         </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <button class="action-btn" id="startLearningBtn">
-                <span>🚀</span> Start Learning
-            </button>
-            <button class="action-btn secondary" id="practiceBtn">
-                <span>✨</span> Practice Mode
-            </button>
-        </div>
+        <!-- Action Buttons removed as requested -->
     </main>
-    <script src="/JAVASCRIPT/lesson.js"></script>
+
+    <!-- Minimal Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-box">
+            <h2 id="modalTitle">Continue to Lesson?</h2>
+            <p id="modalMessage">Are you sure you want to proceed to this lesson?</p>
+            <div class="modal-actions">
+                <button class="modal-btn continue" id="modalContinueBtn">Continue</button>
+                <button class="modal-btn cancel" id="modalCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/JAVASCRIPT/lessons.js"></script>
+    
 </body>
 </html>
