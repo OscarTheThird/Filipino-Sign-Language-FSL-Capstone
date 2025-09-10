@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your Profile | GestSure</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/CSS/home.css">
+  <style>
+    .profile-page-container {
+      min-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      padding: 40px 7vw 0 7vw;
+    }
+    .profile-card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 7px 32px rgba(0,0,0,0.13);
+      padding: 40px 36px 32px 36px;
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 40px;
+    }
+    .profile-card .profile-pic {
+      width: 100px; height: 100px; border-radius: 50%; object-fit: cover;
+      border: 3px solid #38b000; margin-bottom: 18px;
+      background: #f1f5f9;
+    }
+    .profile-card h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1e40af;
+      margin-bottom: 5px;
+      text-align: center;
+    }
+    .profile-card p {
+      color: #64748b;
+      font-size: 1rem;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .profile-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .profile-action-btn {
+      background: #38b000;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 22px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-weight: 600;
+    }
+    .profile-action-btn:hover { background: #2d8700; }
+    .profile-edit-section {
+      width: 100%;
+      margin-top: 22px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .profile-edit-section input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #bbb;
+      font-size: 1em;
+    }
+    .profile-edit-section label {
+      width: 100%;
+      text-align: left;
+      color: #374151;
+      font-size: 0.99em;
+      margin-bottom: 3px;
+      font-weight: 500;
+    }
+    .profile-edit-section .profile-edit-actions {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      margin-top: 8px;
+      justify-content: flex-end;
+    }
+    .profile-edit-message {
+      margin-top: 10px;
+      color: #38b000;
+      font-size: 0.97em;
+      text-align: left;
+      width: 100%;
+    }
+    @media (max-width: 500px) {
+      .profile-card { padding: 18px 5vw; }
+      .profile-page-container { padding: 12px 3vw; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header Navigation (copy from home.html) -->
+  <header class="header">
+    <nav class="navbar">
+      <div class="nav-links">
+        <a href="home.html" class="nav-link" data-route="home">Home</a>
+        <a href="interpreter.html" class="nav-link" data-route="interpreter">Interpreter</a>
+        <a href="lessons.html" class="nav-link" data-route="lessons">Lessons</a>
+      </div>
+      <div class="logo-nav">
+        <img src="/PICTURES/logo.png" alt="GestSure Logo" class="nav-logo">
+        <span class="nav-brand">GestSure</span>
+        <button class="login-nav-btn" onclick="openLoginModal()">Login</button>
+        <button class="register-nav-btn" onclick="openRegisterModal()">Register</button>
+        <!-- Profile Icon and Dropdown Menu -->
+        <div class="profile-menu-container" style="display:none;">
+          <button class="profile-icon-btn" id="profileIconBtn" aria-haspopup="true" aria-expanded="false">
+            <img src="/PICTURES/Home/profile.png" alt="Profile" class="profile-icon-img">                    
+          </button>
+          <div class="profile-dropdown" id="profileDropdown">
+            <a href="profile.html" class="profile-dropdown-item" id="menuProfile">Profile</a>
+            <a href="#" class="profile-dropdown-item" id="menuLogout">Logout</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="profile-page-container">
+    <div class="profile-card" id="profileCard">
+      <img src="/PICTURES/Home/profile.png" alt="Profile Picture" class="profile-pic" id="profilePic">
+      <h2 id="profileName">Your Name</h2>
+      <p id="profileEmail">email@example.com</p>
+      <div class="profile-actions">
+        <button class="profile-action-btn" id="editProfileBtn">Edit</button>
+      </div>
+      <form class="profile-edit-section" id="profileEditSection">
+        <label for="editName">Name</label>
+        <input type="text" id="editName" placeholder="Display Name">
+        <label for="editPhoto">Photo URL</label>
+        <input type="text" id="editPhoto" placeholder="Paste photo URL or leave blank">
+        <div class="profile-edit-actions">
+          <button type="button" class="profile-action-btn" id="saveProfileBtn">Save</button>
+          <button type="button" class="profile-action-btn" id="cancelEditBtn" style="background: #e11d48;">Cancel</button>
+        </div>
+        <div class="profile-edit-message" id="profileEditMsg"></div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Modals for login/register (optional, supports header buttons) -->
+  <div id="loginModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeLoginModal()">&times;</span>
+        <div class="login-container">
+            <div class="left-panel">
+                <img src="/PICTURES/image1.png" alt="Two people communicating" class="illustration">
+            </div>
+            <div class="right-panel">
+                <div class="logo-section">
+                    <img src="/PICTURES/logo.png" alt="GestSure Logo" class="logo-image">
+                    <h1 class="brand-name">
+                        <span class="gest">Gest</span><span class="sure">Sure</span>
+                    </h1>
+                    <p class="brand-tagline">Instant Sign Language Interpreter</p>
+                </div>
+                <h2 class="form-title">LOGIN</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label">EMAIL</label>
+                        <input type="email" class="form-input" placeholder="Enter your email address" required>
+                    </div>
+                    <div class="form-group password-group">
+                        <label class="form-label">PASSWORD</label>
+                        <input type="password" class="form-input" id="login-password"
+                            placeholder="Enter your password" required>
+                        <button type="button" class="show-hide-btn"
+                            onclick="togglePasswordVisibility('login-password', this)">Show</button>
+                    </div>
+                    <div id="login-error"
+                        style="color: #e11d48; display: none; margin-bottom: 8px; font-size: 14px;"></div>
+                    <button type="submit" class="login-btn">
+                        LOGIN
+                    </button>
+                </form>
+                <div class="form-footer">
+                    Don't have an account? <a href="#" onclick="switchToRegisterModal(event)">Create account</a>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <div id="registerModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeRegisterModal()">&times;</span>
+        <div class="login-container">
+            <div class="left-panel">
+                <img src="/PICTURES/image1.png" alt="Two people communicating" class="illustration">
+            </div>
+            <div class="right-panel">
+                <div class="logo-section">
+                    <img src="/PICTURES/logo.png" alt="GestSure Logo" class="logo-image">
+                    <h1 class="brand-name">
+                        <span class="gest">Gest</span><span class="sure">Sure</span>
+                    </h1>
+                    <p class="brand-tagline">Instant Sign Language Interpreter</p>
+                </div>
+                <h2 class="form-title">REGISTER</h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label class="form-label">FULL NAME</label>
+                        <input type="text" class="form-input" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">EMAIL</label>
+                        <input type="email" class="form-input" placeholder="Enter your email address" required>
+                    </div>
+                    <div class="form-group password-group">
+                        <label class="form-label">PASSWORD</label>
+                        <input type="password" class="form-input" id="register-password"
+                            placeholder="Create a password" required>
+                        <button type="button" class="show-hide-btn"
+                            onclick="togglePasswordVisibility('register-password', this)">Show</button>
+                    </div>
+                    <div class="form-group password-group">
+                        <label class="form-label">CONFIRM PASSWORD</label>
+                        <input type="password" class="form-input" id="register-confirm-password"
+                            placeholder="Confirm your password" required>
+                        <button type="button" class="show-hide-btn"
+                            onclick="togglePasswordVisibility('register-confirm-password', this)">Show</button>
+                    </div>
+                    <div id="register-error"
+                        style="color: #e11d48; display: none; margin-bottom: 8px; font-size: 14px;"></div>
+                    <button type="submit" class="register-btn">
+                        REGISTER
+                    </button>
+                </form>
+                <div class="form-footer">
+                    Have an account? <a href="#" onclick="switchToLoginModal(event)">Login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <script type="module" src="/JAVASCRIPT/firebase.js"></script>
+  <script type="module" src="/JAVASCRIPT/profile.js"></script>
+  <script type="module" src="/JAVASCRIPT/home.js"></script>
+  <script type="module" src="/JAVASCRIPT/login.js"></script>
+  <script type="module" src="/JAVASCRIPT/register.js"></script>
+</body>
+</html>

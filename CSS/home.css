@@ -756,6 +756,49 @@ body {
   font-weight: 600;
 }
 
+/* --- Profile Modal Styles --- */
+#profileModal {
+  display: none;
+  position: fixed;
+  z-index: 1200;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.27);
+  overflow:auto;
+}
+.profile-modal-content {
+  background: #fff;
+  margin: 60px auto 0 auto;
+  border-radius: 10px;
+  box-shadow: 0 5px 32px rgba(0,0,0,0.19);
+  width: 350px;
+  padding: 32px;
+  position: relative;
+  animation: fadeIn 0.18s;
+}
+.profile-modal-main {
+  display: flex; flex-direction: column; align-items: center;
+}
+.profile-modal-img {
+  width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 18px;
+  border: 3px solid #38b000;
+}
+.profile-modal-name {
+  font-size: 1.3em; margin: 0; font-weight: 600; color: #111;
+}
+.profile-modal-email {
+  color: #666; font-size: 1em; margin-bottom: 16px; margin-top: 4px;
+}
+.profile-modal-actions { margin: 12px 0 0 0; }
+.profile-modal-btn {
+  background: #38b000; color: #fff; border: none; border-radius: 6px;
+  padding: 7px 20px; margin: 0 4px; font-size: 1em; cursor: pointer;
+  transition: background 0.2s;
+}
+.profile-modal-btn:hover { background: #2d8700; }
+.profile-edit-input { width: 92%; padding: 6px; margin: 4px 0 8px 0; border-radius: 4px; border: 1px solid #bbb; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
 @media (max-width: 968px) {
   .modal-content {
     max-width: 97vw;
@@ -795,5 +838,9 @@ body {
   }
   .right-panel {
     padding: 15px 5px;
+  }
+  .profile-modal-content {
+    width: 96vw !important;
+    padding: 17px !important;
   }
 }

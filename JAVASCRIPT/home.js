@@ -88,11 +88,10 @@ async function handleLogout() {
   }
 }
 
-// Profile menu: toggle dropdown
+// Profile menu: toggle dropdown and profile navigation
 function setupProfileDropdown() {
   const profileMenu = document.querySelector(".profile-menu-container");
   const profileBtn = document.getElementById("profileIconBtn");
-  const dropdown = document.getElementById("profileDropdown");
   // Open/close menu
   profileBtn.addEventListener("click", function (e) {
     e.stopPropagation();
@@ -128,8 +127,9 @@ function setupProfileDropdown() {
   };
   document.getElementById("menuProfile").onclick = (e) => {
     e.preventDefault();
-    alert("Profile feature coming soon!"); // Placeholder
     profileMenu.classList.remove("open");
+    // Navigate to profile page
+    window.location.href = "profile.html";
   };
 }
 
