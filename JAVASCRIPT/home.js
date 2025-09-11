@@ -76,8 +76,13 @@ function updateNavAuthButtons() {
   }
 }
 
-// Handle logout
+// Handle logout with confirmation popup
 async function handleLogout() {
+  // Custom popup confirmation
+  if (!await showLogoutConfirmation()) {
+    // If user cancels, do nothing
+    return;
+  }
   try {
     await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js")
       .then(({ signOut }) => signOut(auth));
@@ -86,6 +91,79 @@ async function handleLogout() {
     console.error("Logout error:", error);
     alert("Error signing out. Please try again.");
   }
+}
+
+// Show confirmation modal for logout, returns a Promise<boolean>
+function showLogoutConfirmation() {
+  return new Promise((resolve) => {
+    // If already present, remove previous
+    let oldModal = document.getElementById('logoutConfirmModal');
+    if (oldModal) oldModal.remove();
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.id = 'logoutConfirmModal';
+    modal.style.position = 'fixed';
+    modal.style.left = 0;
+    modal.style.top = 0;
+    modal.style.width = '100vw';
+    modal.style.height = '100vh';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.35)';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.zIndex = 99999;
+
+    // Modal box
+    const box = document.createElement('div');
+    box.style.backgroundColor = '#fff';
+    box.style.borderRadius = '12px';
+    box.style.boxShadow = '0 4px 24px rgba(0,0,0,0.17)';
+    box.style.padding = '32px 28px 20px 28px';
+    box.style.maxWidth = '350px';
+    box.style.textAlign = 'center';
+    box.style.position = 'relative';
+
+    // Modal content
+    box.innerHTML = `
+      <h2 style="font-size: 1.25rem; margin: 0 0 12px;">Confirm Logout</h2>
+      <p style="color:#444; margin-bottom: 24px;">Are you sure you want to log out of your account?</p>
+      <div style="display:flex; gap:12px; justify-content:center;">
+        <button id="logoutYesBtn" style="padding:8px 18px; border:none; border-radius:6px; background:#e11d48; color:#fff; font-weight:600; cursor:pointer;">Yes, Logout</button>
+        <button id="logoutNoBtn" style="padding:8px 18px; border:none; border-radius:6px; background:#ddd; color:#333; font-weight:500; cursor:pointer;">Cancel</button>
+      </div>
+    `;
+
+    modal.appendChild(box);
+    document.body.appendChild(modal);
+
+    // Yes = resolve true, No = resolve false
+    document.getElementById('logoutYesBtn').onclick = () => {
+      document.body.removeChild(modal);
+      resolve(true);
+    };
+    document.getElementById('logoutNoBtn').onclick = () => {
+      document.body.removeChild(modal);
+      resolve(false);
+    };
+
+    // Close on escape key or click outside box
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+        resolve(false);
+      }
+    };
+    document.addEventListener('keydown', function escListener(e) {
+      if (e.key === "Escape") {
+        if (document.body.contains(modal)) {
+          document.body.removeChild(modal);
+          resolve(false);
+        }
+        document.removeEventListener('keydown', escListener);
+      }
+    });
+  });
 }
 
 // Profile menu: toggle dropdown and profile navigation
