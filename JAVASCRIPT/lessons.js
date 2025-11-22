@@ -53,12 +53,23 @@ const defaultProgressData = {
 
 let progressData = { ...defaultProgressData };
 let currentUser = null;
+let domElementsCache = null;
+let selectedLessonHref = '';
 
-// OPTIMIZATION 1: Get progress from sessionStorage IMMEDIATELY (synchronous)
-// This reads from the individual lesson caches that each lesson page creates
+// OPTIMIZATION 1: Synchronous cache loading from individual lesson caches
 function getCachedProgressSync() {
     try {
-        // Map of card IDs to their sessionStorage keys
+        // Check if we have a current user ID to validate cache
+        const cachedUserId = sessionStorage.getItem('cached_user_id');
+        const currentUserId = currentUser?.uid;
+        
+        // If user has changed, clear all caches
+        if (cachedUserId && currentUserId && cachedUserId !== currentUserId) {
+            console.log('🔄 User changed, clearing old cache');
+            clearAllCaches();
+            return null;
+        }
+        
         const lessonCacheKeys = {
             alphabetCard: 'alphabet_learned',
             numbersCard: 'numbers_learned',
@@ -82,7 +93,6 @@ function getCachedProgressSync() {
                     const parsed = JSON.parse(cache);
                     // Check if cache is still valid (1 hour)
                     if (parsed.timestamp && Date.now() - parsed.timestamp < 60 * 60 * 1000) {
-                        // Get the learned items array (could be letters, numbers, items, etc.)
                         const learned = parsed.letters || parsed.numbers || parsed.items || [];
                         syncedData[cardId] = {
                             completed: learned.length,
@@ -102,11 +112,10 @@ function getCachedProgressSync() {
             return syncedData;
         }
 
-        // Fall back to combined cache if individual caches not found
+        // Fall back to combined cache
         const combinedCache = sessionStorage.getItem('progress_all');
         if (combinedCache) {
             const { data, timestamp } = JSON.parse(combinedCache);
-            // Cache valid for 5 minutes
             if (Date.now() - timestamp < 5 * 60 * 1000) {
                 return data;
             }
@@ -117,18 +126,152 @@ function getCachedProgressSync() {
     return null;
 }
 
+function clearAllCaches() {
+    try {
+        // Clear all lesson-specific caches
+        const cacheKeys = [
+            'alphabet_learned',
+            'numbers_learned',
+            'greetings_learned',
+            'whquestions_learned',
+            'family_learned',
+            'phrases_learned',
+            'days_learned',
+            'progress_all',
+            'cached_user_id'
+        ];
+        
+        cacheKeys.forEach(key => {
+            sessionStorage.removeItem(key);
+        });
+        
+        console.log('🗑️ All caches cleared');
+    } catch (error) {
+        console.error('Error clearing caches:', error);
+    }
+}
+
 function setCachedProgress(data) {
     try {
+        // Store the current user ID with the cache
+        if (currentUser) {
+            sessionStorage.setItem('cached_user_id', currentUser.uid);
+        }
+        
         sessionStorage.setItem('progress_all', JSON.stringify({
             data,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            userId: currentUser?.uid
         }));
     } catch (error) {
         console.error('Error setting cache:', error);
     }
 }
 
-// OPTIMIZATION 2: Load all progress in a single batch read using getDocs
+// Pre-load DOM elements and prepare for instant update
+function cacheDOMElements() {
+    const elements = {};
+    Object.keys(progressData).forEach(cardId => {
+        const card = document.getElementById(cardId);
+        if (card) {
+            elements[cardId] = {
+                card,
+                progressBar: card.querySelector('.progress-fill'),
+                progressText: card.querySelector('.progress-text')
+            };
+        }
+    });
+    domElementsCache = elements;
+    return elements;
+}
+
+// OPTIMIZATION 2: Ultra-fast synchronous batch update - ALL PROGRESS LOADS SIMULTANEOUSLY
+function updateAllProgressInstantlySync() {
+    const elements = domElementsCache || cacheDOMElements();
+    
+    // CRITICAL FIX: Collect all data FIRST before any DOM manipulation
+    // This ensures we have all progress data ready before rendering
+    const updates = [];
+    
+    for (const cardId of Object.keys(progressData)) {
+        const el = elements[cardId];
+        if (el && el.progressBar && el.progressText) {
+            updates.push({
+                progressBar: el.progressBar,
+                progressText: el.progressText,
+                card: el.card,
+                data: progressData[cardId]
+            });
+        }
+    }
+    
+    // Only proceed if we have ALL elements ready
+    if (updates.length !== Object.keys(progressData).length) {
+        console.warn('Not all DOM elements ready yet');
+        return;
+    }
+    
+    // CRITICAL: Use a single synchronous operation with CSS variable trick
+    // This forces the browser to render all changes in one paint cycle
+    const fragment = document.createDocumentFragment();
+    const tempStyle = document.createElement('style');
+    tempStyle.id = 'progress-instant-load';
+    tempStyle.textContent = `
+        .progress-fill { 
+            transition: none !important;
+            will-change: width, background;
+        }
+        .progress-text {
+            will-change: contents;
+        }
+    `;
+    
+    // Remove old style if exists
+    const oldStyle = document.getElementById('progress-instant-load');
+    if (oldStyle) oldStyle.remove();
+    
+    fragment.appendChild(tempStyle);
+    document.head.appendChild(fragment);
+    
+    // Force a reflow to ensure style is applied
+    void document.body.offsetHeight;
+    
+    // BATCH ALL DOM WRITES - Apply ALL updates in one synchronous loop
+    for (let i = 0; i < updates.length; i++) {
+        const { progressBar, progressText, data, card } = updates[i];
+        
+        // Set all properties at once
+        progressBar.style.cssText = `width: ${data.percentage}%;`;
+        progressText.textContent = `${data.completed}/${data.total} completed`;
+        progressText.style.opacity = '1';
+        
+        // Set color based on progress
+        if (data.percentage === 100) {
+            progressBar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+            if (!card.classList.contains('completed-lesson')) {
+                card.classList.add('completed-lesson');
+            }
+        } else if (data.percentage >= 50) {
+            progressBar.style.background = 'linear-gradient(90deg, #3b82f6, #8b5cf6)';
+        } else if (data.percentage > 0) {
+            progressBar.style.background = 'linear-gradient(90deg, #f59e0b, #f97316)';
+        } else {
+            progressBar.style.background = '#e2e8f0';
+        }
+    }
+    
+    // Force immediate paint - ALL bars render at once
+    void document.body.offsetHeight;
+    
+    // Re-enable transitions after paint
+    requestAnimationFrame(() => {
+        if (tempStyle && tempStyle.parentNode) {
+            tempStyle.remove();
+        }
+    });
+}
+
+// OPTIMIZATION 3: Batch load all progress in one Firestore query
 async function loadAllProgress() {
     if (!currentUser) {
         console.warn('No user logged in');
@@ -146,7 +289,7 @@ async function loadAllProgress() {
             daysCard: 'days'
         };
 
-        // BATCH READ: Get all progress documents at once
+        // Single batch read for all progress documents
         const progressRef = collection(db, 'users', currentUser.uid, 'progress');
         const querySnapshot = await getDocs(progressRef);
         
@@ -154,7 +297,6 @@ async function loadAllProgress() {
             const progressId = doc.id;
             const data = doc.data();
             
-            // Find the corresponding card ID
             const cardId = Object.keys(progressMapping).find(
                 key => progressMapping[key] === progressId
             );
@@ -171,109 +313,119 @@ async function loadAllProgress() {
         // Cache the loaded data
         setCachedProgress(progressData);
         
-        updateAllProgress();
+        // Update UI with fresh data
+        updateAllProgressInstantlySync();
         console.log('✓ Progress synced from Firestore for all lessons');
     } catch (error) {
         console.error('Error loading progress:', error);
     }
 }
 
-// OPTIMIZATION 3: Use requestAnimationFrame for smooth UI updates
-function updateAllProgress() {
-    requestAnimationFrame(() => {
-        Object.keys(progressData).forEach(cardId => {
-            const card = document.getElementById(cardId);
-            if (card) {
-                const progressBar = card.querySelector('.progress-fill');
-                const progressText = card.querySelector('.progress-text');
-                const data = progressData[cardId];
-                
-                if (progressBar && progressText) {
-                    // Update progress bar width
-                    progressBar.style.width = `${data.percentage}%`;
-                    
-                    // Update progress text
-                    progressText.textContent = `${data.completed}/${data.total} completed`;
-                    
-                    // Add visual feedback based on progress
-                    if (data.percentage === 100) {
-                        progressBar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
-                        card.classList.add('completed-lesson');
-                    } else if (data.percentage >= 50) {
-                        progressBar.style.background = 'linear-gradient(90deg, #3b82f6, #8b5cf6)';
-                    } else if (data.percentage > 0) {
-                        progressBar.style.background = 'linear-gradient(90deg, #f59e0b, #f97316)';
-                    } else {
-                        progressBar.style.background = '#e2e8f0';
-                    }
-                }
-            }
-        });
-    });
-}
+// CRITICAL: Initialize with cached data BEFORE anything else
+// DON'T load cache here - wait for auth to verify user first
+let cachedProgressData = null;
 
-let selectedLessonHref = '';
-
-// OPTIMIZATION 4: Show loading state
-function showLoadingState() {
-    Object.keys(progressData).forEach(cardId => {
-        const card = document.getElementById(cardId);
-        if (card) {
-            const progressText = card.querySelector('.progress-text');
-            if (progressText) {
-                progressText.textContent = 'Loading...';
-                progressText.style.opacity = '0.6';
-            }
+// ULTRA-FAST: Execute immediately without waiting for any events
+// This runs the moment the script loads
+(function immediateInit() {
+    const runUpdate = () => {
+        if (document.body) {
+            cacheDOMElements();
+            // Show default progress initially (will update when auth loads)
+            updateAllProgressInstantlySync();
+        } else {
+            // If body not ready, try again in 1ms
+            setTimeout(runUpdate, 1);
         }
-    });
-}
-
-function hideLoadingState() {
-    Object.keys(progressData).forEach(cardId => {
-        const card = document.getElementById(cardId);
-        if (card) {
-            const progressText = card.querySelector('.progress-text');
-            if (progressText) {
-                progressText.style.opacity = '1';
-            }
-        }
-    });
-}
-
-// CRITICAL: Load cached progress IMMEDIATELY (before auth)
-const cachedProgressData = getCachedProgressSync();
-if (cachedProgressData) {
-    progressData = cachedProgressData;
-    console.log('⚡ Instant progress display from cache');
-}
+    };
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runUpdate);
+    } else {
+        runUpdate();
+    }
+})();
 
 // Auth state observer
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        currentUser = user;
-        
-        // Show cached data immediately if available
-        if (cachedProgressData) {
-            updateAllProgress();
-        } else {
-            showLoadingState();
+        // Check if this is a different user than cached
+        const cachedUserId = sessionStorage.getItem('cached_user_id');
+        if (cachedUserId && cachedUserId !== user.uid) {
+            console.log('🔄 Different user detected, clearing cache and resetting');
+            clearAllCaches();
+            progressData = { ...defaultProgressData };
+            domElementsCache = null;
         }
         
-        // Load fresh data from Firestore in background
-        await loadAllProgress();
-        hideLoadingState();
+        currentUser = user;
+        
+        // Store current user ID
+        sessionStorage.setItem('cached_user_id', user.uid);
+        
+        // Ensure DOM is cached
+        if (!domElementsCache) cacheDOMElements();
+        
+        // CRITICAL FIX: Load cache and Firestore data FIRST, then update UI ONCE
+        let finalProgressData = { ...defaultProgressData };
+        
+        // Check for valid cached data
+        const validCache = getCachedProgressSync();
+        if (validCache) {
+            finalProgressData = validCache;
+            console.log('📦 Using cached progress');
+        }
+        
+        // Load fresh data from Firestore (this overwrites cache if different)
+        try {
+            const progressMapping = {
+                alphabetCard: 'alphabet',
+                numbersCard: 'numbers',
+                greetingsCard: 'greetings',
+                whquestionsCard: 'whquestions',
+                familyCard: 'family',
+                phrasesCard: 'phrases',
+                daysCard: 'days'
+            };
+
+            const progressRef = collection(db, 'users', currentUser.uid, 'progress');
+            const querySnapshot = await getDocs(progressRef);
+            
+            querySnapshot.forEach((doc) => {
+                const progressId = doc.id;
+                const data = doc.data();
+                
+                const cardId = Object.keys(progressMapping).find(
+                    key => progressMapping[key] === progressId
+                );
+                
+                if (cardId) {
+                    finalProgressData[cardId] = {
+                        completed: data.completed || 0,
+                        total: data.total || defaultProgressData[cardId].total,
+                        percentage: data.percentage || 0
+                    };
+                }
+            });
+            
+            console.log('✓ Firestore data loaded');
+        } catch (error) {
+            console.error('Error loading from Firestore:', error);
+        }
+        
+        // NOW update progressData and render ALL at once
+        progressData = finalProgressData;
+        setCachedProgress(progressData);
+        updateAllProgressInstantlySync();
+        
+        console.log('✅ All progress updated simultaneously');
     } else {
         console.warn('No user logged in. Showing default progress.');
+        clearAllCaches();
         currentUser = null;
         progressData = { ...defaultProgressData };
-        updateAllProgress();
+        updateAllProgressInstantlySync();
     }
-});
-
-// Initialize progress when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Show cached progress immediately
-    updateAllProgress();
 });
 
 // Event listeners for lesson cards
