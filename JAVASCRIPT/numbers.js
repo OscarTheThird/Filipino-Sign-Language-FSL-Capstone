@@ -1,3 +1,8 @@
+// Import Firebase modules
+import { auth, db } from './firebase.js';
+import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
 // Filipino Sign Language Numbers Data
 const numbersData = [
     { number: '1', desc: `<strong>Number 1</strong><br>Ex. "Isa ang araw ng pahinga sa isang linggo."`, img: '/PICTURES/fsl_numbers/1.png' },
@@ -14,6 +19,70 @@ const numbersData = [
 
 let current = 0;
 let isAnimating = false;
+let currentUser = null;
+let learnedNumbers = new Set();
+let isInitialized = false;
+
+// OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
+function getLastPositionSync() {
+    try {
+        const cached = sessionStorage.getItem('numbers_position');
+        if (cached) {
+            const { number, timestamp } = JSON.parse(cached);
+            // Cache valid for 24 hours
+            if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+                const index = numbersData.findIndex(item => item.number === number);
+                if (index !== -1) {
+                    return index;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error reading position cache:', error);
+    }
+    return 0; // Default to '1'
+}
+
+// OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
+function savePositionSync(number) {
+    try {
+        sessionStorage.setItem('numbers_position', JSON.stringify({
+            number,
+            timestamp: Date.now()
+        }));
+    } catch (error) {
+        console.error('Error saving position cache:', error);
+    }
+}
+
+// OPTIMIZATION 3: Get learned numbers from sessionStorage
+function getLearnedNumbersSync() {
+    try {
+        const cached = sessionStorage.getItem('numbers_learned');
+        if (cached) {
+            const { numbers, timestamp } = JSON.parse(cached);
+            // Cache valid for 1 hour
+            if (Date.now() - timestamp < 60 * 60 * 1000) {
+                return new Set(numbers);
+            }
+        }
+    } catch (error) {
+        console.error('Error reading learned cache:', error);
+    }
+    return new Set();
+}
+
+// OPTIMIZATION 4: Save learned numbers to sessionStorage
+function saveLearnedNumbersSync(numbers) {
+    try {
+        sessionStorage.setItem('numbers_learned', JSON.stringify({
+            numbers: Array.from(numbers),
+            timestamp: Date.now()
+        }));
+    } catch (error) {
+        console.error('Error saving learned cache:', error);
+    }
+}
 
 // Preload images for smoother transitions
 function preloadImages() {
@@ -23,16 +92,116 @@ function preloadImages() {
     });
 }
 
-function updateLesson(direction = 'next') {
-    if (isAnimating) return;
+// Load user progress from Firebase (background task)
+async function loadUserProgress() {
+    if (!currentUser) return;
+
+    try {
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'numbers');
+        const progressSnap = await getDoc(progressRef);
+
+        if (progressSnap.exists()) {
+            const data = progressSnap.data();
+            learnedNumbers = new Set(data.learnedNumbers || []);
+            
+            // Update sessionStorage with fresh data from Firebase
+            saveLearnedNumbersSync(learnedNumbers);
+            
+            // Update position if different from cached
+            if (data.lastViewedNumber) {
+                const lastIndex = numbersData.findIndex(item => item.number === data.lastViewedNumber);
+                if (lastIndex !== -1 && lastIndex !== current) {
+                    current = lastIndex;
+                    savePositionSync(data.lastViewedNumber);
+                    updateLesson('next', true); // Update display silently
+                }
+            }
+            
+            console.log('✓ Background sync complete:', learnedNumbers.size, 'numbers learned');
+        } else {
+            // Initialize progress document if it doesn't exist
+            await setDoc(progressRef, {
+                learnedNumbers: [],
+                total: 10,
+                lastViewedNumber: numbersData[current].number,
+                lastUpdated: new Date()
+            });
+        }
+    } catch (error) {
+        console.error('Error loading progress:', error);
+    }
+}
+
+// Save user progress to Firebase (async, non-blocking)
+async function saveUserProgress() {
+    if (!currentUser) return;
+
+    try {
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'numbers');
+        const learnedArray = Array.from(learnedNumbers);
+        const currentNumber = numbersData[current].number;
+        
+        // Save to sessionStorage immediately
+        saveLearnedNumbersSync(learnedNumbers);
+        savePositionSync(currentNumber);
+        
+        // Save to Firebase in background
+        await setDoc(progressRef, {
+            learnedNumbers: learnedArray,
+            completed: learnedArray.length,
+            total: 10,
+            percentage: Math.round((learnedArray.length / 10) * 100),
+            lastViewedNumber: currentNumber,
+            lastUpdated: new Date()
+        }, { merge: true });
+
+        console.log('✓ Progress saved:', learnedArray.length, '/', 10, '- At:', currentNumber);
+    } catch (error) {
+        console.error('Error saving progress:', error);
+    }
+}
+
+// Mark current number as learned
+function markNumberAsLearned() {
+    const currentNumber = numbersData[current].number;
     
-    isAnimating = true;
+    if (!learnedNumbers.has(currentNumber)) {
+        learnedNumbers.add(currentNumber);
+    }
+    
+    // Save progress (non-blocking)
+    saveUserProgress();
+}
+
+function updateLesson(direction = 'next', skipAnimation = false) {
+    if (isAnimating && !skipAnimation) return;
+    
+    if (!skipAnimation) {
+        isAnimating = true;
+    }
     
     const numberEl = document.getElementById('letter');
     const descEl = document.getElementById('desc');
     const imgEl = document.getElementById('signImg');
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
+    
+    if (skipAnimation) {
+        // Immediate update without animation
+        numberEl.innerHTML = numbersData[current].number + 
+            ` <span class="number-visual" style="font-size:0.7em; color:#6d42c7; margin-left:8px;">${'●'.repeat(parseInt(numbersData[current].number) <= 5 ? parseInt(numbersData[current].number) : 5)}${parseInt(numbersData[current].number) > 5 ? '...' : ''}</span>`;
+        descEl.innerHTML = `<p>${numbersData[current].desc}</p>`;
+        imgEl.src = numbersData[current].img;
+        imgEl.alt = `Hand sign for ${numbersData[current].number}`;
+        updateNavButtons();
+        updateNumberStyling();
+        
+        // Mark as learned after initial display
+        if (isInitialized) {
+            markNumberAsLearned();
+        }
+        return;
+    }
     
     // Determine animation direction
     const slideOutClass = direction === 'next' ? 'slide-out-left' : 'slide-out-right';
@@ -44,6 +213,9 @@ function updateLesson(direction = 'next') {
     
     // Update content after a short delay for smooth transition
     setTimeout(() => {
+        // Mark current number as learned before moving
+        markNumberAsLearned();
+        
         // Update the content
         numberEl.innerHTML = numbersData[current].number + 
             ` <span class="number-visual" style="font-size:0.7em; color:#6d42c7; margin-left:8px;">${'●'.repeat(parseInt(numbersData[current].number) <= 5 ? parseInt(numbersData[current].number) : 5)}${parseInt(numbersData[current].number) > 5 ? '...' : ''}</span>`;
@@ -305,14 +477,32 @@ function handleSwipe() {
     }
 }
 
+// Auth state observer (runs in background)
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        currentUser = user;
+        // Load progress in background without blocking UI
+        loadUserProgress();
+    } else {
+        console.warn('No user logged in. Progress will not be saved.');
+        currentUser = null;
+    }
+});
+
+// CRITICAL: Initialize IMMEDIATELY with cached data
+current = getLastPositionSync(); // Get cached position synchronously
+learnedNumbers = getLearnedNumbersSync(); // Get cached learned numbers
+
+console.log(`⚡ Instant resume at number: ${numbersData[current].number}`);
+
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
     preloadImages();
-    updateNavButtons();
-    updateNumberStyling();
     
-    // Add a subtle loading fade-in effect
+    // INSTANT display with cached position - NO LOADING DELAY
+    updateLesson('next', true);
+    
     const lessonCard = document.querySelector('.lesson-card');
     lessonCard.style.opacity = '0';
     lessonCard.style.transform = 'translateY(20px)';
@@ -321,6 +511,13 @@ document.addEventListener('DOMContentLoaded', function() {
         lessonCard.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
         lessonCard.style.opacity = '1';
         lessonCard.style.transform = 'translateY(0)';
+        
+        // Mark as initialized after fade-in completes
+        setTimeout(() => {
+            isInitialized = true;
+            // Mark current number as learned now that we're initialized
+            markNumberAsLearned();
+        }, 600);
     }, 100);
 });
 
@@ -338,8 +535,3 @@ document.querySelectorAll('.nav-arrow').forEach(btn => {
         this.style.transform = 'translateY(-50%) scale(1)';
     });
 });
-
-// Initially show '1'
-setTimeout(() => {
-    updateLesson();
-}, 50);

@@ -1,3 +1,8 @@
+// Import Firebase modules
+import { auth, db } from './firebase.js';
+import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
 // Filipino Alphabet A-Z (with example words)
 const alphabetData = [
     { letter: 'A', desc: `<strong>The first letter of the Filipino alphabet.</strong><br>—often used to begin words and names.<br>Ex. "A is for aso (dog)."`, img: '/PICTURES/fsl_alphabet/a.png' },
@@ -30,6 +35,70 @@ const alphabetData = [
 
 let current = 0;
 let isAnimating = false;
+let currentUser = null;
+let learnedLetters = new Set();
+let isInitialized = false;
+
+// OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
+function getLastPositionSync() {
+    try {
+        const cached = sessionStorage.getItem('alphabet_position');
+        if (cached) {
+            const { letter, timestamp } = JSON.parse(cached);
+            // Cache valid for 24 hours
+            if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+                const index = alphabetData.findIndex(item => item.letter === letter);
+                if (index !== -1) {
+                    return index;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error reading position cache:', error);
+    }
+    return 0; // Default to 'A'
+}
+
+// OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
+function savePositionSync(letter) {
+    try {
+        sessionStorage.setItem('alphabet_position', JSON.stringify({
+            letter,
+            timestamp: Date.now()
+        }));
+    } catch (error) {
+        console.error('Error saving position cache:', error);
+    }
+}
+
+// OPTIMIZATION 3: Get learned letters from sessionStorage
+function getLearnedLettersSync() {
+    try {
+        const cached = sessionStorage.getItem('alphabet_learned');
+        if (cached) {
+            const { letters, timestamp } = JSON.parse(cached);
+            // Cache valid for 1 hour
+            if (Date.now() - timestamp < 60 * 60 * 1000) {
+                return new Set(letters);
+            }
+        }
+    } catch (error) {
+        console.error('Error reading learned cache:', error);
+    }
+    return new Set();
+}
+
+// OPTIMIZATION 4: Save learned letters to sessionStorage
+function saveLearnedLettersSync(letters) {
+    try {
+        sessionStorage.setItem('alphabet_learned', JSON.stringify({
+            letters: Array.from(letters),
+            timestamp: Date.now()
+        }));
+    } catch (error) {
+        console.error('Error saving learned cache:', error);
+    }
+}
 
 // Preload images for smoother transitions
 function preloadImages() {
@@ -39,16 +108,114 @@ function preloadImages() {
     });
 }
 
-function updateLesson(direction = 'next') {
-    if (isAnimating) return;
+// Load user progress from Firebase (background task)
+async function loadUserProgress() {
+    if (!currentUser) return;
+
+    try {
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'alphabet');
+        const progressSnap = await getDoc(progressRef);
+
+        if (progressSnap.exists()) {
+            const data = progressSnap.data();
+            learnedLetters = new Set(data.learnedLetters || []);
+            
+            // Update sessionStorage with fresh data from Firebase
+            saveLearnedLettersSync(learnedLetters);
+            
+            // Update position if different from cached
+            if (data.lastViewedLetter) {
+                const lastIndex = alphabetData.findIndex(item => item.letter === data.lastViewedLetter);
+                if (lastIndex !== -1 && lastIndex !== current) {
+                    current = lastIndex;
+                    savePositionSync(data.lastViewedLetter);
+                    updateLesson('next', true); // Update display silently
+                }
+            }
+            
+            console.log('✓ Background sync complete:', learnedLetters.size, 'letters learned');
+        } else {
+            // Initialize progress document if it doesn't exist
+            await setDoc(progressRef, {
+                learnedLetters: [],
+                total: 26,
+                lastViewedLetter: alphabetData[current].letter,
+                lastUpdated: new Date()
+            });
+        }
+    } catch (error) {
+        console.error('Error loading progress:', error);
+    }
+}
+
+// Save user progress to Firebase (async, non-blocking)
+async function saveUserProgress() {
+    if (!currentUser) return;
+
+    try {
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'alphabet');
+        const learnedArray = Array.from(learnedLetters);
+        const currentLetter = alphabetData[current].letter;
+        
+        // Save to sessionStorage immediately
+        saveLearnedLettersSync(learnedLetters);
+        savePositionSync(currentLetter);
+        
+        // Save to Firebase in background
+        await setDoc(progressRef, {
+            learnedLetters: learnedArray,
+            completed: learnedArray.length,
+            total: 26,
+            percentage: Math.round((learnedArray.length / 26) * 100),
+            lastViewedLetter: currentLetter,
+            lastUpdated: new Date()
+        }, { merge: true });
+
+        console.log('✓ Progress saved:', learnedArray.length, '/', 26, '- At:', currentLetter);
+    } catch (error) {
+        console.error('Error saving progress:', error);
+    }
+}
+
+// Mark current letter as learned
+function markLetterAsLearned() {
+    const currentLetter = alphabetData[current].letter;
     
-    isAnimating = true;
+    if (!learnedLetters.has(currentLetter)) {
+        learnedLetters.add(currentLetter);
+    }
+    
+    // Save progress (non-blocking)
+    saveUserProgress();
+}
+
+function updateLesson(direction = 'next', skipAnimation = false) {
+    if (isAnimating && !skipAnimation) return;
+    
+    if (!skipAnimation) {
+        isAnimating = true;
+    }
     
     const letterEl = document.getElementById('letter');
     const descEl = document.getElementById('desc');
     const imgEl = document.getElementById('signImg');
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
+    
+    if (skipAnimation) {
+        // Immediate update without animation
+        letterEl.textContent = alphabetData[current].letter;
+        descEl.innerHTML = `<p>${alphabetData[current].desc}</p>`;
+        imgEl.src = alphabetData[current].img;
+        imgEl.alt = `Hand sign for ${alphabetData[current].letter}`;
+        updateNavButtons();
+        
+        // Mark as learned after initial display
+        if (isInitialized) {
+            markLetterAsLearned();
+        }
+        return;
+    }
     
     // Determine animation direction
     const slideOutClass = direction === 'next' ? 'slide-out-left' : 'slide-out-right';
@@ -60,6 +227,9 @@ function updateLesson(direction = 'next') {
     
     // Update content after a short delay for smooth transition
     setTimeout(() => {
+        // Mark current letter as learned before moving
+        markLetterAsLearned();
+        
         // Update the content
         letterEl.textContent = alphabetData[current].letter;
         descEl.innerHTML = `<p>${alphabetData[current].desc}</p>`;
@@ -154,7 +324,6 @@ function addAnimationStyles() {
             transition: opacity 0.2s ease;
         }
         
-        /* Add a subtle bounce effect for better feedback */
         .lesson-letter {
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
@@ -163,7 +332,6 @@ function addAnimationStyles() {
             transform: scale(1.05);
         }
         
-        /* Improve button interactions */
         .nav-arrow:hover {
             transform: translateY(-50%) scale(1.1);
         }
@@ -236,21 +404,40 @@ function handleSwipe() {
     
     if (Math.abs(swipeDistance) > swipeThreshold && !isAnimating) {
         if (swipeDistance > 0) {
-            // Swiped right - go to previous
             navigatePrevious();
         } else {
-            // Swiped left - go to next
             navigateNext();
         }
     }
 }
 
+// Auth state observer (runs in background)
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        currentUser = user;
+        // Load progress in background without blocking UI
+        loadUserProgress();
+    } else {
+        console.warn('No user logged in. Progress will not be saved.');
+        currentUser = null;
+    }
+});
+
+// CRITICAL: Initialize IMMEDIATELY with cached data
+// This runs BEFORE page loads, ensuring instant display
+current = getLastPositionSync(); // Get cached position synchronously
+learnedLetters = getLearnedLettersSync(); // Get cached learned letters
+
+console.log(`⚡ Instant resume at letter: ${alphabetData[current].letter}`);
+
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
     preloadImages();
-    updateLesson(); // <--- FIX: initialize first slide content
-    // Add a subtle loading fade-in effect
+    
+    // INSTANT display with cached position - NO LOADING DELAY
+    updateLesson('next', true);
+    
     const lessonCard = document.querySelector('.lesson-card');
     lessonCard.style.opacity = '0';
     lessonCard.style.transform = 'translateY(20px)';
@@ -259,6 +446,13 @@ document.addEventListener('DOMContentLoaded', function() {
         lessonCard.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
         lessonCard.style.opacity = '1';
         lessonCard.style.transform = 'translateY(0)';
+        
+        // Mark as initialized after fade-in completes
+        setTimeout(() => {
+            isInitialized = true;
+            // Mark current letter as learned now that we're initialized
+            markLetterAsLearned();
+        }, 600);
     }, 100);
 });
 
