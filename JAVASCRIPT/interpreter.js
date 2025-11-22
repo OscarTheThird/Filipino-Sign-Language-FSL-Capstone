@@ -1,6 +1,13 @@
 // Camera and detection functionality
 let isDetecting = false;
 let detectionInterval;
+let holistic;
+let camera;
+
+// FPS tracking
+let lastFrameTime = Date.now();
+let fps = 0;
+let frameCount = 0;
 
 // DOM elements
 const cameraFeed = document.getElementById("cameraFeed");
@@ -12,6 +19,7 @@ const statusText = document.getElementById("statusText");
 const detectedText = document.getElementById("detectedText");
 const confidenceScore = document.getElementById("confidenceScore");
 const placeholderText = document.getElementById("placeholderText");
+const fpsCounter = document.getElementById("fpsCounter");
 
 // Sample detection data for demo
 const sampleDetections = [
@@ -27,16 +35,194 @@ const sampleDetections = [
 
 let currentDetectionIndex = 0;
 
+// Function to calculate and update FPS
+function updateFPS() {
+  frameCount++;
+  const currentTime = Date.now();
+  const elapsed = currentTime - lastFrameTime;
+  
+  // Update FPS every 500ms
+  if (elapsed >= 500) {
+    fps = Math.round((frameCount * 1000) / elapsed);
+    if (fpsCounter) {
+      fpsCounter.textContent = `FPS: ${fps}`;
+    }
+    frameCount = 0;
+    lastFrameTime = currentTime;
+  }
+}
+
+// Function to calculate average Z-depth of landmarks (closer = smaller z value)
+function getAverageDepth(landmarks) {
+  if (!landmarks || landmarks.length === 0) return Infinity;
+  const sum = landmarks.reduce((acc, landmark) => acc + (landmark.z || 0), 0);
+  return sum / landmarks.length;
+}
+
+// Function to calculate landmark size/scale (larger = closer to camera)
+function getLandmarkScale(landmarks) {
+  if (!landmarks || landmarks.length === 0) return 0;
+  
+  // Calculate bounding box
+  let minX = Infinity, maxX = -Infinity;
+  let minY = Infinity, maxY = -Infinity;
+  
+  landmarks.forEach(landmark => {
+    minX = Math.min(minX, landmark.x);
+    maxX = Math.max(maxX, landmark.x);
+    minY = Math.min(minY, landmark.y);
+    maxY = Math.max(maxY, landmark.y);
+  });
+  
+  // Return area of bounding box (larger = closer)
+  return (maxX - minX) * (maxY - minY);
+}
+
+// Function to check if person is in front (primary detection)
+function isPrimaryPerson(faceLandmarks, leftHandLandmarks, rightHandLandmarks) {
+  // Check if face is detected (most important indicator)
+  if (!faceLandmarks || faceLandmarks.length === 0) {
+    return false;
+  }
+  
+  // Calculate face depth and scale
+  const faceDepth = getAverageDepth(faceLandmarks);
+  const faceScale = getLandmarkScale(faceLandmarks);
+  
+  // Person is primary if:
+  // 1. Face is detected
+  // 2. Face has reasonable size (not too small/far away)
+  // 3. Face depth indicates closeness to camera
+  const isCloseEnough = faceScale > 0.01; // Minimum face size threshold
+  const isFrontmost = faceDepth < 0.5; // Z-depth threshold
+  
+  return isCloseEnough && isFrontmost;
+}
+
+// MediaPipe Holistic callback
+function onResults(results) {
+  // Update FPS counter
+  updateFPS();
+  
+  const canvasCtx = trackingOverlay.getContext("2d");
+  
+  // Clear canvas
+  canvasCtx.save();
+  canvasCtx.clearRect(0, 0, trackingOverlay.width, trackingOverlay.height);
+  
+  // Check if this is the primary person (person in front)
+  const isPrimary = isPrimaryPerson(
+    results.faceLandmarks,
+    results.leftHandLandmarks,
+    results.rightHandLandmarks
+  );
+  
+  // Only draw landmarks if this is the primary person
+  if (!isPrimary) {
+    canvasCtx.restore();
+    return; // Skip drawing if not the primary person
+  }
+  
+  // Draw face landmarks
+  if (results.faceLandmarks) {
+    drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_TESSELATION, {
+      color: "#C0C0C070",
+      lineWidth: 1,
+    });
+    drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_RIGHT_EYE, {
+      color: "#FF3030",
+      lineWidth: 2,
+    });
+    drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_RIGHT_EYEBROW, {
+      color: "#FF3030",
+      lineWidth: 2,
+    });
+    drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_LEFT_EYE, {
+      color: "#30FF30",
+      lineWidth: 2,
+    });
+    drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_LEFT_EYEBROW, {
+      color: "#30FF30",
+      lineWidth: 2,
+    });
+    drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_FACE_OVAL, {
+      color: "#E0E0E0",
+      lineWidth: 2,
+    });
+    drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_LIPS, {
+      color: "#E0E0E0",
+      lineWidth: 2,
+    });
+  }
+  
+  // Draw right hand landmarks
+  if (results.rightHandLandmarks) {
+    drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS, {
+      color: "#00FF00",
+      lineWidth: 3,
+    });
+    drawLandmarks(canvasCtx, results.rightHandLandmarks, {
+      color: "#00FF00",
+      lineWidth: 1,
+      radius: 3,
+    });
+  }
+  
+  // Draw left hand landmarks
+  if (results.leftHandLandmarks) {
+    drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS, {
+      color: "#FF0000",
+      lineWidth: 3,
+    });
+    drawLandmarks(canvasCtx, results.leftHandLandmarks, {
+      color: "#FF0000",
+      lineWidth: 1,
+      radius: 3,
+    });
+  }
+  
+  canvasCtx.restore();
+}
+
+// Initialize MediaPipe Holistic
+function initializeMediaPipe() {
+  holistic = new Holistic({
+    locateFile: (file) => {
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
+    },
+  });
+  
+  holistic.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    enableSegmentation: false,
+    smoothSegmentation: false,
+    refineFaceLandmarks: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5,
+  });
+  
+  holistic.onResults(onResults);
+}
+
 // Initialize camera
 async function startCamera() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        width: { ideal: 640 },
-        height: { ideal: 480 },
+    // Initialize MediaPipe if not already done
+    if (!holistic) {
+      initializeMediaPipe();
+    }
+    
+    // Setup camera
+    camera = new Camera(cameraFeed, {
+      onFrame: async () => {
+        await holistic.send({ image: cameraFeed });
       },
+      width: 640,
+      height: 480,
     });
-    cameraFeed.srcObject = stream;
+    
+    await camera.start();
 
     // Update UI
     startBtn.style.display = "none";
@@ -60,11 +246,15 @@ async function startCamera() {
 
 // Stop camera
 function stopCamera() {
-  const stream = cameraFeed.srcObject;
-  if (stream) {
-    const tracks = stream.getTracks();
-    tracks.forEach((track) => track.stop());
-    cameraFeed.srcObject = null;
+  if (camera) {
+    camera.stop();
+  }
+
+  // Reset FPS counter
+  fps = 0;
+  frameCount = 0;
+  if (fpsCounter) {
+    fpsCounter.textContent = "FPS: 0";
   }
 
   // Update UI
@@ -77,6 +267,10 @@ function stopCamera() {
   placeholderText.style.display = "block";
   detectedText.style.display = "none";
   confidenceScore.style.display = "none";
+
+  // Clear canvas
+  const canvasCtx = trackingOverlay.getContext("2d");
+  canvasCtx.clearRect(0, 0, trackingOverlay.width, trackingOverlay.height);
 
   // Stop detection
   stopDetection();
@@ -147,19 +341,22 @@ function addToHistory(text) {
   }
 }
 
-// Canvas setup for hand tracking visualization (placeholder)
+// Canvas setup for hand tracking visualization
 function setupCanvas() {
   const canvas = trackingOverlay;
   const video = cameraFeed;
 
   // Resize canvas to match video
   const resizeCanvas = () => {
-    canvas.width = video.videoWidth || video.clientWidth;
-    canvas.height = video.videoHeight || video.clientHeight;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
   };
 
   video.addEventListener("loadedmetadata", resizeCanvas);
   window.addEventListener("resize", resizeCanvas);
+  
+  // Initial resize
+  resizeCanvas();
 }
 
 // Event listeners

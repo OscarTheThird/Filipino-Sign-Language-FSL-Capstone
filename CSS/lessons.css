@@ -176,12 +176,6 @@ body {
     overflow: hidden;
 }
 
-/* Remove individual colored backgrounds
-.alphabet-icon, .numbers-icon, .greetings-icon, .emotions-icon, .colors-icon {
-    background: none;
-}
-*/
-
 .category-card:hover .category-icon {
     transform: scale(1.1) rotate(5deg);
 }

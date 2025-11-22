@@ -49,6 +49,7 @@
             <div class="status-indicator">
                 <div class="status-dot" id="statusDot"></div>
                 <span class="status-text" id="statusText">Ready to start detection</span>
+                <span class="fps-counter" id="fpsCounter">FPS: 0</span>
             </div>
         </section>
 
@@ -89,6 +90,13 @@
             </div>
         </section>
     </main>
-        <script src="/JAVASCRIPT/interpreter.js"></script>
+
+    <!-- MediaPipe Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
+    
+    <script src="/JAVASCRIPT/interpreter.js"></script>
 </body>
 </html>

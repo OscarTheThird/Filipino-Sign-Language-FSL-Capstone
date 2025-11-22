@@ -14,15 +14,25 @@ const lessonMap = {
         title: 'Continue to Greetings Lesson?',
         msg: 'Are you sure you want to proceed to the Greetings lesson?'
     },
-    emotionsCard: {
-        href: 'emotions.html',
-        title: 'Continue to Emotions Lesson?',
-        msg: 'Are you sure you want to proceed to the Emotions lesson?'
+    whquestionsCard: {
+        href: 'whquestions.html',
+        title: 'Continue to WH Questions Lesson?',
+        msg: 'Are you sure you want to proceed to the Basic WH Questions lesson?'
     },
-    colorsCard: {
-        href: 'colors.html',
-        title: 'Continue to Colors Lesson?',
-        msg: 'Are you sure you want to proceed to the Colors lesson?'
+    familyCard: {
+        href: 'family.html',
+        title: 'Continue to Family Members Lesson?',
+        msg: 'Are you sure you want to proceed to the Family Members lesson?'
+    },
+    phrasesCard: {
+        href: 'phrases.html',
+        title: 'Continue to Common Phrases Lesson?',
+        msg: 'Are you sure you want to proceed to the Common Phrases lesson?'
+    },
+    daysCard: {
+        href: 'days.html',
+        title: 'Continue to Days of the Week Lesson?',
+        msg: 'Are you sure you want to proceed to the Days of the Week lesson?'
     }
 };
 
@@ -43,15 +53,25 @@ const progressData = {
         total: 15,
         percentage: 20 // Just started
     },
-    emotionsCard: {
-        completed: 7,
-        total: 12,
-        percentage: 58 // About half
+    whquestionsCard: {
+        completed: 5,
+        total: 8,
+        percentage: 63 // In progress
     },
-    colorsCard: {
+    familyCard: {
         completed: 0,
-        total: 10,
+        total: 12,
         percentage: 0 // Not started
+    },
+    phrasesCard: {
+        completed: 8,
+        total: 20,
+        percentage: 40 // In progress
+    },
+    daysCard: {
+        completed: 7,
+        total: 7,
+        percentage: 100 // Completed
     }
 };
 
