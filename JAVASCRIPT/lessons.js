@@ -39,7 +39,7 @@ const lessonMap = {
         msg: 'Are you sure you want to proceed to the Emergency & Basic Needs lesson?'
     },
     educationalCard: {
-        href: 'educational.html',
+        href: 'educationalcontext.html',
         title: 'Continue to School/Educational Context Lesson?',
         msg: 'Are you sure you want to proceed to the School/Educational Context lesson?'
     },
