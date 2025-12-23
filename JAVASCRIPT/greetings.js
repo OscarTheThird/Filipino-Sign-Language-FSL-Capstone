@@ -4,26 +4,47 @@ import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/f
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 // Filipino Sign Language Greetings Data
+// CHANGED: img property renamed to video, expanded to 8 greetings
 const greetingsData = [
   {
     greeting: "Good Morning",
     desc: `<strong>A warm greeting used in the morning.</strong><br>Used from early morning until around noon.<br>Filipino: "Magandang umaga"`,
-    img: "/PICTURES/fsl_greetings/goodmorning.png",
+    video: "/PICTURES/fsl_greetings/MAGANDANG UMAGA.mp4",
+  },
+  {
+    greeting: "Good Noon",
+    desc: `<strong>A greeting used around midday.</strong><br>Used specifically during lunchtime.<br>Filipino: "Magandang tanghali"`,
+    video: "/PICTURES/fsl_greetings/MAGANDANG TANGHALI.mp4",
   },
   {
     greeting: "Good Afternoon",
     desc: `<strong>A polite greeting used in the afternoon.</strong><br>Used from noon until early evening.<br>Filipino: "Magandang hapon"`,
-    img: "/PICTURES/fsl_greetings/goodafternoon.png",
+    video: "/PICTURES/fsl_greetings/MAGANDANG HAPON.mp4",
   },
   {
     greeting: "Good Evening",
     desc: `<strong>A courteous greeting used in the evening.</strong><br>Used from late afternoon until night.<br>Filipino: "Magandang gabi"`,
-    img: "/PICTURES/fsl_greetings/goodeve.png",
+    video: "/PICTURES/fsl_greetings/MAGANDANG GABI.mp4",
   },
   {
     greeting: "Hello",
     desc: `<strong>A universal friendly greeting.</strong><br>Can be used at any time of the day.<br>Filipino: "Kumusta" or "Hello"`,
-    img: "/PICTURES/fsl_greetings/hello.png",
+    video: "/PICTURES/fsl_greetings/HELLO.mp4",
+  },
+  {
+    greeting: "How are you",
+    desc: `<strong>Asking about someone's well-being.</strong><br>A common way to show care and interest.<br>Filipino: "Kumusta ka?"`,
+    video: "/PICTURES/fsl_greetings/KAMUSTA KA.mp4",
+  },
+  {
+    greeting: "Thank you",
+    desc: `<strong>Expressing gratitude and appreciation.</strong><br>Used to show thanks for help or kindness.<br>Filipino: "Salamat"`,
+    video: "/PICTURES/fsl_greetings/SALAMAT.mp4",
+  },
+  {
+    greeting: "Goodbye",
+    desc: `<strong>A farewell greeting when parting.</strong><br>Used when leaving or ending a conversation.<br>Filipino: "Paalam"`,
+    video: "/PICTURES/fsl_greetings/PAALAM.mp4",
   },
 ];
 
@@ -94,11 +115,12 @@ function saveLearnedItemsSync(items) {
     }
 }
 
-// Preload images for smoother transitions
-function preloadImages() {
+// NEW: Preload videos for smoother transitions
+function preloadVideos() {
     greetingsData.forEach(item => {
-        const img = new Image();
-        img.src = item.img;
+        const video = document.createElement('video');
+        video.preload = 'metadata'; // Load metadata only to save bandwidth
+        video.src = item.video;
     });
 }
 
@@ -132,7 +154,7 @@ async function loadUserProgress() {
             // Initialize progress document if it doesn't exist
             await setDoc(progressRef, {
                 learnedItems: [],
-                total: 4,
+                total: 8, // CHANGED: Updated from 4 to 8
                 lastViewedItem: greetingsData[current].greeting,
                 lastUpdated: new Date()
             });
@@ -159,13 +181,13 @@ async function saveUserProgress() {
         await setDoc(progressRef, {
             learnedItems: learnedArray,
             completed: learnedArray.length,
-            total: 4,
-            percentage: Math.round((learnedArray.length / 4) * 100),
+            total: 8, // CHANGED: Updated from 4 to 8
+            percentage: Math.round((learnedArray.length / 8) * 100),
             lastViewedItem: currentItem,
             lastUpdated: new Date()
         }, { merge: true });
 
-        console.log('✓ Progress saved:', learnedArray.length, '/', 4, '- At:', currentItem);
+        console.log('✓ Progress saved:', learnedArray.length, '/', 8, '- At:', currentItem);
     } catch (error) {
         console.error('Error saving progress:', error);
     }
@@ -183,6 +205,20 @@ function markItemAsLearned() {
     saveUserProgress();
 }
 
+// NEW: Play video when loaded
+function playVideo(videoElement) {
+    videoElement.play().catch(error => {
+        console.log('Video autoplay prevented:', error);
+        // Autoplay was prevented, video will play on user interaction
+    });
+}
+
+// NEW: Reset and play video
+function resetAndPlayVideo(videoElement) {
+    videoElement.currentTime = 0;
+    playVideo(videoElement);
+}
+
 function updateLesson(direction = 'next', skipAnimation = false) {
     if (isAnimating && !skipAnimation) return;
     
@@ -192,7 +228,7 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     const greetingEl = document.getElementById('greeting');
     const descEl = document.getElementById('desc');
-    const imgEl = document.getElementById('signImg');
+    const videoEl = document.getElementById('signVideo'); // CHANGED: from signImg to signVideo
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
     
@@ -200,8 +236,12 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         // Immediate update without animation
         greetingEl.textContent = greetingsData[current].greeting;
         descEl.innerHTML = `<p>${greetingsData[current].desc}</p>`;
-        imgEl.src = greetingsData[current].img;
-        imgEl.alt = `Hand sign for ${greetingsData[current].greeting}`;
+        
+        // CHANGED: Update video source and play
+        videoEl.src = greetingsData[current].video;
+        videoEl.load(); // Load the new video
+        playVideo(videoEl); // Auto-play
+        
         updateNavButtons();
         updateTimeBasedStyling();
         
@@ -228,8 +268,11 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         // Update the content
         greetingEl.textContent = greetingsData[current].greeting;
         descEl.innerHTML = `<p>${greetingsData[current].desc}</p>`;
-        imgEl.src = greetingsData[current].img;
-        imgEl.alt = `Hand sign for ${greetingsData[current].greeting}`;
+        
+        // CHANGED: Update video source and reset/play
+        videoEl.src = greetingsData[current].video;
+        videoEl.load();
+        resetAndPlayVideo(videoEl);
         
         // Remove old classes and add entrance animation
         leftContent.classList.remove(slideOutClass);
@@ -333,12 +376,9 @@ function addAnimationStyles() {
             transform: translateY(-50%) scale(1.1);
         }
         
-        .lesson-image {
-            transition: all 0.3s ease;
-        }
-        
-        .lesson-image:hover {
-            transform: scale(1.02);
+        /* CHANGED: Video styles instead of image */
+        .lesson-video {
+            transition: opacity 0.2s ease;
         }
         
         #greeting {
@@ -349,10 +389,14 @@ function addAnimationStyles() {
             transform: scale(1.05);
         }
         
-        /* Time-based greeting colors */
+        /* Time-based greeting colors - EXPANDED to 8 greetings */
         .time-goodmorning #greeting { 
             color: #FF6B35; 
             text-shadow: 0 2px 4px rgba(255, 107, 53, 0.3);
+        }
+        .time-goodnoon #greeting { 
+            color: #F4A261; 
+            text-shadow: 0 2px 4px rgba(244, 162, 97, 0.3);
         }
         .time-goodafternoon #greeting { 
             color: #4ECDC4; 
@@ -366,10 +410,25 @@ function addAnimationStyles() {
             color: #96CEB4; 
             text-shadow: 0 2px 4px rgba(150, 206, 180, 0.3);
         }
+        .time-howareyou #greeting { 
+            color: #9B59B6; 
+            text-shadow: 0 2px 4px rgba(155, 89, 182, 0.3);
+        }
+        .time-thankyou #greeting { 
+            color: #E74C3C; 
+            text-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+        }
+        .time-goodbye #greeting { 
+            color: #3498DB; 
+            text-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+        }
         
         /* Add subtle background gradients based on time */
         .time-goodmorning {
             background: linear-gradient(135deg, #fff 0%, #fff8f4 100%);
+        }
+        .time-goodnoon {
+            background: linear-gradient(135deg, #fff 0%, #fffaf6 100%);
         }
         .time-goodafternoon {
             background: linear-gradient(135deg, #fff 0%, #f4fffe 100%);
@@ -379,6 +438,15 @@ function addAnimationStyles() {
         }
         .time-hello {
             background: linear-gradient(135deg, #fff 0%, #f8fff9 100%);
+        }
+        .time-howareyou {
+            background: linear-gradient(135deg, #fff 0%, #faf5ff 100%);
+        }
+        .time-thankyou {
+            background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
+        }
+        .time-goodbye {
+            background: linear-gradient(135deg, #fff 0%, #f0f8ff 100%);
         }
     `;
     document.head.appendChild(style);
@@ -427,6 +495,11 @@ document.addEventListener('keydown', function (e) {
             current = greetingsData.length - 1;
             updateLesson('next');
         }
+    } else if (e.key === " " || e.key === "Spacebar") {
+        // NEW: Space bar to replay video
+        e.preventDefault();
+        const videoEl = document.getElementById('signVideo');
+        resetAndPlayVideo(videoEl);
     }
 });
 
@@ -477,7 +550,7 @@ console.log(`⚡ Instant resume at greeting: ${greetingsData[current].greeting}`
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
-    preloadImages();
+    preloadVideos(); // CHANGED: preload videos instead of images
     
     // INSTANT display with cached position - NO LOADING DELAY
     updateLesson('next', true);
@@ -498,6 +571,20 @@ document.addEventListener('DOMContentLoaded', function() {
             markItemAsLearned();
         }, 600);
     }, 100);
+    
+    // NEW: Add click-to-replay functionality on video
+    const videoEl = document.getElementById('signVideo');
+    if (videoEl) {
+        videoEl.addEventListener('click', function() {
+            resetAndPlayVideo(this);
+        });
+        
+        // NEW: Loop video continuously
+        videoEl.addEventListener('ended', function() {
+            this.currentTime = 0;
+            this.play();
+        });
+    }
 });
 
 // Add visual feedback for button presses

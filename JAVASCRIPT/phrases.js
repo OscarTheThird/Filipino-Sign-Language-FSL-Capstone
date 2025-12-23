@@ -3,36 +3,45 @@ import { auth, db } from './firebase.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// Filipino Sign Language Numbers Data
-// CHANGED: img property renamed to video, and paths point to .mp4 files
-const numbersData = [
-    { number: '1', desc: `<strong>Number 1</strong><br>Ex. "Isa ang araw ng pahinga sa isang linggo."`, video: '/PICTURES/fsl_numbers/1.mp4' },
-    { number: '2', desc: `<strong>Number 2</strong><br>Ex. "Dalawa ang mata ng tao."`, video: '/PICTURES/fsl_numbers/2.mp4' },
-    { number: '3', desc: `<strong>Number 3</strong><br>Ex. "Tatlo ang pagkain sa isang araw: almusal, tanghalian, hapunan."`, video: '/PICTURES/fsl_numbers/3.mp4' },
-    { number: '4', desc: `<strong>Number 4</strong><br>Ex. "Apat ang gulong ng kotse."`, video: '/PICTURES/fsl_numbers/4.mp4' },
-    { number: '5', desc: `<strong>Number 5</strong><br>Ex. "Lima ang daliri sa isang kamay."`, video: '/PICTURES/fsl_numbers/5.mp4' },
-    { number: '6', desc: `<strong>Number 6</strong><br>Ex. "Anim ang itlog sa lalagyan."`, video: '/PICTURES/fsl_numbers/6.mp4' },
-    { number: '7', desc: `<strong>Number 7</strong><br>Ex. "Pito ang araw sa isang linggo."`, video: '/PICTURES/fsl_numbers/7.mp4' },
-    { number: '8', desc: `<strong>Number 8</strong><br>Ex. "Walo ang paa ng gagamba."`, video: '/PICTURES/fsl_numbers/8.mp4' },
-    { number: '9', desc: `<strong>Number 9</strong><br>Ex. "Siyam na bituin sa watawat ng Pilipinas."`, video: '/PICTURES/fsl_numbers/9.mp4' },
-    { number: '10', desc: `<strong>Number 10</strong><br>Ex. "Sampu ang estudyante sa silid-aralan."`, video: '/PICTURES/fsl_numbers/10.mp4' }
+// Filipino Sign Language Common Phrases Data
+const phrasesData = [
+    { 
+        phrase: 'AKO SI', 
+        desc: `<strong>I am - Used to introduce yourself.</strong><br>Example: "Ako si Juan" (I am Juan)<br>Filipino: "Ako si"`, 
+        video: '/PICTURES/fsl_common_phrases/AKO SI.mp4' 
+    },
+    { 
+        phrase: 'OO', 
+        desc: `<strong>Yes - Used to agree or confirm.</strong><br>Example: "Oo, tama ka" (Yes, you are right)<br>Filipino: "Oo"`, 
+        video: '/PICTURES/fsl_common_phrases/OO.mp4' 
+    },
+    { 
+        phrase: 'HINDI', 
+        desc: `<strong>No - Used to disagree or deny.</strong><br>Example: "Hindi, mali yan" (No, that's wrong)<br>Filipino: "Hindi"`, 
+        video: '/PICTURES/fsl_common_phrases/HINDI.mp4' 
+    },
+    { 
+        phrase: 'AKO AY MABUTI', 
+        desc: `<strong>I am fine - Used to respond when asked how you are.</strong><br>Example: "Ako ay mabuti, salamat" (I am fine, thank you)<br>Filipino: "Ako ay mabuti"`, 
+        video: '/PICTURES/fsl_common_phrases/AKO AY MABUTI.mp4' 
+    }
 ];
 
 let current = 0;
 let isAnimating = false;
 let currentUser = null;
-let learnedNumbers = new Set();
+let learnedPhrases = new Set();
 let isInitialized = false;
 
 // OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
 function getLastPositionSync() {
     try {
-        const cached = sessionStorage.getItem('numbers_position');
+        const cached = sessionStorage.getItem('phrases_position');
         if (cached) {
-            const { number, timestamp } = JSON.parse(cached);
+            const { phrase, timestamp } = JSON.parse(cached);
             // Cache valid for 24 hours
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-                const index = numbersData.findIndex(item => item.number === number);
+                const index = phrasesData.findIndex(item => item.phrase === phrase);
                 if (index !== -1) {
                     return index;
                 }
@@ -41,14 +50,14 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
-    return 0; // Default to '1'
+    return 0; // Default to 'AKO SI'
 }
 
 // OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
-function savePositionSync(number) {
+function savePositionSync(phrase) {
     try {
-        sessionStorage.setItem('numbers_position', JSON.stringify({
-            number,
+        sessionStorage.setItem('phrases_position', JSON.stringify({
+            phrase,
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -56,15 +65,15 @@ function savePositionSync(number) {
     }
 }
 
-// OPTIMIZATION 3: Get learned numbers from sessionStorage
-function getLearnedNumbersSync() {
+// OPTIMIZATION 3: Get learned phrases from sessionStorage
+function getLearnedPhrasesSync() {
     try {
-        const cached = sessionStorage.getItem('numbers_learned');
+        const cached = sessionStorage.getItem('phrases_learned');
         if (cached) {
-            const { numbers, timestamp } = JSON.parse(cached);
+            const { phrases, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
-                return new Set(numbers);
+                return new Set(phrases);
             }
         }
     } catch (error) {
@@ -73,11 +82,11 @@ function getLearnedNumbersSync() {
     return new Set();
 }
 
-// OPTIMIZATION 4: Save learned numbers to sessionStorage
-function saveLearnedNumbersSync(numbers) {
+// OPTIMIZATION 4: Save learned phrases to sessionStorage
+function saveLearnedPhrasesSync(phrases) {
     try {
-        sessionStorage.setItem('numbers_learned', JSON.stringify({
-            numbers: Array.from(numbers),
+        sessionStorage.setItem('phrases_learned', JSON.stringify({
+            phrases: Array.from(phrases),
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -85,9 +94,9 @@ function saveLearnedNumbersSync(numbers) {
     }
 }
 
-// NEW: Preload videos for smoother transitions
+// Preload videos for smoother transitions
 function preloadVideos() {
-    numbersData.forEach(item => {
+    phrasesData.forEach(item => {
         const video = document.createElement('video');
         video.preload = 'metadata'; // Load metadata only to save bandwidth
         video.src = item.video;
@@ -99,33 +108,33 @@ async function loadUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'numbers');
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'phrases');
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
             const data = progressSnap.data();
-            learnedNumbers = new Set(data.learnedNumbers || []);
+            learnedPhrases = new Set(data.learnedPhrases || []);
             
             // Update sessionStorage with fresh data from Firebase
-            saveLearnedNumbersSync(learnedNumbers);
+            saveLearnedPhrasesSync(learnedPhrases);
             
             // Update position if different from cached
-            if (data.lastViewedNumber) {
-                const lastIndex = numbersData.findIndex(item => item.number === data.lastViewedNumber);
+            if (data.lastViewedPhrase) {
+                const lastIndex = phrasesData.findIndex(item => item.phrase === data.lastViewedPhrase);
                 if (lastIndex !== -1 && lastIndex !== current) {
                     current = lastIndex;
-                    savePositionSync(data.lastViewedNumber);
+                    savePositionSync(data.lastViewedPhrase);
                     updateLesson('next', true); // Update display silently
                 }
             }
             
-            console.log('✓ Background sync complete:', learnedNumbers.size, 'numbers learned');
+            console.log('✓ Background sync complete:', learnedPhrases.size, 'phrases learned');
         } else {
             // Initialize progress document if it doesn't exist
             await setDoc(progressRef, {
-                learnedNumbers: [],
-                total: 10,
-                lastViewedNumber: numbersData[current].number,
+                learnedPhrases: [],
+                total: 4,
+                lastViewedPhrase: phrasesData[current].phrase,
                 lastUpdated: new Date()
             });
         }
@@ -139,43 +148,43 @@ async function saveUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'numbers');
-        const learnedArray = Array.from(learnedNumbers);
-        const currentNumber = numbersData[current].number;
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'phrases');
+        const learnedArray = Array.from(learnedPhrases);
+        const currentPhrase = phrasesData[current].phrase;
         
         // Save to sessionStorage immediately
-        saveLearnedNumbersSync(learnedNumbers);
-        savePositionSync(currentNumber);
+        saveLearnedPhrasesSync(learnedPhrases);
+        savePositionSync(currentPhrase);
         
         // Save to Firebase in background
         await setDoc(progressRef, {
-            learnedNumbers: learnedArray,
+            learnedPhrases: learnedArray,
             completed: learnedArray.length,
-            total: 10,
-            percentage: Math.round((learnedArray.length / 10) * 100),
-            lastViewedNumber: currentNumber,
+            total: 4,
+            percentage: Math.round((learnedArray.length / 4) * 100),
+            lastViewedPhrase: currentPhrase,
             lastUpdated: new Date()
         }, { merge: true });
 
-        console.log('✓ Progress saved:', learnedArray.length, '/', 10, '- At:', currentNumber);
+        console.log('✓ Progress saved:', learnedArray.length, '/', 4, '- At:', currentPhrase);
     } catch (error) {
         console.error('Error saving progress:', error);
     }
 }
 
-// Mark current number as learned
-function markNumberAsLearned() {
-    const currentNumber = numbersData[current].number;
+// Mark current phrase as learned
+function markPhraseAsLearned() {
+    const currentPhrase = phrasesData[current].phrase;
     
-    if (!learnedNumbers.has(currentNumber)) {
-        learnedNumbers.add(currentNumber);
+    if (!learnedPhrases.has(currentPhrase)) {
+        learnedPhrases.add(currentPhrase);
     }
     
     // Save progress (non-blocking)
     saveUserProgress();
 }
 
-// NEW: Play video when loaded
+// Play video when loaded
 function playVideo(videoElement) {
     videoElement.play().catch(error => {
         console.log('Video autoplay prevented:', error);
@@ -183,7 +192,7 @@ function playVideo(videoElement) {
     });
 }
 
-// NEW: Reset and play video
+// Reset and play video
 function resetAndPlayVideo(videoElement) {
     videoElement.currentTime = 0;
     playVideo(videoElement);
@@ -196,29 +205,28 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         isAnimating = true;
     }
     
-    const numberEl = document.getElementById('letter');
+    const phraseEl = document.getElementById('letter');
     const descEl = document.getElementById('desc');
-    const videoEl = document.getElementById('signVideo'); // CHANGED: from signImg to signVideo
+    const videoEl = document.getElementById('signVideo');
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
     
     if (skipAnimation) {
         // Immediate update without animation
-        numberEl.innerHTML = numbersData[current].number + 
-            ` <span class="number-visual" style="font-size:0.7em; color:#6d42c7; margin-left:8px;">${'●'.repeat(parseInt(numbersData[current].number) <= 5 ? parseInt(numbersData[current].number) : 5)}${parseInt(numbersData[current].number) > 5 ? '...' : ''}</span>`;
-        descEl.innerHTML = `<p>${numbersData[current].desc}</p>`;
+        phraseEl.textContent = phrasesData[current].phrase;
+        descEl.innerHTML = `<p>${phrasesData[current].desc}</p>`;
         
-        // CHANGED: Update video source and play
-        videoEl.src = numbersData[current].video;
+        // Update video source and play
+        videoEl.src = phrasesData[current].video;
         videoEl.load(); // Load the new video
         playVideo(videoEl); // Auto-play
         
         updateNavButtons();
-        updateNumberStyling();
+        updatePhraseStyling();
         
         // Mark as learned after initial display
         if (isInitialized) {
-            markNumberAsLearned();
+            markPhraseAsLearned();
         }
         return;
     }
@@ -233,16 +241,15 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     // Update content after a short delay for smooth transition
     setTimeout(() => {
-        // Mark current number as learned before moving
-        markNumberAsLearned();
+        // Mark current phrase as learned before moving
+        markPhraseAsLearned();
         
         // Update the content
-        numberEl.innerHTML = numbersData[current].number + 
-            ` <span class="number-visual" style="font-size:0.7em; color:#6d42c7; margin-left:8px;">${'●'.repeat(parseInt(numbersData[current].number) <= 5 ? parseInt(numbersData[current].number) : 5)}${parseInt(numbersData[current].number) > 5 ? '...' : ''}</span>`;
-        descEl.innerHTML = `<p>${numbersData[current].desc}</p>`;
+        phraseEl.textContent = phrasesData[current].phrase;
+        descEl.innerHTML = `<p>${phrasesData[current].desc}</p>`;
         
-        // CHANGED: Update video source and reset/play
-        videoEl.src = numbersData[current].video;
+        // Update video source and reset/play
+        videoEl.src = phrasesData[current].video;
         videoEl.load();
         resetAndPlayVideo(videoEl);
         
@@ -255,8 +262,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         // Update navigation button visibility
         updateNavButtons();
         
-        // Update number-based styling
-        updateNumberStyling();
+        // Update phrase-based styling
+        updatePhraseStyling();
         
         // Clean up animation classes after animation completes
         setTimeout(() => {
@@ -280,16 +287,16 @@ function updateNavButtons() {
     }
 }
 
-// Add number-based styling
-function updateNumberStyling() {
+// Add phrase-based styling
+function updatePhraseStyling() {
     const lessonCard = document.querySelector('.lesson-card');
-    const currentNumber = numbersData[current].number;
+    const currentPhrase = phrasesData[current].phrase.toLowerCase().replace(/\s+/g, '');
     
-    // Remove existing number classes
-    lessonCard.className = lessonCard.className.replace(/number-\d+/g, '');
+    // Remove existing phrase classes
+    lessonCard.className = lessonCard.className.replace(/phrase-\w+/g, '');
     
-    // Add current number class
-    lessonCard.classList.add(`number-${currentNumber}`);
+    // Add current phrase class
+    lessonCard.classList.add(`phrase-${currentPhrase}`);
 }
 
 // Add CSS animations dynamically
@@ -348,7 +355,6 @@ function addAnimationStyles() {
             transform: translateY(-50%) scale(1.1);
         }
         
-        /* CHANGED: Video styles instead of image */
         .lesson-video {
             transition: opacity 0.2s ease;
         }
@@ -361,49 +367,36 @@ function addAnimationStyles() {
             transform: scale(1.05);
         }
         
-        .number-visual {
-            transition: all 0.3s ease;
-            display: inline-block;
+        /* Phrase-specific color scheme */
+        .phrase-akosi #letter { 
+            color: #3B82F6; 
+            text-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+        .phrase-oo #letter { 
+            color: #10B981; 
+            text-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+        .phrase-hindi #letter { 
+            color: #EF4444; 
+            text-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+        }
+        .phrase-akoaymabuti #letter { 
+            color: #F59E0B; 
+            text-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
         }
         
-        .number-visual:hover {
-            transform: scale(1.2);
-            color: #9333ea !important;
+        /* Subtle background gradients based on phrase */
+        .phrase-akosi {
+            background: linear-gradient(135deg, #fff 0%, #eff6ff 100%);
         }
-        
-        /* Progressive color scheme based on numbers */
-        .number-1 #letter { color: #ef4444; }
-        .number-2 #letter { color: #f97316; }
-        .number-3 #letter { color: #eab308; }
-        .number-4 #letter { color: #22c55e; }
-        .number-5 #letter { color: #06b6d4; }
-        .number-6 #letter { color: #3b82f6; }
-        .number-7 #letter { color: #8b5cf6; }
-        .number-8 #letter { color: #a855f7; }
-        .number-9 #letter { color: #ec4899; }
-        .number-10 #letter { color: #f59e0b; }
-        
-        /* Animated counting effect */
-        .number-visual {
-            animation: countPulse 0.6s ease-in-out;
+        .phrase-oo {
+            background: linear-gradient(135deg, #fff 0%, #ecfdf5 100%);
         }
-        
-        @keyframes countPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; transform: scale(1.1); }
+        .phrase-hindi {
+            background: linear-gradient(135deg, #fff 0%, #fef2f2 100%);
         }
-        
-        /* Special effects for milestone numbers */
-        .number-5 .lesson-card,
-        .number-10 .lesson-card {
-            box-shadow: 0 15px 40px rgba(109, 66, 199, 0.15);
-        }
-        
-        .number-10 #letter {
-            background: linear-gradient(45deg, #f59e0b, #dc2626);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .phrase-akoaymabuti {
+            background: linear-gradient(135deg, #fff 0%, #fffbeb 100%);
         }
     `;
     document.head.appendChild(style);
@@ -413,7 +406,7 @@ function addAnimationStyles() {
 function navigatePrevious() {
     if (isAnimating) return;
     
-    const newIndex = (current === 0) ? numbersData.length - 1 : current - 1;
+    const newIndex = (current === 0) ? phrasesData.length - 1 : current - 1;
     current = newIndex;
     updateLesson('prev');
 }
@@ -421,7 +414,7 @@ function navigatePrevious() {
 function navigateNext() {
     if (isAnimating) return;
     
-    const newIndex = (current === numbersData.length - 1) ? 0 : current + 1;
+    const newIndex = (current === phrasesData.length - 1) ? 0 : current + 1;
     current = newIndex;
     updateLesson('next');
 }
@@ -430,7 +423,7 @@ function navigateNext() {
 document.getElementById('prevBtn').onclick = navigatePrevious;
 document.getElementById('nextBtn').onclick = navigateNext;
 
-// Enhanced keyboard navigation with number keys
+// Enhanced keyboard navigation
 document.addEventListener('keydown', function (e) {
     if (isAnimating) return;
     
@@ -448,28 +441,12 @@ document.addEventListener('keydown', function (e) {
         }
     } else if (e.key === "End") {
         e.preventDefault();
-        if (current !== numbersData.length - 1) {
-            current = numbersData.length - 1;
-            updateLesson('next');
-        }
-    }
-    // Number key shortcuts
-    else if (e.key >= '1' && e.key <= '9') {
-        e.preventDefault();
-        const targetIndex = parseInt(e.key) - 1;
-        if (targetIndex < numbersData.length && targetIndex !== current) {
-            const direction = targetIndex > current ? 'next' : 'prev';
-            current = targetIndex;
-            updateLesson(direction);
-        }
-    } else if (e.key === '0') {
-        e.preventDefault();
-        if (current !== 9) { // Index 9 is number 10
-            current = 9;
+        if (current !== phrasesData.length - 1) {
+            current = phrasesData.length - 1;
             updateLesson('next');
         }
     } else if (e.key === " " || e.key === "Spacebar") {
-        // NEW: Space bar to replay video
+        // Space bar to replay video
         e.preventDefault();
         const videoEl = document.getElementById('signVideo');
         resetAndPlayVideo(videoEl);
@@ -516,14 +493,14 @@ onAuthStateChanged(auth, async (user) => {
 
 // CRITICAL: Initialize IMMEDIATELY with cached data
 current = getLastPositionSync(); // Get cached position synchronously
-learnedNumbers = getLearnedNumbersSync(); // Get cached learned numbers
+learnedPhrases = getLearnedPhrasesSync(); // Get cached learned phrases
 
-console.log(`⚡ Instant resume at number: ${numbersData[current].number}`);
+console.log(`⚡ Instant resume at phrase: ${phrasesData[current].phrase}`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
-    preloadVideos(); // CHANGED: preload videos instead of images
+    preloadVideos();
     
     // INSTANT display with cached position - NO LOADING DELAY
     updateLesson('next', true);
@@ -540,19 +517,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current number as learned now that we're initialized
-            markNumberAsLearned();
+            // Mark current phrase as learned now that we're initialized
+            markPhraseAsLearned();
         }, 600);
     }, 100);
     
-    // NEW: Add click-to-replay functionality on video
+    // Add click-to-replay functionality on video
     const videoEl = document.getElementById('signVideo');
     if (videoEl) {
         videoEl.addEventListener('click', function() {
             resetAndPlayVideo(this);
         });
         
-        // NEW: Loop video continuously
+        // Loop video continuously
         videoEl.addEventListener('ended', function() {
             this.currentTime = 0;
             this.play();

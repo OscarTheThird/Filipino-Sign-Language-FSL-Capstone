@@ -3,36 +3,55 @@ import { auth, db } from './firebase.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// Filipino Sign Language Numbers Data
-// CHANGED: img property renamed to video, and paths point to .mp4 files
-const numbersData = [
-    { number: '1', desc: `<strong>Number 1</strong><br>Ex. "Isa ang araw ng pahinga sa isang linggo."`, video: '/PICTURES/fsl_numbers/1.mp4' },
-    { number: '2', desc: `<strong>Number 2</strong><br>Ex. "Dalawa ang mata ng tao."`, video: '/PICTURES/fsl_numbers/2.mp4' },
-    { number: '3', desc: `<strong>Number 3</strong><br>Ex. "Tatlo ang pagkain sa isang araw: almusal, tanghalian, hapunan."`, video: '/PICTURES/fsl_numbers/3.mp4' },
-    { number: '4', desc: `<strong>Number 4</strong><br>Ex. "Apat ang gulong ng kotse."`, video: '/PICTURES/fsl_numbers/4.mp4' },
-    { number: '5', desc: `<strong>Number 5</strong><br>Ex. "Lima ang daliri sa isang kamay."`, video: '/PICTURES/fsl_numbers/5.mp4' },
-    { number: '6', desc: `<strong>Number 6</strong><br>Ex. "Anim ang itlog sa lalagyan."`, video: '/PICTURES/fsl_numbers/6.mp4' },
-    { number: '7', desc: `<strong>Number 7</strong><br>Ex. "Pito ang araw sa isang linggo."`, video: '/PICTURES/fsl_numbers/7.mp4' },
-    { number: '8', desc: `<strong>Number 8</strong><br>Ex. "Walo ang paa ng gagamba."`, video: '/PICTURES/fsl_numbers/8.mp4' },
-    { number: '9', desc: `<strong>Number 9</strong><br>Ex. "Siyam na bituin sa watawat ng Pilipinas."`, video: '/PICTURES/fsl_numbers/9.mp4' },
-    { number: '10', desc: `<strong>Number 10</strong><br>Ex. "Sampu ang estudyante sa silid-aralan."`, video: '/PICTURES/fsl_numbers/10.mp4' }
+// Filipino Sign Language Emergency & Basic Needs Data
+const emergencyData = [
+  {
+    need: "Help Me",
+    desc: `<strong>An urgent request for assistance.</strong><br>Used in emergency situations when you need immediate help.<br>Filipino: "Tulungan mo ako"`,
+    video: "/PICTURES/fsl_emergency/TULUNGAN.mp4",
+  },
+  {
+    need: "Water",
+    desc: `<strong>Requesting water to drink.</strong><br>A basic necessity for hydration and survival.<br>Filipino: "Tubig"`,
+    video: "/PICTURES/fsl_emergency/TUBIG.mp4",
+  },
+  {
+    need: "Eat",
+    desc: `<strong>Expressing the action of eating.</strong><br>Used to indicate the need or desire to eat food.<br>Filipino: "Kain"`,
+    video: "/PICTURES/fsl_emergency/KAIN.mp4",
+  },
+  {
+    need: "Food",
+    desc: `<strong>Requesting food or meals.</strong><br>A basic necessity for nourishment and energy.<br>Filipino: "Pagkain"`,
+    video: "/PICTURES/fsl_emergency/PAGKAIN.mp4",
+  },
+  {
+    need: "Stop",
+    desc: `<strong>Commanding to halt or cease action.</strong><br>Used to signal someone to stop what they're doing immediately.<br>Filipino: "Hinto"`,
+    video: "/PICTURES/fsl_emergency/HINTO.mp4",
+  },
+  {
+    need: "Drink",
+    desc: `<strong>Expressing the action of drinking.</strong><br>Used to indicate the need or desire to drink liquids.<br>Filipino: "Inom"`,
+    video: "/PICTURES/fsl_emergency/INOM.mp4",
+  },
 ];
 
 let current = 0;
 let isAnimating = false;
 let currentUser = null;
-let learnedNumbers = new Set();
+let learnedNeeds = new Set();
 let isInitialized = false;
 
-// OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
+// Get last position from sessionStorage immediately (synchronous)
 function getLastPositionSync() {
     try {
-        const cached = sessionStorage.getItem('numbers_position');
+        const cached = sessionStorage.getItem('emergency_position');
         if (cached) {
-            const { number, timestamp } = JSON.parse(cached);
+            const { need, timestamp } = JSON.parse(cached);
             // Cache valid for 24 hours
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-                const index = numbersData.findIndex(item => item.number === number);
+                const index = emergencyData.findIndex(item => item.need === need);
                 if (index !== -1) {
                     return index;
                 }
@@ -41,14 +60,14 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
-    return 0; // Default to '1'
+    return 0; // Default to 'Help Me'
 }
 
-// OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
-function savePositionSync(number) {
+// Save position to sessionStorage immediately (synchronous)
+function savePositionSync(need) {
     try {
-        sessionStorage.setItem('numbers_position', JSON.stringify({
-            number,
+        sessionStorage.setItem('emergency_position', JSON.stringify({
+            need,
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -56,15 +75,15 @@ function savePositionSync(number) {
     }
 }
 
-// OPTIMIZATION 3: Get learned numbers from sessionStorage
-function getLearnedNumbersSync() {
+// Get learned emergency needs from sessionStorage
+function getLearnedNeedsSync() {
     try {
-        const cached = sessionStorage.getItem('numbers_learned');
+        const cached = sessionStorage.getItem('emergency_learned');
         if (cached) {
-            const { numbers, timestamp } = JSON.parse(cached);
+            const { items, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
-                return new Set(numbers);
+                return new Set(items);
             }
         }
     } catch (error) {
@@ -73,11 +92,11 @@ function getLearnedNumbersSync() {
     return new Set();
 }
 
-// OPTIMIZATION 4: Save learned numbers to sessionStorage
-function saveLearnedNumbersSync(numbers) {
+// Save learned emergency needs to sessionStorage
+function saveLearnedNeedsSync(items) {
     try {
-        sessionStorage.setItem('numbers_learned', JSON.stringify({
-            numbers: Array.from(numbers),
+        sessionStorage.setItem('emergency_learned', JSON.stringify({
+            items: Array.from(items),
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -85,11 +104,11 @@ function saveLearnedNumbersSync(numbers) {
     }
 }
 
-// NEW: Preload videos for smoother transitions
+// Preload videos for smoother transitions
 function preloadVideos() {
-    numbersData.forEach(item => {
+    emergencyData.forEach(item => {
         const video = document.createElement('video');
-        video.preload = 'metadata'; // Load metadata only to save bandwidth
+        video.preload = 'metadata';
         video.src = item.video;
     });
 }
@@ -99,33 +118,33 @@ async function loadUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'numbers');
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'emergency');
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
             const data = progressSnap.data();
-            learnedNumbers = new Set(data.learnedNumbers || []);
+            learnedNeeds = new Set(data.learnedNeeds || []);
             
             // Update sessionStorage with fresh data from Firebase
-            saveLearnedNumbersSync(learnedNumbers);
+            saveLearnedNeedsSync(learnedNeeds);
             
             // Update position if different from cached
-            if (data.lastViewedNumber) {
-                const lastIndex = numbersData.findIndex(item => item.number === data.lastViewedNumber);
+            if (data.lastViewedNeed) {
+                const lastIndex = emergencyData.findIndex(item => item.need === data.lastViewedNeed);
                 if (lastIndex !== -1 && lastIndex !== current) {
                     current = lastIndex;
-                    savePositionSync(data.lastViewedNumber);
-                    updateLesson('next', true); // Update display silently
+                    savePositionSync(data.lastViewedNeed);
+                    updateLesson('next', true);
                 }
             }
             
-            console.log('✓ Background sync complete:', learnedNumbers.size, 'numbers learned');
+            console.log('✓ Background sync complete:', learnedNeeds.size, 'emergency needs learned');
         } else {
             // Initialize progress document if it doesn't exist
             await setDoc(progressRef, {
-                learnedNumbers: [],
-                total: 10,
-                lastViewedNumber: numbersData[current].number,
+                learnedNeeds: [],
+                total: 6,
+                lastViewedNeed: emergencyData[current].need,
                 lastUpdated: new Date()
             });
         }
@@ -139,51 +158,50 @@ async function saveUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'numbers');
-        const learnedArray = Array.from(learnedNumbers);
-        const currentNumber = numbersData[current].number;
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'emergency');
+        const learnedArray = Array.from(learnedNeeds);
+        const currentNeed = emergencyData[current].need;
         
         // Save to sessionStorage immediately
-        saveLearnedNumbersSync(learnedNumbers);
-        savePositionSync(currentNumber);
+        saveLearnedNeedsSync(learnedNeeds);
+        savePositionSync(currentNeed);
         
         // Save to Firebase in background
         await setDoc(progressRef, {
-            learnedNumbers: learnedArray,
+            learnedNeeds: learnedArray,
             completed: learnedArray.length,
-            total: 10,
-            percentage: Math.round((learnedArray.length / 10) * 100),
-            lastViewedNumber: currentNumber,
+            total: 6,
+            percentage: Math.round((learnedArray.length / 6) * 100),
+            lastViewedNeed: currentNeed,
             lastUpdated: new Date()
         }, { merge: true });
 
-        console.log('✓ Progress saved:', learnedArray.length, '/', 10, '- At:', currentNumber);
+        console.log('✓ Progress saved:', learnedArray.length, '/', 6, '- At:', currentNeed);
     } catch (error) {
         console.error('Error saving progress:', error);
     }
 }
 
-// Mark current number as learned
-function markNumberAsLearned() {
-    const currentNumber = numbersData[current].number;
+// Mark current emergency need as learned
+function markNeedAsLearned() {
+    const currentNeed = emergencyData[current].need;
     
-    if (!learnedNumbers.has(currentNumber)) {
-        learnedNumbers.add(currentNumber);
+    if (!learnedNeeds.has(currentNeed)) {
+        learnedNeeds.add(currentNeed);
     }
     
     // Save progress (non-blocking)
     saveUserProgress();
 }
 
-// NEW: Play video when loaded
+// Play video when loaded
 function playVideo(videoElement) {
     videoElement.play().catch(error => {
         console.log('Video autoplay prevented:', error);
-        // Autoplay was prevented, video will play on user interaction
     });
 }
 
-// NEW: Reset and play video
+// Reset and play video
 function resetAndPlayVideo(videoElement) {
     videoElement.currentTime = 0;
     playVideo(videoElement);
@@ -196,29 +214,28 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         isAnimating = true;
     }
     
-    const numberEl = document.getElementById('letter');
+    const greetingEl = document.getElementById('greeting');
     const descEl = document.getElementById('desc');
-    const videoEl = document.getElementById('signVideo'); // CHANGED: from signImg to signVideo
+    const videoEl = document.getElementById('signVideo');
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
     
     if (skipAnimation) {
         // Immediate update without animation
-        numberEl.innerHTML = numbersData[current].number + 
-            ` <span class="number-visual" style="font-size:0.7em; color:#6d42c7; margin-left:8px;">${'●'.repeat(parseInt(numbersData[current].number) <= 5 ? parseInt(numbersData[current].number) : 5)}${parseInt(numbersData[current].number) > 5 ? '...' : ''}</span>`;
-        descEl.innerHTML = `<p>${numbersData[current].desc}</p>`;
+        greetingEl.textContent = emergencyData[current].need;
+        descEl.innerHTML = `<p>${emergencyData[current].desc}</p>`;
         
-        // CHANGED: Update video source and play
-        videoEl.src = numbersData[current].video;
-        videoEl.load(); // Load the new video
-        playVideo(videoEl); // Auto-play
+        // Update video source and play
+        videoEl.src = emergencyData[current].video;
+        videoEl.load();
+        playVideo(videoEl);
         
         updateNavButtons();
-        updateNumberStyling();
+        updateEmergencyStyling();
         
         // Mark as learned after initial display
         if (isInitialized) {
-            markNumberAsLearned();
+            markNeedAsLearned();
         }
         return;
     }
@@ -233,16 +250,15 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     // Update content after a short delay for smooth transition
     setTimeout(() => {
-        // Mark current number as learned before moving
-        markNumberAsLearned();
+        // Mark current need as learned before moving
+        markNeedAsLearned();
         
         // Update the content
-        numberEl.innerHTML = numbersData[current].number + 
-            ` <span class="number-visual" style="font-size:0.7em; color:#6d42c7; margin-left:8px;">${'●'.repeat(parseInt(numbersData[current].number) <= 5 ? parseInt(numbersData[current].number) : 5)}${parseInt(numbersData[current].number) > 5 ? '...' : ''}</span>`;
-        descEl.innerHTML = `<p>${numbersData[current].desc}</p>`;
+        greetingEl.textContent = emergencyData[current].need;
+        descEl.innerHTML = `<p>${emergencyData[current].desc}</p>`;
         
-        // CHANGED: Update video source and reset/play
-        videoEl.src = numbersData[current].video;
+        // Update video source and reset/play
+        videoEl.src = emergencyData[current].video;
         videoEl.load();
         resetAndPlayVideo(videoEl);
         
@@ -255,8 +271,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         // Update navigation button visibility
         updateNavButtons();
         
-        // Update number-based styling
-        updateNumberStyling();
+        // Update emergency styling
+        updateEmergencyStyling();
         
         // Clean up animation classes after animation completes
         setTimeout(() => {
@@ -270,7 +286,9 @@ function updateLesson(direction = 'next', skipAnimation = false) {
 
 function updateNavButtons() {
     const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
     
+    // Update previous button
     if (current === 0) {
         prevBtn.style.opacity = '0.3';
         prevBtn.style.pointerEvents = 'none';
@@ -278,18 +296,27 @@ function updateNavButtons() {
         prevBtn.style.opacity = '1';
         prevBtn.style.pointerEvents = 'auto';
     }
+    
+    // Update next button
+    if (current === emergencyData.length - 1) {
+        nextBtn.style.opacity = '0.3';
+        nextBtn.style.pointerEvents = 'none';
+    } else {
+        nextBtn.style.opacity = '1';
+        nextBtn.style.pointerEvents = 'auto';
+    }
 }
 
-// Add number-based styling
-function updateNumberStyling() {
+// Add emergency-specific styling
+function updateEmergencyStyling() {
     const lessonCard = document.querySelector('.lesson-card');
-    const currentNumber = numbersData[current].number;
+    const currentNeed = emergencyData[current].need.toLowerCase().replace(/\s+/g, '');
     
-    // Remove existing number classes
-    lessonCard.className = lessonCard.className.replace(/number-\d+/g, '');
+    // Remove existing need classes
+    lessonCard.className = lessonCard.className.replace(/need-\w+/g, '');
     
-    // Add current number class
-    lessonCard.classList.add(`number-${currentNumber}`);
+    // Add current need class
+    lessonCard.classList.add(`need-${currentNeed}`);
 }
 
 // Add CSS animations dynamically
@@ -348,62 +375,62 @@ function addAnimationStyles() {
             transform: translateY(-50%) scale(1.1);
         }
         
-        /* CHANGED: Video styles instead of image */
         .lesson-video {
             transition: opacity 0.2s ease;
         }
         
-        #letter {
+        #greeting {
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         
-        .lesson-card:not(.animating) #letter:hover {
+        .lesson-card:not(.animating) #greeting:hover {
             transform: scale(1.05);
         }
         
-        .number-visual {
-            transition: all 0.3s ease;
-            display: inline-block;
+        /* Emergency & Basic Needs specific colors */
+        .need-helpme #greeting { 
+            color: #E74C3C; 
+            text-shadow: 0 2px 4px rgba(231, 76, 60, 0.4);
+        }
+        .need-water #greeting { 
+            color: #3498DB; 
+            text-shadow: 0 2px 4px rgba(52, 152, 219, 0.4);
+        }
+        .need-eat #greeting { 
+            color: #E67E22; 
+            text-shadow: 0 2px 4px rgba(230, 126, 34, 0.4);
+        }
+        .need-food #greeting { 
+            color: #27AE60; 
+            text-shadow: 0 2px 4px rgba(39, 174, 96, 0.4);
+        }
+        .need-stop #greeting { 
+            color: #C0392B; 
+            text-shadow: 0 2px 4px rgba(192, 57, 43, 0.4);
+        }
+        .need-drink #greeting { 
+            color: #16A085; 
+            text-shadow: 0 2px 4px rgba(22, 160, 133, 0.4);
         }
         
-        .number-visual:hover {
-            transform: scale(1.2);
-            color: #9333ea !important;
+        /* Add subtle background gradients based on emergency needs */
+        .need-helpme {
+            background: linear-gradient(135deg, #fff 0%, #ffebee 100%);
         }
-        
-        /* Progressive color scheme based on numbers */
-        .number-1 #letter { color: #ef4444; }
-        .number-2 #letter { color: #f97316; }
-        .number-3 #letter { color: #eab308; }
-        .number-4 #letter { color: #22c55e; }
-        .number-5 #letter { color: #06b6d4; }
-        .number-6 #letter { color: #3b82f6; }
-        .number-7 #letter { color: #8b5cf6; }
-        .number-8 #letter { color: #a855f7; }
-        .number-9 #letter { color: #ec4899; }
-        .number-10 #letter { color: #f59e0b; }
-        
-        /* Animated counting effect */
-        .number-visual {
-            animation: countPulse 0.6s ease-in-out;
+        .need-water {
+            background: linear-gradient(135deg, #fff 0%, #e3f2fd 100%);
         }
-        
-        @keyframes countPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; transform: scale(1.1); }
+        .need-eat {
+            background: linear-gradient(135deg, #fff 0%, #fff3e0 100%);
         }
-        
-        /* Special effects for milestone numbers */
-        .number-5 .lesson-card,
-        .number-10 .lesson-card {
-            box-shadow: 0 15px 40px rgba(109, 66, 199, 0.15);
+        .need-food {
+            background: linear-gradient(135deg, #fff 0%, #e8f5e9 100%);
         }
-        
-        .number-10 #letter {
-            background: linear-gradient(45deg, #f59e0b, #dc2626);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .need-stop {
+            background: linear-gradient(135deg, #fff 0%, #ffcdd2 100%);
+        }
+        .need-drink {
+            background: linear-gradient(135deg, #fff 0%, #e0f2f1 100%);
         }
     `;
     document.head.appendChild(style);
@@ -411,18 +438,16 @@ function addAnimationStyles() {
 
 // Enhanced navigation with direction awareness
 function navigatePrevious() {
-    if (isAnimating) return;
+    if (isAnimating || current === 0) return;
     
-    const newIndex = (current === 0) ? numbersData.length - 1 : current - 1;
-    current = newIndex;
+    current--;
     updateLesson('prev');
 }
 
 function navigateNext() {
-    if (isAnimating) return;
+    if (isAnimating || current === emergencyData.length - 1) return;
     
-    const newIndex = (current === numbersData.length - 1) ? 0 : current + 1;
-    current = newIndex;
+    current++;
     updateLesson('next');
 }
 
@@ -430,7 +455,7 @@ function navigateNext() {
 document.getElementById('prevBtn').onclick = navigatePrevious;
 document.getElementById('nextBtn').onclick = navigateNext;
 
-// Enhanced keyboard navigation with number keys
+// Enhanced keyboard navigation
 document.addEventListener('keydown', function (e) {
     if (isAnimating) return;
     
@@ -448,28 +473,12 @@ document.addEventListener('keydown', function (e) {
         }
     } else if (e.key === "End") {
         e.preventDefault();
-        if (current !== numbersData.length - 1) {
-            current = numbersData.length - 1;
-            updateLesson('next');
-        }
-    }
-    // Number key shortcuts
-    else if (e.key >= '1' && e.key <= '9') {
-        e.preventDefault();
-        const targetIndex = parseInt(e.key) - 1;
-        if (targetIndex < numbersData.length && targetIndex !== current) {
-            const direction = targetIndex > current ? 'next' : 'prev';
-            current = targetIndex;
-            updateLesson(direction);
-        }
-    } else if (e.key === '0') {
-        e.preventDefault();
-        if (current !== 9) { // Index 9 is number 10
-            current = 9;
+        if (current !== emergencyData.length - 1) {
+            current = emergencyData.length - 1;
             updateLesson('next');
         }
     } else if (e.key === " " || e.key === "Spacebar") {
-        // NEW: Space bar to replay video
+        // Space bar to replay video
         e.preventDefault();
         const videoEl = document.getElementById('signVideo');
         resetAndPlayVideo(videoEl);
@@ -514,18 +523,18 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// CRITICAL: Initialize IMMEDIATELY with cached data
-current = getLastPositionSync(); // Get cached position synchronously
-learnedNumbers = getLearnedNumbersSync(); // Get cached learned numbers
+// Initialize immediately with cached data
+current = getLastPositionSync();
+learnedNeeds = getLearnedNeedsSync();
 
-console.log(`⚡ Instant resume at number: ${numbersData[current].number}`);
+console.log(`⚡ Instant resume at emergency need: ${emergencyData[current].need}`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
-    preloadVideos(); // CHANGED: preload videos instead of images
+    preloadVideos();
     
-    // INSTANT display with cached position - NO LOADING DELAY
+    // Instant display with cached position
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -540,19 +549,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current number as learned now that we're initialized
-            markNumberAsLearned();
+            // Mark current need as learned now that we're initialized
+            markNeedAsLearned();
         }, 600);
     }, 100);
     
-    // NEW: Add click-to-replay functionality on video
+    // Add click-to-replay functionality on video
     const videoEl = document.getElementById('signVideo');
     if (videoEl) {
         videoEl.addEventListener('click', function() {
             resetAndPlayVideo(this);
         });
         
-        // NEW: Loop video continuously
+        // Loop video continuously
         videoEl.addEventListener('ended', function() {
             this.currentTime = 0;
             this.play();

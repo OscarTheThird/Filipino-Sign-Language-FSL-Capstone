@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/CSS/colors.css">
-    <title>GestSure - Colors Lesson</title>
+    <link rel="stylesheet" href="/CSS/familymembers.css">
+    <title>GestSure - Family Members Lesson</title>
 </head>
 <body>
     <!-- Header Navigation -->
@@ -25,29 +25,35 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="lesson-container">
-            <h1 class="lesson-title">Colors</h1>
+            <h1 class="lesson-title">Family Members</h1>
             <div class="lesson-card">
                 <button class="nav-arrow left" aria-label="Previous" id="prevBtn">&lt;</button>
                 <div class="lesson-left">
-                    <span class="lesson-color" id="color">
-                        Black
-                        <div class="color-swatch" id="colorSwatch" style="background-color: #000000;"></div>
-                    </span>
+                    <span class="lesson-letter" id="letter">TATAY</span>
                     <div class="lesson-desc" id="desc">
                         <p>
-                            <strong>The darkest color, absence of light.</strong><br>
-                            Often associated with elegance and mystery.<br>
-                            Filipino: "Itim"
+                            <strong>Father - The male parent of a child.</strong><br>
+                            English: "Father" or "Dad"<br>
+                            Filipino: "Tatay" or "Ama"
                         </p>
                     </div>
                 </div>
                 <div class="lesson-right">
-                    <img src="/PICTURES/fsl_colors/black.png" alt="Hand sign for Black" class="lesson-image" id="signImg">
+                    <!-- Video element for sign language demonstration -->
+                    <video class="lesson-video" 
+                           id="signVideo"
+                           muted
+                           playsinline
+                           loop
+                           autoplay>
+                        <source src="/PICTURES/fsl_family_members/TATAY.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
                 </div>
                 <button class="nav-arrow right" aria-label="Next" id="nextBtn">&gt;</button>
             </div>
         </div>
     </main>
-        <script src="/JAVASCRIPT/colors.js"></script>   
+    <script type="module" src="/JAVASCRIPT/familymembers.js"></script>   
 </body>
 </html>

@@ -24,7 +24,7 @@ const lessonMap = {
         msg: 'Are you sure you want to proceed to the Basic WH Questions lesson?'
     },
     familyCard: {
-        href: 'family.html',
+        href: 'familymembers.html',
         title: 'Continue to Family Members Lesson?',
         msg: 'Are you sure you want to proceed to the Family Members lesson?'
     },
@@ -34,7 +34,7 @@ const lessonMap = {
         msg: 'Are you sure you want to proceed to the Common Phrases lesson?'
     },
     daysCard: {
-        href: 'days.html',
+        href: 'timemarkers.html',
         title: 'Continue to Days of the Week Lesson?',
         msg: 'Are you sure you want to proceed to the Days of the Week lesson?'
     }

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GestSure - Alphabet Lesson</title>
-    <link rel="stylesheet" href="/CSS/alphabet.css">
+    <title>GestSure - Numbers Lesson</title>
+    <link rel="stylesheet" href="/CSS/numbers.css">
 </head>
 <body>
     <!-- Header Navigation (Copied from lessons.html) -->
@@ -35,7 +35,16 @@
                     </div>
                 </div>
                 <div class="lesson-right">
-                    <img src="/PICTURES/hand-a.png" alt="Hand sign for A" class="lesson-image" id="signImg">
+                    <!-- CHANGED: Replaced <img> with <video> element -->
+                    <video class="lesson-video" 
+                           id="signVideo"
+                           muted
+                           playsinline
+                           loop
+                           autoplay>
+                        <source src="/PICTURES/fsl_numbers/1.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
                 </div>
                 <button class="nav-arrow right" aria-label="Next" id="nextBtn">&gt;</button>
             </div>
@@ -46,4 +55,3 @@
        
 </body>
 </html>
-

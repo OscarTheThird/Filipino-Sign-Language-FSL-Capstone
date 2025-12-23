@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="/CSS/emotions.css">
-    <title>GestSure - Emotions Lesson</title>
+    <link rel="stylesheet" href="/CSS/whquestions.css">
+    <title>GestSure - Basic WH Questions Lesson</title>
 </head>
 <body>
     <!-- Header Navigation -->
@@ -25,27 +25,35 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="lesson-container">
-            <h1 class="lesson-title">Emotions</h1>
+            <h1 class="lesson-title">Basic WH Questions</h1>
             <div class="lesson-card">
                 <button class="nav-arrow left" aria-label="Previous" id="prevBtn">&lt;</button>
                 <div class="lesson-left">
-                    <span class="lesson-color" id="emotion">
-                        Happy
-                    </span>
+                    <span class="lesson-letter" id="letter">ANO</span>
                     <div class="lesson-desc" id="desc">
                         <p>
-                            <strong>Feeling of joy and pleasure.</strong><br>
-                            Filipino: "Masaya"
+                            <strong>What - Used to ask about things or information.</strong><br>
+                            Example: "Ano ang pangalan mo?" (What is your name?)<br>
+                            Filipino: "Ano"
                         </p>
                     </div>
                 </div>
                 <div class="lesson-right">
-                    <img src="/PICTURES/emotions/happy.jpg" alt="Emotion Happy" class="lesson-image" id="emotionImg">
+                    <!-- Video element for sign language demonstration -->
+                    <video class="lesson-video" 
+                           id="signVideo"
+                           muted
+                           playsinline
+                           loop
+                           autoplay>
+                        <source src="/PICTURES/fsl_basic_wh_questions/ANO.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
                 </div>
                 <button class="nav-arrow right" aria-label="Next" id="nextBtn">&gt;</button>
             </div>
         </div>
     </main>
-        <script src="/JAVASCRIPT/emotions.js"></script>   
+    <script type="module" src="/JAVASCRIPT/whquestions.js"></script>   
 </body>
 </html>

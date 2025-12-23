@@ -3,36 +3,55 @@ import { auth, db } from './firebase.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// Filipino Sign Language Numbers Data
-// CHANGED: img property renamed to video, and paths point to .mp4 files
-const numbersData = [
-    { number: '1', desc: `<strong>Number 1</strong><br>Ex. "Isa ang araw ng pahinga sa isang linggo."`, video: '/PICTURES/fsl_numbers/1.mp4' },
-    { number: '2', desc: `<strong>Number 2</strong><br>Ex. "Dalawa ang mata ng tao."`, video: '/PICTURES/fsl_numbers/2.mp4' },
-    { number: '3', desc: `<strong>Number 3</strong><br>Ex. "Tatlo ang pagkain sa isang araw: almusal, tanghalian, hapunan."`, video: '/PICTURES/fsl_numbers/3.mp4' },
-    { number: '4', desc: `<strong>Number 4</strong><br>Ex. "Apat ang gulong ng kotse."`, video: '/PICTURES/fsl_numbers/4.mp4' },
-    { number: '5', desc: `<strong>Number 5</strong><br>Ex. "Lima ang daliri sa isang kamay."`, video: '/PICTURES/fsl_numbers/5.mp4' },
-    { number: '6', desc: `<strong>Number 6</strong><br>Ex. "Anim ang itlog sa lalagyan."`, video: '/PICTURES/fsl_numbers/6.mp4' },
-    { number: '7', desc: `<strong>Number 7</strong><br>Ex. "Pito ang araw sa isang linggo."`, video: '/PICTURES/fsl_numbers/7.mp4' },
-    { number: '8', desc: `<strong>Number 8</strong><br>Ex. "Walo ang paa ng gagamba."`, video: '/PICTURES/fsl_numbers/8.mp4' },
-    { number: '9', desc: `<strong>Number 9</strong><br>Ex. "Siyam na bituin sa watawat ng Pilipinas."`, video: '/PICTURES/fsl_numbers/9.mp4' },
-    { number: '10', desc: `<strong>Number 10</strong><br>Ex. "Sampu ang estudyante sa silid-aralan."`, video: '/PICTURES/fsl_numbers/10.mp4' }
+// Filipino Sign Language Basic WH Questions Data
+const whQuestionsData = [
+    { 
+        question: 'ANO', 
+        desc: `<strong>What - Used to ask about things or information.</strong><br>Example: "Ano ang pangalan mo?" (What is your name?)<br>Filipino: "Ano"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/ANO.mp4' 
+    },
+    { 
+        question: 'SINO', 
+        desc: `<strong>Who - Used to ask about people or identity.</strong><br>Example: "Sino ang guro mo?" (Who is your teacher?)<br>Filipino: "Sino"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/SINO.mp4' 
+    },
+    { 
+        question: 'SAAN', 
+        desc: `<strong>Where - Used to ask about places or locations.</strong><br>Example: "Saan ka nakatira?" (Where do you live?)<br>Filipino: "Saan"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/SAAN.mp4' 
+    },
+    { 
+        question: 'KAILAN', 
+        desc: `<strong>When - Used to ask about time or date.</strong><br>Example: "Kailan ang birthday mo?" (When is your birthday?)<br>Filipino: "Kailan"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/KAILAN.mp4' 
+    },
+    { 
+        question: 'BAKIT', 
+        desc: `<strong>Why - Used to ask about reasons or causes.</strong><br>Example: "Bakit ka malungkot?" (Why are you sad?)<br>Filipino: "Bakit"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/BAKIT.mp4' 
+    },
+    { 
+        question: 'PAANO', 
+        desc: `<strong>How - Used to ask about methods or ways.</strong><br>Example: "Paano pumunta sa mall?" (How to go to the mall?)<br>Filipino: "Paano"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/PAANO.mp4' 
+    }
 ];
 
 let current = 0;
 let isAnimating = false;
 let currentUser = null;
-let learnedNumbers = new Set();
+let learnedQuestions = new Set();
 let isInitialized = false;
 
 // OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
 function getLastPositionSync() {
     try {
-        const cached = sessionStorage.getItem('numbers_position');
+        const cached = sessionStorage.getItem('whquestions_position');
         if (cached) {
-            const { number, timestamp } = JSON.parse(cached);
+            const { question, timestamp } = JSON.parse(cached);
             // Cache valid for 24 hours
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-                const index = numbersData.findIndex(item => item.number === number);
+                const index = whQuestionsData.findIndex(item => item.question === question);
                 if (index !== -1) {
                     return index;
                 }
@@ -41,14 +60,14 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
-    return 0; // Default to '1'
+    return 0; // Default to 'ANO'
 }
 
 // OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
-function savePositionSync(number) {
+function savePositionSync(question) {
     try {
-        sessionStorage.setItem('numbers_position', JSON.stringify({
-            number,
+        sessionStorage.setItem('whquestions_position', JSON.stringify({
+            question,
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -56,15 +75,15 @@ function savePositionSync(number) {
     }
 }
 
-// OPTIMIZATION 3: Get learned numbers from sessionStorage
-function getLearnedNumbersSync() {
+// OPTIMIZATION 3: Get learned questions from sessionStorage
+function getLearnedQuestionsSync() {
     try {
-        const cached = sessionStorage.getItem('numbers_learned');
+        const cached = sessionStorage.getItem('whquestions_learned');
         if (cached) {
-            const { numbers, timestamp } = JSON.parse(cached);
+            const { questions, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
-                return new Set(numbers);
+                return new Set(questions);
             }
         }
     } catch (error) {
@@ -73,11 +92,11 @@ function getLearnedNumbersSync() {
     return new Set();
 }
 
-// OPTIMIZATION 4: Save learned numbers to sessionStorage
-function saveLearnedNumbersSync(numbers) {
+// OPTIMIZATION 4: Save learned questions to sessionStorage
+function saveLearnedQuestionsSync(questions) {
     try {
-        sessionStorage.setItem('numbers_learned', JSON.stringify({
-            numbers: Array.from(numbers),
+        sessionStorage.setItem('whquestions_learned', JSON.stringify({
+            questions: Array.from(questions),
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -85,9 +104,9 @@ function saveLearnedNumbersSync(numbers) {
     }
 }
 
-// NEW: Preload videos for smoother transitions
+// Preload videos for smoother transitions
 function preloadVideos() {
-    numbersData.forEach(item => {
+    whQuestionsData.forEach(item => {
         const video = document.createElement('video');
         video.preload = 'metadata'; // Load metadata only to save bandwidth
         video.src = item.video;
@@ -99,33 +118,33 @@ async function loadUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'numbers');
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'whquestions');
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
             const data = progressSnap.data();
-            learnedNumbers = new Set(data.learnedNumbers || []);
+            learnedQuestions = new Set(data.learnedQuestions || []);
             
             // Update sessionStorage with fresh data from Firebase
-            saveLearnedNumbersSync(learnedNumbers);
+            saveLearnedQuestionsSync(learnedQuestions);
             
             // Update position if different from cached
-            if (data.lastViewedNumber) {
-                const lastIndex = numbersData.findIndex(item => item.number === data.lastViewedNumber);
+            if (data.lastViewedQuestion) {
+                const lastIndex = whQuestionsData.findIndex(item => item.question === data.lastViewedQuestion);
                 if (lastIndex !== -1 && lastIndex !== current) {
                     current = lastIndex;
-                    savePositionSync(data.lastViewedNumber);
+                    savePositionSync(data.lastViewedQuestion);
                     updateLesson('next', true); // Update display silently
                 }
             }
             
-            console.log('✓ Background sync complete:', learnedNumbers.size, 'numbers learned');
+            console.log('✓ Background sync complete:', learnedQuestions.size, 'questions learned');
         } else {
             // Initialize progress document if it doesn't exist
             await setDoc(progressRef, {
-                learnedNumbers: [],
-                total: 10,
-                lastViewedNumber: numbersData[current].number,
+                learnedQuestions: [],
+                total: 6,
+                lastViewedQuestion: whQuestionsData[current].question,
                 lastUpdated: new Date()
             });
         }
@@ -139,43 +158,43 @@ async function saveUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'numbers');
-        const learnedArray = Array.from(learnedNumbers);
-        const currentNumber = numbersData[current].number;
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'whquestions');
+        const learnedArray = Array.from(learnedQuestions);
+        const currentQuestion = whQuestionsData[current].question;
         
         // Save to sessionStorage immediately
-        saveLearnedNumbersSync(learnedNumbers);
-        savePositionSync(currentNumber);
+        saveLearnedQuestionsSync(learnedQuestions);
+        savePositionSync(currentQuestion);
         
         // Save to Firebase in background
         await setDoc(progressRef, {
-            learnedNumbers: learnedArray,
+            learnedQuestions: learnedArray,
             completed: learnedArray.length,
-            total: 10,
-            percentage: Math.round((learnedArray.length / 10) * 100),
-            lastViewedNumber: currentNumber,
+            total: 6,
+            percentage: Math.round((learnedArray.length / 6) * 100),
+            lastViewedQuestion: currentQuestion,
             lastUpdated: new Date()
         }, { merge: true });
 
-        console.log('✓ Progress saved:', learnedArray.length, '/', 10, '- At:', currentNumber);
+        console.log('✓ Progress saved:', learnedArray.length, '/', 6, '- At:', currentQuestion);
     } catch (error) {
         console.error('Error saving progress:', error);
     }
 }
 
-// Mark current number as learned
-function markNumberAsLearned() {
-    const currentNumber = numbersData[current].number;
+// Mark current question as learned
+function markQuestionAsLearned() {
+    const currentQuestion = whQuestionsData[current].question;
     
-    if (!learnedNumbers.has(currentNumber)) {
-        learnedNumbers.add(currentNumber);
+    if (!learnedQuestions.has(currentQuestion)) {
+        learnedQuestions.add(currentQuestion);
     }
     
     // Save progress (non-blocking)
     saveUserProgress();
 }
 
-// NEW: Play video when loaded
+// Play video when loaded
 function playVideo(videoElement) {
     videoElement.play().catch(error => {
         console.log('Video autoplay prevented:', error);
@@ -183,7 +202,7 @@ function playVideo(videoElement) {
     });
 }
 
-// NEW: Reset and play video
+// Reset and play video
 function resetAndPlayVideo(videoElement) {
     videoElement.currentTime = 0;
     playVideo(videoElement);
@@ -196,29 +215,28 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         isAnimating = true;
     }
     
-    const numberEl = document.getElementById('letter');
+    const questionEl = document.getElementById('letter');
     const descEl = document.getElementById('desc');
-    const videoEl = document.getElementById('signVideo'); // CHANGED: from signImg to signVideo
+    const videoEl = document.getElementById('signVideo');
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
     
     if (skipAnimation) {
         // Immediate update without animation
-        numberEl.innerHTML = numbersData[current].number + 
-            ` <span class="number-visual" style="font-size:0.7em; color:#6d42c7; margin-left:8px;">${'●'.repeat(parseInt(numbersData[current].number) <= 5 ? parseInt(numbersData[current].number) : 5)}${parseInt(numbersData[current].number) > 5 ? '...' : ''}</span>`;
-        descEl.innerHTML = `<p>${numbersData[current].desc}</p>`;
+        questionEl.textContent = whQuestionsData[current].question;
+        descEl.innerHTML = `<p>${whQuestionsData[current].desc}</p>`;
         
-        // CHANGED: Update video source and play
-        videoEl.src = numbersData[current].video;
+        // Update video source and play
+        videoEl.src = whQuestionsData[current].video;
         videoEl.load(); // Load the new video
         playVideo(videoEl); // Auto-play
         
         updateNavButtons();
-        updateNumberStyling();
+        updateQuestionStyling();
         
         // Mark as learned after initial display
         if (isInitialized) {
-            markNumberAsLearned();
+            markQuestionAsLearned();
         }
         return;
     }
@@ -233,16 +251,15 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     // Update content after a short delay for smooth transition
     setTimeout(() => {
-        // Mark current number as learned before moving
-        markNumberAsLearned();
+        // Mark current question as learned before moving
+        markQuestionAsLearned();
         
         // Update the content
-        numberEl.innerHTML = numbersData[current].number + 
-            ` <span class="number-visual" style="font-size:0.7em; color:#6d42c7; margin-left:8px;">${'●'.repeat(parseInt(numbersData[current].number) <= 5 ? parseInt(numbersData[current].number) : 5)}${parseInt(numbersData[current].number) > 5 ? '...' : ''}</span>`;
-        descEl.innerHTML = `<p>${numbersData[current].desc}</p>`;
+        questionEl.textContent = whQuestionsData[current].question;
+        descEl.innerHTML = `<p>${whQuestionsData[current].desc}</p>`;
         
-        // CHANGED: Update video source and reset/play
-        videoEl.src = numbersData[current].video;
+        // Update video source and reset/play
+        videoEl.src = whQuestionsData[current].video;
         videoEl.load();
         resetAndPlayVideo(videoEl);
         
@@ -255,8 +272,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         // Update navigation button visibility
         updateNavButtons();
         
-        // Update number-based styling
-        updateNumberStyling();
+        // Update question-based styling
+        updateQuestionStyling();
         
         // Clean up animation classes after animation completes
         setTimeout(() => {
@@ -280,16 +297,16 @@ function updateNavButtons() {
     }
 }
 
-// Add number-based styling
-function updateNumberStyling() {
+// Add question-based styling
+function updateQuestionStyling() {
     const lessonCard = document.querySelector('.lesson-card');
-    const currentNumber = numbersData[current].number;
+    const currentQuestion = whQuestionsData[current].question.toLowerCase();
     
-    // Remove existing number classes
-    lessonCard.className = lessonCard.className.replace(/number-\d+/g, '');
+    // Remove existing question classes
+    lessonCard.className = lessonCard.className.replace(/question-\w+/g, '');
     
-    // Add current number class
-    lessonCard.classList.add(`number-${currentNumber}`);
+    // Add current question class
+    lessonCard.classList.add(`question-${currentQuestion}`);
 }
 
 // Add CSS animations dynamically
@@ -348,7 +365,6 @@ function addAnimationStyles() {
             transform: translateY(-50%) scale(1.1);
         }
         
-        /* CHANGED: Video styles instead of image */
         .lesson-video {
             transition: opacity 0.2s ease;
         }
@@ -361,49 +377,50 @@ function addAnimationStyles() {
             transform: scale(1.05);
         }
         
-        .number-visual {
-            transition: all 0.3s ease;
-            display: inline-block;
+        /* Question-specific color scheme */
+        .question-ano #letter { 
+            color: #3B82F6; 
+            text-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+        .question-sino #letter { 
+            color: #8B5CF6; 
+            text-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+        }
+        .question-saan #letter { 
+            color: #10B981; 
+            text-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+        .question-kailan #letter { 
+            color: #F59E0B; 
+            text-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+        }
+        .question-bakit #letter { 
+            color: #EF4444; 
+            text-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+        }
+        .question-paano #letter { 
+            color: #06B6D4; 
+            text-shadow: 0 2px 4px rgba(6, 182, 212, 0.3);
         }
         
-        .number-visual:hover {
-            transform: scale(1.2);
-            color: #9333ea !important;
+        /* Subtle background gradients based on question */
+        .question-ano {
+            background: linear-gradient(135deg, #fff 0%, #eff6ff 100%);
         }
-        
-        /* Progressive color scheme based on numbers */
-        .number-1 #letter { color: #ef4444; }
-        .number-2 #letter { color: #f97316; }
-        .number-3 #letter { color: #eab308; }
-        .number-4 #letter { color: #22c55e; }
-        .number-5 #letter { color: #06b6d4; }
-        .number-6 #letter { color: #3b82f6; }
-        .number-7 #letter { color: #8b5cf6; }
-        .number-8 #letter { color: #a855f7; }
-        .number-9 #letter { color: #ec4899; }
-        .number-10 #letter { color: #f59e0b; }
-        
-        /* Animated counting effect */
-        .number-visual {
-            animation: countPulse 0.6s ease-in-out;
+        .question-sino {
+            background: linear-gradient(135deg, #fff 0%, #f5f3ff 100%);
         }
-        
-        @keyframes countPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; transform: scale(1.1); }
+        .question-saan {
+            background: linear-gradient(135deg, #fff 0%, #ecfdf5 100%);
         }
-        
-        /* Special effects for milestone numbers */
-        .number-5 .lesson-card,
-        .number-10 .lesson-card {
-            box-shadow: 0 15px 40px rgba(109, 66, 199, 0.15);
+        .question-kailan {
+            background: linear-gradient(135deg, #fff 0%, #fffbeb 100%);
         }
-        
-        .number-10 #letter {
-            background: linear-gradient(45deg, #f59e0b, #dc2626);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .question-bakit {
+            background: linear-gradient(135deg, #fff 0%, #fef2f2 100%);
+        }
+        .question-paano {
+            background: linear-gradient(135deg, #fff 0%, #ecfeff 100%);
         }
     `;
     document.head.appendChild(style);
@@ -413,7 +430,7 @@ function addAnimationStyles() {
 function navigatePrevious() {
     if (isAnimating) return;
     
-    const newIndex = (current === 0) ? numbersData.length - 1 : current - 1;
+    const newIndex = (current === 0) ? whQuestionsData.length - 1 : current - 1;
     current = newIndex;
     updateLesson('prev');
 }
@@ -421,7 +438,7 @@ function navigatePrevious() {
 function navigateNext() {
     if (isAnimating) return;
     
-    const newIndex = (current === numbersData.length - 1) ? 0 : current + 1;
+    const newIndex = (current === whQuestionsData.length - 1) ? 0 : current + 1;
     current = newIndex;
     updateLesson('next');
 }
@@ -430,7 +447,7 @@ function navigateNext() {
 document.getElementById('prevBtn').onclick = navigatePrevious;
 document.getElementById('nextBtn').onclick = navigateNext;
 
-// Enhanced keyboard navigation with number keys
+// Enhanced keyboard navigation
 document.addEventListener('keydown', function (e) {
     if (isAnimating) return;
     
@@ -448,28 +465,12 @@ document.addEventListener('keydown', function (e) {
         }
     } else if (e.key === "End") {
         e.preventDefault();
-        if (current !== numbersData.length - 1) {
-            current = numbersData.length - 1;
-            updateLesson('next');
-        }
-    }
-    // Number key shortcuts
-    else if (e.key >= '1' && e.key <= '9') {
-        e.preventDefault();
-        const targetIndex = parseInt(e.key) - 1;
-        if (targetIndex < numbersData.length && targetIndex !== current) {
-            const direction = targetIndex > current ? 'next' : 'prev';
-            current = targetIndex;
-            updateLesson(direction);
-        }
-    } else if (e.key === '0') {
-        e.preventDefault();
-        if (current !== 9) { // Index 9 is number 10
-            current = 9;
+        if (current !== whQuestionsData.length - 1) {
+            current = whQuestionsData.length - 1;
             updateLesson('next');
         }
     } else if (e.key === " " || e.key === "Spacebar") {
-        // NEW: Space bar to replay video
+        // Space bar to replay video
         e.preventDefault();
         const videoEl = document.getElementById('signVideo');
         resetAndPlayVideo(videoEl);
@@ -516,14 +517,14 @@ onAuthStateChanged(auth, async (user) => {
 
 // CRITICAL: Initialize IMMEDIATELY with cached data
 current = getLastPositionSync(); // Get cached position synchronously
-learnedNumbers = getLearnedNumbersSync(); // Get cached learned numbers
+learnedQuestions = getLearnedQuestionsSync(); // Get cached learned questions
 
-console.log(`⚡ Instant resume at number: ${numbersData[current].number}`);
+console.log(`⚡ Instant resume at question: ${whQuestionsData[current].question}`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
-    preloadVideos(); // CHANGED: preload videos instead of images
+    preloadVideos();
     
     // INSTANT display with cached position - NO LOADING DELAY
     updateLesson('next', true);
@@ -540,19 +541,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current number as learned now that we're initialized
-            markNumberAsLearned();
+            // Mark current question as learned now that we're initialized
+            markQuestionAsLearned();
         }, 600);
     }, 100);
     
-    // NEW: Add click-to-replay functionality on video
+    // Add click-to-replay functionality on video
     const videoEl = document.getElementById('signVideo');
     if (videoEl) {
         videoEl.addEventListener('click', function() {
             resetAndPlayVideo(this);
         });
         
-        // NEW: Loop video continuously
+        // Loop video continuously
         videoEl.addEventListener('ended', function() {
             this.currentTime = 0;
             this.play();
