@@ -15,8 +15,8 @@ const lessonMap = {
     },
     greetingsCard: {
         href: 'greetings.html',
-        title: 'Continue to Greetings Lesson?',
-        msg: 'Are you sure you want to proceed to the Greetings lesson?'
+        title: 'Continue to Greetings & Courtesies Lesson?',
+        msg: 'Are you sure you want to proceed to the Greetings & Courtesies lesson?'
     },
     whquestionsCard: {
         href: 'whquestions.html',
@@ -33,22 +33,34 @@ const lessonMap = {
         title: 'Continue to Common Phrases Lesson?',
         msg: 'Are you sure you want to proceed to the Common Phrases lesson?'
     },
-    daysCard: {
+    emergencyCard: {
+        href: 'emergency.html',
+        title: 'Continue to Emergency & Basic Needs Lesson?',
+        msg: 'Are you sure you want to proceed to the Emergency & Basic Needs lesson?'
+    },
+    educationalCard: {
+        href: 'educational.html',
+        title: 'Continue to School/Educational Context Lesson?',
+        msg: 'Are you sure you want to proceed to the School/Educational Context lesson?'
+    },
+    timemarkersCard: {
         href: 'timemarkers.html',
-        title: 'Continue to Days of the Week Lesson?',
-        msg: 'Are you sure you want to proceed to the Days of the Week lesson?'
+        title: 'Continue to Time Markers Lesson?',
+        msg: 'Are you sure you want to proceed to the Time Markers lesson?'
     }
 };
 
-// Default progress data structure
+// Default progress data structure with corrected totals
 const defaultProgressData = {
     alphabetCard: { completed: 0, total: 26, percentage: 0 },
     numbersCard: { completed: 0, total: 10, percentage: 0 },
-    greetingsCard: { completed: 0, total: 15, percentage: 0 },
-    whquestionsCard: { completed: 0, total: 8, percentage: 0 },
-    familyCard: { completed: 0, total: 12, percentage: 0 },
-    phrasesCard: { completed: 0, total: 20, percentage: 0 },
-    daysCard: { completed: 0, total: 7, percentage: 0 }
+    greetingsCard: { completed: 0, total: 8, percentage: 0 },
+    whquestionsCard: { completed: 0, total: 6, percentage: 0 },
+    familyCard: { completed: 0, total: 4, percentage: 0 },
+    phrasesCard: { completed: 0, total: 4, percentage: 0 },
+    emergencyCard: { completed: 0, total: 6, percentage: 0 },
+    educationalCard: { completed: 0, total: 3, percentage: 0 },
+    timemarkersCard: { completed: 0, total: 3, percentage: 0 }
 };
 
 let progressData = { ...defaultProgressData };
@@ -77,7 +89,9 @@ function getCachedProgressSync() {
             whquestionsCard: 'whquestions_learned',
             familyCard: 'family_learned',
             phrasesCard: 'phrases_learned',
-            daysCard: 'days_learned'
+            emergencyCard: 'emergency_learned',
+            educationalCard: 'educational_learned',
+            timemarkersCard: 'timemarkers_learned'
         };
 
         const syncedData = { ...defaultProgressData };
@@ -136,7 +150,9 @@ function clearAllCaches() {
             'whquestions_learned',
             'family_learned',
             'phrases_learned',
-            'days_learned',
+            'emergency_learned',
+            'educational_learned',
+            'timemarkers_learned',
             'progress_all',
             'cached_user_id'
         ];
@@ -284,9 +300,11 @@ async function loadAllProgress() {
             numbersCard: 'numbers',
             greetingsCard: 'greetings',
             whquestionsCard: 'whquestions',
-            familyCard: 'family',
+            familyCard: 'familymembers',
             phrasesCard: 'phrases',
-            daysCard: 'days'
+            emergencyCard: 'emergency',
+            educationalCard: 'educational',
+            timemarkersCard: 'timemarkers'
         };
 
         // Single batch read for all progress documents
@@ -383,9 +401,11 @@ onAuthStateChanged(auth, async (user) => {
                 numbersCard: 'numbers',
                 greetingsCard: 'greetings',
                 whquestionsCard: 'whquestions',
-                familyCard: 'family',
+                familyCard: 'familymembers',
                 phrasesCard: 'phrases',
-                daysCard: 'days'
+                emergencyCard: 'emergency',
+                educationalCard: 'educational',
+                timemarkersCard: 'timemarkers'
             };
 
             const progressRef = collection(db, 'users', currentUser.uid, 'progress');
