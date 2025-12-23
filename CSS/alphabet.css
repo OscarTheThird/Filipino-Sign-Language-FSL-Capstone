@@ -145,13 +145,27 @@ body {
     min-width: 200px;
 }
 
-.lesson-image {
-    width: 400px; /* INCREASED size */
+/* UPDATED: Combined styles for both image and video */
+.lesson-image,
+.lesson-video {
+    width: 400px;
     max-width: 100%;
     height: auto;
+    min-height: 300px; /* ADDED: ensures video has height */
     object-fit: contain;
     border: none;
     display: block;
+    cursor: pointer; /* Shows video is clickable */
+    background: #f0f0f0; /* ADDED: temporary background to see if element exists */
+}
+
+/* Hide default video controls for cleaner look */
+.lesson-video::-webkit-media-controls {
+    display: none !important;
+}
+
+.lesson-video::-webkit-media-controls-enclosure {
+    display: none !important;
 }
 
 .nav-arrow {
@@ -202,7 +216,8 @@ body {
     .lesson-card {
         padding: 25px 1vw;
     }
-    .lesson-right .lesson-image {
+    .lesson-right .lesson-image,
+    .lesson-right .lesson-video {
         width: 260px; /* bigger than before */
     }
     .lesson-desc {
@@ -240,7 +255,8 @@ body {
         text-align: center;
         padding-left: 0;
     }
-    .lesson-image {
+    .lesson-image,
+    .lesson-video {
         width: 180px; /* bigger than before */
     }
     .nav-arrow.left {
@@ -281,7 +297,8 @@ body {
         max-width: 90vw;
         margin-left: 0;
     }
-    .lesson-image {
+    .lesson-image,
+    .lesson-video {
         width: 120px; /* bigger than before */
     }
     .nav-arrow {

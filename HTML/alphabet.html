@@ -38,7 +38,16 @@
                     </div>
                 </div>
                 <div class="lesson-right">
-                    <img src="/PICTURES/hand-a.png" alt="Hand sign for A" class="lesson-image" id="signImg">
+                    <!-- CHANGED: Replaced <img> with <video> element -->
+                    <video class="lesson-video" 
+                           id="signVideo"
+                           muted
+                           playsinline
+                           loop
+                           autoplay>
+                        <source src="/PICTURES/fsl_alphabet/A.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
                 </div>
                 <button class="nav-arrow right" aria-label="Next" id="nextBtn">&gt;</button>
             </div>

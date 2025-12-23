@@ -4,33 +4,34 @@ import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/f
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 // Filipino Alphabet A-Z (with example words)
+// CHANGED: img property renamed to video, and paths point to .mp4 files with CAPITAL letter filenames
 const alphabetData = [
-    { letter: 'A', desc: `<strong>The first letter of the Filipino alphabet.</strong><br>—often used to begin words and names.<br>Ex. "A is for aso (dog)."`, img: '/PICTURES/fsl_alphabet/a.png' },
-    { letter: 'B', desc: `<strong>The second letter of the Filipino alphabet.</strong><br>Ex. "B is for bata (child)."`, img: '/PICTURES/fsl_alphabet/b.png' },
-    { letter: 'C', desc: `<strong>The third letter of the Filipino alphabet.</strong><br>Ex. "C is for cat (pusa)."`, img: '/PICTURES/fsl_alphabet/c.png' },
-    { letter: 'D', desc: `<strong>The fourth letter of the Filipino alphabet.</strong><br>Ex. "D is for daga (rat)."`, img: '/PICTURES/fsl_alphabet/d.png' },
-    { letter: 'E', desc: `<strong>The fifth letter of the Filipino alphabet.</strong><br>Ex. "E is for eroplano (airplane)."`, img: '/PICTURES/fsl_alphabet/e.png' },
-    { letter: 'F', desc: `<strong>The sixth letter of the Filipino alphabet.</strong><br>Ex. "F is for pamilya (family, using the sound 'f' for foreign words)."`, img: '/PICTURES/fsl_alphabet/f.png' },
-    { letter: 'G', desc: `<strong>The seventh letter of the Filipino alphabet.</strong><br>Ex. "G is for gabi (night)."`, img: '/PICTURES/fsl_alphabet/g.png' },
-    { letter: 'H', desc: `<strong>The eighth letter of the Filipino alphabet.</strong><br>Ex. "H is for hayop (animal)."`, img: '/PICTURES/fsl_alphabet/h.png' },
-    { letter: 'I', desc: `<strong>The ninth letter of the Filipino alphabet.</strong><br>Ex. "I is for isla (island)."`, img: '/PICTURES/fsl_alphabet/i.png' },
-    { letter: 'J', desc: `<strong>The tenth letter of the Filipino alphabet.</strong><br>Ex. "J is for jeep."`, img: '/PICTURES/fsl_alphabet/j.png' },
-    { letter: 'K', desc: `<strong>The eleventh letter of the Filipino alphabet.</strong><br>Ex. "K is for kabayo (horse)."`, img: '/PICTURES/fsl_alphabet/k.png' },
-    { letter: 'L', desc: `<strong>The twelfth letter of the Filipino alphabet.</strong><br>Ex. "L is for langit (sky)."`, img: '/PICTURES/fsl_alphabet/l.png' },
-    { letter: 'M', desc: `<strong>The thirteenth letter of the Filipino alphabet.</strong><br>Ex. "M is for mata (eye)."`, img: '/PICTURES/fsl_alphabet/m.png' },
-    { letter: 'N', desc: `<strong>The fourteenth letter of the Filipino alphabet.</strong><br>Ex. "N is for ngipin (teeth)."`, img: '/PICTURES/fsl_alphabet/n.png' },
-    { letter: 'O', desc: `<strong>The fifteenth letter of the Filipino alphabet.</strong><br>Ex. "O is for oso (bear)."`, img: '/PICTURES/fsl_alphabet/o.png' },
-    { letter: 'P', desc: `<strong>The sixteenth letter of the Filipino alphabet.</strong><br>Ex. "P is for puno (tree)."`, img: '/PICTURES/fsl_alphabet/p.png' },
-    { letter: 'Q', desc: `<strong>The seventeenth letter of the Filipino alphabet.</strong><br>Ex. "Q is for quwento (story, using 'q' for foreign words)."`, img: '/PICTURES/fsl_alphabet/q.png' },
-    { letter: 'R', desc: `<strong>The eighteenth letter of the Filipino alphabet.</strong><br>Ex. "R is for rosas (rose)."`, img: '/PICTURES/fsl_alphabet/r.png' },
-    { letter: 'S', desc: `<strong>The nineteenth letter of the Filipino alphabet.</strong><br>Ex. "S is for saging (banana)."`, img: '/PICTURES/fsl_alphabet/s.png' },
-    { letter: 'T', desc: `<strong>The twentieth letter of the Filipino alphabet.</strong><br>Ex. "T is for tubig (water)."`, img: '/PICTURES/fsl_alphabet/t.png' },
-    { letter: 'U', desc: `<strong>The twenty-first letter of the Filipino alphabet.</strong><br>Ex. "U is for ulan (rain)."`, img: '/PICTURES/fsl_alphabet/u.png' },
-    { letter: 'V', desc: `<strong>The twenty-second letter of the Filipino alphabet.</strong><br>Ex. "V is for van (using 'v' for foreign words)."`, img: '/PICTURES/fsl_alphabet/v.png' },
-    { letter: 'W', desc: `<strong>The twenty-third letter of the Filipino alphabet.</strong><br>Ex. "W is for walis (broom)."`, img: '/PICTURES/fsl_alphabet/w.png' },
-    { letter: 'X', desc: `<strong>The twenty-fourth letter of the Filipino alphabet.</strong><br>Ex. "X is for x-ray (using 'x' for foreign words)."`, img: '/PICTURES/fsl_alphabet/x.png' },
-    { letter: 'Y', desc: `<strong>The twenty-fifth letter of the Filipino alphabet.</strong><br>Ex. "Y is for yelo (ice)."`, img: '/PICTURES/fsl_alphabet/y.png' },
-    { letter: 'Z', desc: `<strong>The last letter of the Filipino alphabet.</strong><br>Ex. "Z is for zebra."`, img: '/PICTURES/fsl_alphabet/z.png' }
+    { letter: 'A', desc: `<strong>The first letter of the Filipino alphabet.</strong><br>—often used to begin words and names.<br>Ex. "A is for aso (dog)."`, video: '/PICTURES/fsl_alphabet/A.mp4' },
+    { letter: 'B', desc: `<strong>The second letter of the Filipino alphabet.</strong><br>Ex. "B is for bata (child)."`, video: '/PICTURES/fsl_alphabet/B.mp4' },
+    { letter: 'C', desc: `<strong>The third letter of the Filipino alphabet.</strong><br>Ex. "C is for cat (pusa)."`, video: '/PICTURES/fsl_alphabet/C.mp4' },
+    { letter: 'D', desc: `<strong>The fourth letter of the Filipino alphabet.</strong><br>Ex. "D is for daga (rat)."`, video: '/PICTURES/fsl_alphabet/D.mp4' },
+    { letter: 'E', desc: `<strong>The fifth letter of the Filipino alphabet.</strong><br>Ex. "E is for eroplano (airplane)."`, video: '/PICTURES/fsl_alphabet/E.mp4' },
+    { letter: 'F', desc: `<strong>The sixth letter of the Filipino alphabet.</strong><br>Ex. "F is for pamilya (family, using the sound 'f' for foreign words)."`, video: '/PICTURES/fsl_alphabet/F.mp4' },
+    { letter: 'G', desc: `<strong>The seventh letter of the Filipino alphabet.</strong><br>Ex. "G is for gabi (night)."`, video: '/PICTURES/fsl_alphabet/G.mp4' },
+    { letter: 'H', desc: `<strong>The eighth letter of the Filipino alphabet.</strong><br>Ex. "H is for hayop (animal)."`, video: '/PICTURES/fsl_alphabet/H.mp4' },
+    { letter: 'I', desc: `<strong>The ninth letter of the Filipino alphabet.</strong><br>Ex. "I is for isla (island)."`, video: '/PICTURES/fsl_alphabet/I.mp4' },
+    { letter: 'J', desc: `<strong>The tenth letter of the Filipino alphabet.</strong><br>Ex. "J is for jeep."`, video: '/PICTURES/fsl_alphabet/J.mp4' },
+    { letter: 'K', desc: `<strong>The eleventh letter of the Filipino alphabet.</strong><br>Ex. "K is for kabayo (horse)."`, video: '/PICTURES/fsl_alphabet/K.mp4' },
+    { letter: 'L', desc: `<strong>The twelfth letter of the Filipino alphabet.</strong><br>Ex. "L is for langit (sky)."`, video: '/PICTURES/fsl_alphabet/L.mp4' },
+    { letter: 'M', desc: `<strong>The thirteenth letter of the Filipino alphabet.</strong><br>Ex. "M is for mata (eye)."`, video: '/PICTURES/fsl_alphabet/M.mp4' },
+    { letter: 'N', desc: `<strong>The fourteenth letter of the Filipino alphabet.</strong><br>Ex. "N is for ngipin (teeth)."`, video: '/PICTURES/fsl_alphabet/N.mp4' },
+    { letter: 'O', desc: `<strong>The fifteenth letter of the Filipino alphabet.</strong><br>Ex. "O is for oso (bear)."`, video: '/PICTURES/fsl_alphabet/O.mp4' },
+    { letter: 'P', desc: `<strong>The sixteenth letter of the Filipino alphabet.</strong><br>Ex. "P is for puno (tree)."`, video: '/PICTURES/fsl_alphabet/P.mp4' },
+    { letter: 'Q', desc: `<strong>The seventeenth letter of the Filipino alphabet.</strong><br>Ex. "Q is for quwento (story, using 'q' for foreign words)."`, video: '/PICTURES/fsl_alphabet/Q.mp4' },
+    { letter: 'R', desc: `<strong>The eighteenth letter of the Filipino alphabet.</strong><br>Ex. "R is for rosas (rose)."`, video: '/PICTURES/fsl_alphabet/R.mp4' },
+    { letter: 'S', desc: `<strong>The nineteenth letter of the Filipino alphabet.</strong><br>Ex. "S is for saging (banana)."`, video: '/PICTURES/fsl_alphabet/S.mp4' },
+    { letter: 'T', desc: `<strong>The twentieth letter of the Filipino alphabet.</strong><br>Ex. "T is for tubig (water)."`, video: '/PICTURES/fsl_alphabet/T.mp4' },
+    { letter: 'U', desc: `<strong>The twenty-first letter of the Filipino alphabet.</strong><br>Ex. "U is for ulan (rain)."`, video: '/PICTURES/fsl_alphabet/U.mp4' },
+    { letter: 'V', desc: `<strong>The twenty-second letter of the Filipino alphabet.</strong><br>Ex. "V is for van (using 'v' for foreign words)."`, video: '/PICTURES/fsl_alphabet/V.mp4' },
+    { letter: 'W', desc: `<strong>The twenty-third letter of the Filipino alphabet.</strong><br>Ex. "W is for walis (broom)."`, video: '/PICTURES/fsl_alphabet/W.mp4' },
+    { letter: 'X', desc: `<strong>The twenty-fourth letter of the Filipino alphabet.</strong><br>Ex. "X is for x-ray (using 'x' for foreign words)."`, video: '/PICTURES/fsl_alphabet/X.mp4' },
+    { letter: 'Y', desc: `<strong>The twenty-fifth letter of the Filipino alphabet.</strong><br>Ex. "Y is for yelo (ice)."`, video: '/PICTURES/fsl_alphabet/Y.mp4' },
+    { letter: 'Z', desc: `<strong>The last letter of the Filipino alphabet.</strong><br>Ex. "Z is for zebra."`, video: '/PICTURES/fsl_alphabet/Z.mp4' }
 ];
 
 let current = 0;
@@ -100,11 +101,12 @@ function saveLearnedLettersSync(letters) {
     }
 }
 
-// Preload images for smoother transitions
-function preloadImages() {
+// NEW: Preload videos for smoother transitions
+function preloadVideos() {
     alphabetData.forEach(item => {
-        const img = new Image();
-        img.src = item.img;
+        const video = document.createElement('video');
+        video.preload = 'metadata'; // Load metadata only to save bandwidth
+        video.src = item.video;
     });
 }
 
@@ -189,6 +191,20 @@ function markLetterAsLearned() {
     saveUserProgress();
 }
 
+// NEW: Play video when loaded
+function playVideo(videoElement) {
+    videoElement.play().catch(error => {
+        console.log('Video autoplay prevented:', error);
+        // Autoplay was prevented, video will play on user interaction
+    });
+}
+
+// NEW: Reset and play video
+function resetAndPlayVideo(videoElement) {
+    videoElement.currentTime = 0;
+    playVideo(videoElement);
+}
+
 function updateLesson(direction = 'next', skipAnimation = false) {
     if (isAnimating && !skipAnimation) return;
     
@@ -198,7 +214,7 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     const letterEl = document.getElementById('letter');
     const descEl = document.getElementById('desc');
-    const imgEl = document.getElementById('signImg');
+    const videoEl = document.getElementById('signVideo'); // CHANGED: from signImg to signVideo
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
     
@@ -206,8 +222,12 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         // Immediate update without animation
         letterEl.textContent = alphabetData[current].letter;
         descEl.innerHTML = `<p>${alphabetData[current].desc}</p>`;
-        imgEl.src = alphabetData[current].img;
-        imgEl.alt = `Hand sign for ${alphabetData[current].letter}`;
+        
+        // CHANGED: Update video source and play
+        videoEl.src = alphabetData[current].video;
+        videoEl.load(); // Load the new video
+        playVideo(videoEl); // Auto-play
+        
         updateNavButtons();
         
         // Mark as learned after initial display
@@ -233,8 +253,11 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         // Update the content
         letterEl.textContent = alphabetData[current].letter;
         descEl.innerHTML = `<p>${alphabetData[current].desc}</p>`;
-        imgEl.src = alphabetData[current].img;
-        imgEl.alt = `Hand sign for ${alphabetData[current].letter}`;
+        
+        // CHANGED: Update video source and reset/play
+        videoEl.src = alphabetData[current].video;
+        videoEl.load();
+        resetAndPlayVideo(videoEl);
         
         // Remove old classes and add entrance animation
         leftContent.classList.remove(slideOutClass);
@@ -320,7 +343,8 @@ function addAnimationStyles() {
             transform: translateY(-50%) scale(0.95);
         }
         
-        .lesson-image {
+        /* CHANGED: Video styles instead of image */
+        .lesson-video {
             transition: opacity 0.2s ease;
         }
         
@@ -382,6 +406,11 @@ document.addEventListener('keydown', function (e) {
             current = alphabetData.length - 1;
             updateLesson('next');
         }
+    } else if (e.key === " " || e.key === "Spacebar") {
+        // NEW: Space bar to replay video
+        e.preventDefault();
+        const videoEl = document.getElementById('signVideo');
+        resetAndPlayVideo(videoEl);
     }
 });
 
@@ -433,7 +462,7 @@ console.log(`⚡ Instant resume at letter: ${alphabetData[current].letter}`);
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
-    preloadImages();
+    preloadVideos(); // CHANGED: preload videos instead of images
     
     // INSTANT display with cached position - NO LOADING DELAY
     updateLesson('next', true);
@@ -454,6 +483,20 @@ document.addEventListener('DOMContentLoaded', function() {
             markLetterAsLearned();
         }, 600);
     }, 100);
+    
+    // NEW: Add click-to-replay functionality on video
+    const videoEl = document.getElementById('signVideo');
+    if (videoEl) {
+        videoEl.addEventListener('click', function() {
+            resetAndPlayVideo(this);
+        });
+        
+        // NEW: Loop video continuously
+        videoEl.addEventListener('ended', function() {
+            this.currentTime = 0;
+            this.play();
+        });
+    }
 });
 
 // Add visual feedback for button presses
