@@ -1,0 +1,39 @@
+/* Shared video styling for lesson pages */
+.lesson-video {
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 16/9;
+  height: auto;
+  background: #000;
+  border: 2px solid rgba(30,64,175,0.12);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(16,24,40,0.06);
+  object-fit: contain;
+  display: block;
+  margin-right: 18px; /* nudge left relative to right arrow */
+}
+
+/* Ensure video is centered inside its container */
+.lesson-right {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Slightly smaller on medium screens */
+@media (max-width: 968px) {
+  .lesson-video {
+    max-width: 420px;
+    margin-right: 14px;
+  }
+}
+
+/* Mobile adjustments: more square ratio and smaller size */
+@media (max-width: 640px) {
+  .lesson-video {
+    max-width: 320px;
+    aspect-ratio: 4/3;
+    border-radius: 8px;
+    margin-right: 8px;
+  }
+}
