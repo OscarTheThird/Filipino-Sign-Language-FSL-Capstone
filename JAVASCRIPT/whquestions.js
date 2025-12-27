@@ -435,10 +435,33 @@ function navigatePrevious() {
     updateLesson('prev');
 }
 
+// Show quiz confirmation modal
+function showQuizModal() {
+    const modal = document.getElementById('quizModal');
+    if (modal) {
+        modal.classList.add('show');
+    }
+}
+
+// Hide quiz confirmation modal
+function hideQuizModal() {
+    const modal = document.getElementById('quizModal');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+}
+
 function navigateNext() {
     if (isAnimating) return;
     
-    const newIndex = (current === whQuestionsData.length - 1) ? 0 : current + 1;
+    // Check if we're on the last item
+    if (current === whQuestionsData.length - 1) {
+        // Show custom popup modal asking if ready for quiz
+        showQuizModal();
+        return;
+    }
+    
+    const newIndex = current + 1;
     current = newIndex;
     updateLesson('next');
 }
@@ -559,6 +582,40 @@ document.addEventListener('DOMContentLoaded', function() {
             this.play();
         });
     }
+    
+    // Quiz modal event listeners
+    const startQuizBtn = document.getElementById('startQuizBtn');
+    const cancelQuizBtn = document.getElementById('cancelQuizBtn');
+    const quizModal = document.getElementById('quizModal');
+    
+    if (startQuizBtn) {
+        startQuizBtn.addEventListener('click', function() {
+            window.location.href = 'whquestionsquiz.html';
+        });
+    }
+    
+    if (cancelQuizBtn) {
+        cancelQuizBtn.addEventListener('click', function() {
+            hideQuizModal();
+        });
+    }
+    
+    if (quizModal) {
+        quizModal.addEventListener('click', function(e) {
+            if (e.target === quizModal) {
+                hideQuizModal();
+            }
+        });
+    }
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('quizModal');
+            if (modal && modal.classList.contains('show')) {
+                hideQuizModal();
+            }
+        }
+    });
 });
 
 // Add visual feedback for button presses

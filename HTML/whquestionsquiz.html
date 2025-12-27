@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GestSure - WH Questions Quiz</title>
+    <link rel="stylesheet" href="/CSS/whquestionsquiz.css">
+    <link rel="stylesheet" href="/CSS/video.css">
+</head>
+<body>
+    <!-- Header Navigation -->
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-links">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="interpreter.html" class="nav-link">Interpreter</a>
+                <a href="lessons.html" class="nav-link active">Lessons</a>
+            </div>
+            <div class="logo-nav">
+                <img src="/PICTURES/logo.png" alt="GestSure Logo" class="nav-logo">
+                <span class="nav-brand">GestSure</span>
+            </div>
+        </nav>
+    </header>
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="quiz-container">
+            <h1 class="quiz-title">WH Questions Quiz</h1>
+            <div class="quiz-progress">
+                <span id="questionNumber">Question 1</span>
+                <span id="score">Score: 0/0</span>
+            </div>
+            <div class="quiz-card">
+                <div class="quiz-question">
+                    <h2>What question word is this?</h2>
+                    <video class="quiz-video" 
+                           id="quizVideo"
+                           muted
+                           playsinline
+                           loop
+                           autoplay>
+                        <source src="" type="video/mp4" id="videoSource">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                <div class="quiz-options" id="quizOptions">
+                    <!-- Options will be dynamically generated -->
+                </div>
+                <div class="quiz-feedback" id="quizFeedback"></div>
+                <div class="quiz-actions">
+                    <button class="quiz-btn" id="nextBtn" style="display: none;">Next Question</button>
+                    <button class="quiz-btn" id="restartBtn" style="display: none;">Restart Quiz</button>
+                </div>
+            </div>
+            <div class="quiz-results" id="quizResults" style="display: none;">
+                <h2>Quiz Complete!</h2>
+                <p class="final-score" id="finalScore"></p>
+                <div class="result-actions">
+                    <button class="quiz-btn" onclick="window.location.href='whquestions.html'">Back to Lesson</button>
+                    <button class="quiz-btn" onclick="location.reload()">Retake Quiz</button>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script type="module" src="/JAVASCRIPT/whquestionsquiz.js"></script>       
+</body>
+</html>
+

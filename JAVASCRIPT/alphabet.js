@@ -372,10 +372,33 @@ function navigatePrevious() {
     updateLesson('prev');
 }
 
+// Show quiz confirmation modal
+function showQuizModal() {
+    const modal = document.getElementById('quizModal');
+    if (modal) {
+        modal.classList.add('show');
+    }
+}
+
+// Hide quiz confirmation modal
+function hideQuizModal() {
+    const modal = document.getElementById('quizModal');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+}
+
 function navigateNext() {
     if (isAnimating) return;
     
-    const newIndex = (current === alphabetData.length - 1) ? 0 : current + 1;
+    // Check if we're on the last letter (Z)
+    if (current === alphabetData.length - 1) {
+        // Show custom popup modal asking if ready for quiz
+        showQuizModal();
+        return;
+    }
+    
+    const newIndex = current + 1;
     current = newIndex;
     updateLesson('next');
 }
@@ -406,6 +429,10 @@ document.addEventListener('keydown', function (e) {
             current = alphabetData.length - 1;
             updateLesson('next');
         }
+    } else if (e.key === "Enter" && current === alphabetData.length - 1) {
+        // Allow Enter key to trigger quiz prompt when on last letter
+        e.preventDefault();
+        navigateNext();
     } else if (e.key === " " || e.key === "Spacebar") {
         // NEW: Space bar to replay video
         e.preventDefault();
@@ -497,6 +524,43 @@ document.addEventListener('DOMContentLoaded', function() {
             this.play();
         });
     }
+    
+    // Quiz modal event listeners
+    const startQuizBtn = document.getElementById('startQuizBtn');
+    const cancelQuizBtn = document.getElementById('cancelQuizBtn');
+    const quizModal = document.getElementById('quizModal');
+    
+    if (startQuizBtn) {
+        startQuizBtn.addEventListener('click', function() {
+            // Navigate to alphabet quiz page
+            window.location.href = 'alphabetquiz.html';
+        });
+    }
+    
+    if (cancelQuizBtn) {
+        cancelQuizBtn.addEventListener('click', function() {
+            hideQuizModal();
+        });
+    }
+    
+    // Close modal when clicking outside of it
+    if (quizModal) {
+        quizModal.addEventListener('click', function(e) {
+            if (e.target === quizModal) {
+                hideQuizModal();
+            }
+        });
+    }
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('quizModal');
+            if (modal && modal.classList.contains('show')) {
+                hideQuizModal();
+            }
+        }
+    });
 });
 
 // Add visual feedback for button presses
