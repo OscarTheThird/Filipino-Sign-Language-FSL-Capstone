@@ -616,7 +616,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (startQuizBtn) {
         startQuizBtn.addEventListener('click', function() {
-            window.location.href = 'greetingsquiz.html';
+            window.location.href = '/HTML/Quiz/greetingsquiz.html';
         });
     }
     

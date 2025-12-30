@@ -533,7 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (startQuizBtn) {
         startQuizBtn.addEventListener('click', function() {
             // Navigate to alphabet quiz page
-            window.location.href = 'alphabetquiz.html';
+            window.location.href = '/HTML/Quiz/alphabetquiz.html';
         });
     }
     

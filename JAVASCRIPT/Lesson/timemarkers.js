@@ -565,7 +565,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (startQuizBtn) {
         startQuizBtn.addEventListener('click', function() {
-            window.location.href = 'timemarkersquiz.html';
+            window.location.href = '/HTML/Quiz/timemarkersquiz.html';
         });
     }
     

@@ -590,7 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (startQuizBtn) {
         startQuizBtn.addEventListener('click', function() {
             // Navigate to numbers quiz page
-            window.location.href = 'numbersquiz.html';
+            window.location.href = '/HTML/Quiz/numbersquiz.html';
         });
     }
     
