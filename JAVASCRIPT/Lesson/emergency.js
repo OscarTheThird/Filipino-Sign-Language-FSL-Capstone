@@ -1,68 +1,57 @@
 // Import Firebase modules
-import { auth, db } from './firebase.js';
+import { auth, db } from '../firebase.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// Filipino Sign Language Greetings Data
-// CHANGED: img property renamed to video, expanded to 8 greetings
-const greetingsData = [
+// Filipino Sign Language Emergency & Basic Needs Data
+const emergencyData = [
   {
-    greeting: "Good Morning",
-    desc: `<strong>A warm greeting used in the morning.</strong><br>Used from early morning until around noon.<br>Filipino: "Magandang umaga"`,
-    video: "/PICTURES/fsl_greetings/MAGANDANG UMAGA.mp4",
+    need: "Help Me",
+    desc: `<strong>An urgent request for assistance.</strong><br>Used in emergency situations when you need immediate help.<br>Filipino: "Tulungan mo ako"`,
+    video: "/PICTURES/fsl_emergency/TULUNGAN.mp4",
   },
   {
-    greeting: "Good Noon",
-    desc: `<strong>A greeting used around midday.</strong><br>Used specifically during lunchtime.<br>Filipino: "Magandang tanghali"`,
-    video: "/PICTURES/fsl_greetings/MAGANDANG TANGHALI.mp4",
+    need: "Water",
+    desc: `<strong>Requesting water to drink.</strong><br>A basic necessity for hydration and survival.<br>Filipino: "Tubig"`,
+    video: "/PICTURES/fsl_emergency/TUBIG.mp4",
   },
   {
-    greeting: "Good Afternoon",
-    desc: `<strong>A polite greeting used in the afternoon.</strong><br>Used from noon until early evening.<br>Filipino: "Magandang hapon"`,
-    video: "/PICTURES/fsl_greetings/MAGANDANG HAPON.mp4",
+    need: "Eat",
+    desc: `<strong>Expressing the action of eating.</strong><br>Used to indicate the need or desire to eat food.<br>Filipino: "Kain"`,
+    video: "/PICTURES/fsl_emergency/KAIN.mp4",
   },
   {
-    greeting: "Good Evening",
-    desc: `<strong>A courteous greeting used in the evening.</strong><br>Used from late afternoon until night.<br>Filipino: "Magandang gabi"`,
-    video: "/PICTURES/fsl_greetings/MAGANDANG GABI.mp4",
+    need: "Food",
+    desc: `<strong>Requesting food or meals.</strong><br>A basic necessity for nourishment and energy.<br>Filipino: "Pagkain"`,
+    video: "/PICTURES/fsl_emergency/PAGKAIN.mp4",
   },
   {
-    greeting: "Hello",
-    desc: `<strong>A universal friendly greeting.</strong><br>Can be used at any time of the day.<br>Filipino: "Kumusta" or "Hello"`,
-    video: "/PICTURES/fsl_greetings/HELLO.mp4",
+    need: "Stop",
+    desc: `<strong>Commanding to halt or cease action.</strong><br>Used to signal someone to stop what they're doing immediately.<br>Filipino: "Hinto"`,
+    video: "/PICTURES/fsl_emergency/HINTO.mp4",
   },
   {
-    greeting: "How are you",
-    desc: `<strong>Asking about someone's well-being.</strong><br>A common way to show care and interest.<br>Filipino: "Kumusta ka?"`,
-    video: "/PICTURES/fsl_greetings/KAMUSTA KA.mp4",
-  },
-  {
-    greeting: "Thank you",
-    desc: `<strong>Expressing gratitude and appreciation.</strong><br>Used to show thanks for help or kindness.<br>Filipino: "Salamat"`,
-    video: "/PICTURES/fsl_greetings/SALAMAT.mp4",
-  },
-  {
-    greeting: "Goodbye",
-    desc: `<strong>A farewell greeting when parting.</strong><br>Used when leaving or ending a conversation.<br>Filipino: "Paalam"`,
-    video: "/PICTURES/fsl_greetings/PAALAM.mp4",
+    need: "Drink",
+    desc: `<strong>Expressing the action of drinking.</strong><br>Used to indicate the need or desire to drink liquids.<br>Filipino: "Inom"`,
+    video: "/PICTURES/fsl_emergency/INOM.mp4",
   },
 ];
 
 let current = 0;
 let isAnimating = false;
 let currentUser = null;
-let learnedItems = new Set();
+let learnedNeeds = new Set();
 let isInitialized = false;
 
-// OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
+// Get last position from sessionStorage immediately (synchronous)
 function getLastPositionSync() {
     try {
-        const cached = sessionStorage.getItem('greetings_position');
+        const cached = sessionStorage.getItem('emergency_position');
         if (cached) {
-            const { greeting, timestamp } = JSON.parse(cached);
+            const { need, timestamp } = JSON.parse(cached);
             // Cache valid for 24 hours
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-                const index = greetingsData.findIndex(item => item.greeting === greeting);
+                const index = emergencyData.findIndex(item => item.need === need);
                 if (index !== -1) {
                     return index;
                 }
@@ -71,14 +60,14 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
-    return 0; // Default to 'Good Morning'
+    return 0; // Default to 'Help Me'
 }
 
-// OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
-function savePositionSync(greeting) {
+// Save position to sessionStorage immediately (synchronous)
+function savePositionSync(need) {
     try {
-        sessionStorage.setItem('greetings_position', JSON.stringify({
-            greeting,
+        sessionStorage.setItem('emergency_position', JSON.stringify({
+            need,
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -86,10 +75,10 @@ function savePositionSync(greeting) {
     }
 }
 
-// OPTIMIZATION 3: Get learned greetings from sessionStorage
-function getLearnedItemsSync() {
+// Get learned emergency needs from sessionStorage
+function getLearnedNeedsSync() {
     try {
-        const cached = sessionStorage.getItem('greetings_learned');
+        const cached = sessionStorage.getItem('emergency_learned');
         if (cached) {
             const { items, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
@@ -103,10 +92,10 @@ function getLearnedItemsSync() {
     return new Set();
 }
 
-// OPTIMIZATION 4: Save learned greetings to sessionStorage
-function saveLearnedItemsSync(items) {
+// Save learned emergency needs to sessionStorage
+function saveLearnedNeedsSync(items) {
     try {
-        sessionStorage.setItem('greetings_learned', JSON.stringify({
+        sessionStorage.setItem('emergency_learned', JSON.stringify({
             items: Array.from(items),
             timestamp: Date.now()
         }));
@@ -115,11 +104,11 @@ function saveLearnedItemsSync(items) {
     }
 }
 
-// NEW: Preload videos for smoother transitions
+// Preload videos for smoother transitions
 function preloadVideos() {
-    greetingsData.forEach(item => {
+    emergencyData.forEach(item => {
         const video = document.createElement('video');
-        video.preload = 'metadata'; // Load metadata only to save bandwidth
+        video.preload = 'metadata';
         video.src = item.video;
     });
 }
@@ -129,33 +118,33 @@ async function loadUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'greetings');
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'emergency');
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
             const data = progressSnap.data();
-            learnedItems = new Set(data.learnedItems || []);
+            learnedNeeds = new Set(data.learnedNeeds || []);
             
             // Update sessionStorage with fresh data from Firebase
-            saveLearnedItemsSync(learnedItems);
+            saveLearnedNeedsSync(learnedNeeds);
             
             // Update position if different from cached
-            if (data.lastViewedItem) {
-                const lastIndex = greetingsData.findIndex(item => item.greeting === data.lastViewedItem);
+            if (data.lastViewedNeed) {
+                const lastIndex = emergencyData.findIndex(item => item.need === data.lastViewedNeed);
                 if (lastIndex !== -1 && lastIndex !== current) {
                     current = lastIndex;
-                    savePositionSync(data.lastViewedItem);
-                    updateLesson('next', true); // Update display silently
+                    savePositionSync(data.lastViewedNeed);
+                    updateLesson('next', true);
                 }
             }
             
-            console.log('✓ Background sync complete:', learnedItems.size, 'greetings learned');
+            console.log('✓ Background sync complete:', learnedNeeds.size, 'emergency needs learned');
         } else {
             // Initialize progress document if it doesn't exist
             await setDoc(progressRef, {
-                learnedItems: [],
-                total: 8, // CHANGED: Updated from 4 to 8
-                lastViewedItem: greetingsData[current].greeting,
+                learnedNeeds: [],
+                total: 6,
+                lastViewedNeed: emergencyData[current].need,
                 lastUpdated: new Date()
             });
         }
@@ -169,51 +158,50 @@ async function saveUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'greetings');
-        const learnedArray = Array.from(learnedItems);
-        const currentItem = greetingsData[current].greeting;
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'emergency');
+        const learnedArray = Array.from(learnedNeeds);
+        const currentNeed = emergencyData[current].need;
         
         // Save to sessionStorage immediately
-        saveLearnedItemsSync(learnedItems);
-        savePositionSync(currentItem);
+        saveLearnedNeedsSync(learnedNeeds);
+        savePositionSync(currentNeed);
         
         // Save to Firebase in background
         await setDoc(progressRef, {
-            learnedItems: learnedArray,
+            learnedNeeds: learnedArray,
             completed: learnedArray.length,
-            total: 8, // CHANGED: Updated from 4 to 8
-            percentage: Math.round((learnedArray.length / 8) * 100),
-            lastViewedItem: currentItem,
+            total: 6,
+            percentage: Math.round((learnedArray.length / 6) * 100),
+            lastViewedNeed: currentNeed,
             lastUpdated: new Date()
         }, { merge: true });
 
-        console.log('✓ Progress saved:', learnedArray.length, '/', 8, '- At:', currentItem);
+        console.log('✓ Progress saved:', learnedArray.length, '/', 6, '- At:', currentNeed);
     } catch (error) {
         console.error('Error saving progress:', error);
     }
 }
 
-// Mark current greeting as learned
-function markItemAsLearned() {
-    const currentItem = greetingsData[current].greeting;
+// Mark current emergency need as learned
+function markNeedAsLearned() {
+    const currentNeed = emergencyData[current].need;
     
-    if (!learnedItems.has(currentItem)) {
-        learnedItems.add(currentItem);
+    if (!learnedNeeds.has(currentNeed)) {
+        learnedNeeds.add(currentNeed);
     }
     
     // Save progress (non-blocking)
     saveUserProgress();
 }
 
-// NEW: Play video when loaded
+// Play video when loaded
 function playVideo(videoElement) {
     videoElement.play().catch(error => {
         console.log('Video autoplay prevented:', error);
-        // Autoplay was prevented, video will play on user interaction
     });
 }
 
-// NEW: Reset and play video
+// Reset and play video
 function resetAndPlayVideo(videoElement) {
     videoElement.currentTime = 0;
     playVideo(videoElement);
@@ -228,26 +216,26 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     const greetingEl = document.getElementById('greeting');
     const descEl = document.getElementById('desc');
-    const videoEl = document.getElementById('signVideo'); // CHANGED: from signImg to signVideo
+    const videoEl = document.getElementById('signVideo');
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
     
     if (skipAnimation) {
         // Immediate update without animation
-        greetingEl.textContent = greetingsData[current].greeting;
-        descEl.innerHTML = `<p>${greetingsData[current].desc}</p>`;
+        greetingEl.textContent = emergencyData[current].need;
+        descEl.innerHTML = `<p>${emergencyData[current].desc}</p>`;
         
-        // CHANGED: Update video source and play
-        videoEl.src = greetingsData[current].video;
-        videoEl.load(); // Load the new video
-        playVideo(videoEl); // Auto-play
+        // Update video source and play
+        videoEl.src = emergencyData[current].video;
+        videoEl.load();
+        playVideo(videoEl);
         
         updateNavButtons();
-        updateTimeBasedStyling();
+        updateEmergencyStyling();
         
         // Mark as learned after initial display
         if (isInitialized) {
-            markItemAsLearned();
+            markNeedAsLearned();
         }
         return;
     }
@@ -262,15 +250,15 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     // Update content after a short delay for smooth transition
     setTimeout(() => {
-        // Mark current greeting as learned before moving
-        markItemAsLearned();
+        // Mark current need as learned before moving
+        markNeedAsLearned();
         
         // Update the content
-        greetingEl.textContent = greetingsData[current].greeting;
-        descEl.innerHTML = `<p>${greetingsData[current].desc}</p>`;
+        greetingEl.textContent = emergencyData[current].need;
+        descEl.innerHTML = `<p>${emergencyData[current].desc}</p>`;
         
-        // CHANGED: Update video source and reset/play
-        videoEl.src = greetingsData[current].video;
+        // Update video source and reset/play
+        videoEl.src = emergencyData[current].video;
         videoEl.load();
         resetAndPlayVideo(videoEl);
         
@@ -283,8 +271,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         // Update navigation button visibility
         updateNavButtons();
         
-        // Update time-based styling
-        updateTimeBasedStyling();
+        // Update emergency styling
+        updateEmergencyStyling();
         
         // Clean up animation classes after animation completes
         setTimeout(() => {
@@ -298,7 +286,9 @@ function updateLesson(direction = 'next', skipAnimation = false) {
 
 function updateNavButtons() {
     const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
     
+    // Update previous button
     if (current === 0) {
         prevBtn.style.opacity = '0.3';
         prevBtn.style.pointerEvents = 'none';
@@ -306,18 +296,22 @@ function updateNavButtons() {
         prevBtn.style.opacity = '1';
         prevBtn.style.pointerEvents = 'auto';
     }
+    
+    // Next button always enabled - clicking on last slide will show quiz modal
+    nextBtn.style.opacity = '1';
+    nextBtn.style.pointerEvents = 'auto';
 }
 
-// Add time-based styling based on greeting type
-function updateTimeBasedStyling() {
+// Add emergency-specific styling
+function updateEmergencyStyling() {
     const lessonCard = document.querySelector('.lesson-card');
-    const currentGreeting = greetingsData[current].greeting.toLowerCase().replace(/\s+/g, '');
+    const currentNeed = emergencyData[current].need.toLowerCase().replace(/\s+/g, '');
     
-    // Remove existing time-based classes
-    lessonCard.className = lessonCard.className.replace(/time-\w+/g, '');
+    // Remove existing need classes
+    lessonCard.className = lessonCard.className.replace(/need-\w+/g, '');
     
-    // Add current time-based class
-    lessonCard.classList.add(`time-${currentGreeting}`);
+    // Add current need class
+    lessonCard.classList.add(`need-${currentNeed}`);
 }
 
 // Add CSS animations dynamically
@@ -376,7 +370,6 @@ function addAnimationStyles() {
             transform: translateY(-50%) scale(1.1);
         }
         
-        /* CHANGED: Video styles instead of image */
         .lesson-video {
             transition: opacity 0.2s ease;
         }
@@ -389,64 +382,50 @@ function addAnimationStyles() {
             transform: scale(1.05);
         }
         
-        /* Time-based greeting colors - EXPANDED to 8 greetings */
-        .time-goodmorning #greeting { 
-            color: #FF6B35; 
-            text-shadow: 0 2px 4px rgba(255, 107, 53, 0.3);
-        }
-        .time-goodnoon #greeting { 
-            color: #F4A261; 
-            text-shadow: 0 2px 4px rgba(244, 162, 97, 0.3);
-        }
-        .time-goodafternoon #greeting { 
-            color: #4ECDC4; 
-            text-shadow: 0 2px 4px rgba(78, 205, 196, 0.3);
-        }
-        .time-goodevening #greeting { 
-            color: #45B7D1; 
-            text-shadow: 0 2px 4px rgba(69, 183, 209, 0.3);
-        }
-        .time-hello #greeting { 
-            color: #96CEB4; 
-            text-shadow: 0 2px 4px rgba(150, 206, 180, 0.3);
-        }
-        .time-howareyou #greeting { 
-            color: #9B59B6; 
-            text-shadow: 0 2px 4px rgba(155, 89, 182, 0.3);
-        }
-        .time-thankyou #greeting { 
+        /* Emergency & Basic Needs specific colors */
+        .need-helpme #greeting { 
             color: #E74C3C; 
-            text-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+            text-shadow: 0 2px 4px rgba(231, 76, 60, 0.4);
         }
-        .time-goodbye #greeting { 
+        .need-water #greeting { 
             color: #3498DB; 
-            text-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+            text-shadow: 0 2px 4px rgba(52, 152, 219, 0.4);
+        }
+        .need-eat #greeting { 
+            color: #E67E22; 
+            text-shadow: 0 2px 4px rgba(230, 126, 34, 0.4);
+        }
+        .need-food #greeting { 
+            color: #27AE60; 
+            text-shadow: 0 2px 4px rgba(39, 174, 96, 0.4);
+        }
+        .need-stop #greeting { 
+            color: #C0392B; 
+            text-shadow: 0 2px 4px rgba(192, 57, 43, 0.4);
+        }
+        .need-drink #greeting { 
+            color: #16A085; 
+            text-shadow: 0 2px 4px rgba(22, 160, 133, 0.4);
         }
         
-        /* Add subtle background gradients based on time */
-        .time-goodmorning {
-            background: linear-gradient(135deg, #fff 0%, #fff8f4 100%);
+        /* Add subtle background gradients based on emergency needs */
+        .need-helpme {
+            background: linear-gradient(135deg, #fff 0%, #ffebee 100%);
         }
-        .time-goodnoon {
-            background: linear-gradient(135deg, #fff 0%, #fffaf6 100%);
+        .need-water {
+            background: linear-gradient(135deg, #fff 0%, #e3f2fd 100%);
         }
-        .time-goodafternoon {
-            background: linear-gradient(135deg, #fff 0%, #f4fffe 100%);
+        .need-eat {
+            background: linear-gradient(135deg, #fff 0%, #fff3e0 100%);
         }
-        .time-goodevening {
-            background: linear-gradient(135deg, #fff 0%, #f4f9ff 100%);
+        .need-food {
+            background: linear-gradient(135deg, #fff 0%, #e8f5e9 100%);
         }
-        .time-hello {
-            background: linear-gradient(135deg, #fff 0%, #f8fff9 100%);
+        .need-stop {
+            background: linear-gradient(135deg, #fff 0%, #ffcdd2 100%);
         }
-        .time-howareyou {
-            background: linear-gradient(135deg, #fff 0%, #faf5ff 100%);
-        }
-        .time-thankyou {
-            background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
-        }
-        .time-goodbye {
-            background: linear-gradient(135deg, #fff 0%, #f0f8ff 100%);
+        .need-drink {
+            background: linear-gradient(135deg, #fff 0%, #e0f2f1 100%);
         }
     `;
     document.head.appendChild(style);
@@ -454,10 +433,9 @@ function addAnimationStyles() {
 
 // Enhanced navigation with direction awareness
 function navigatePrevious() {
-    if (isAnimating) return;
+    if (isAnimating || current === 0) return;
     
-    const newIndex = (current === 0) ? greetingsData.length - 1 : current - 1;
-    current = newIndex;
+    current--;
     updateLesson('prev');
 }
 
@@ -481,14 +459,13 @@ function navigateNext() {
     if (isAnimating) return;
     
     // Check if we're on the last item
-    if (current === greetingsData.length - 1) {
+    if (current === emergencyData.length - 1) {
         // Show custom popup modal asking if ready for quiz
         showQuizModal();
         return;
     }
     
-    const newIndex = current + 1;
-    current = newIndex;
+    current++;
     updateLesson('next');
 }
 
@@ -514,12 +491,12 @@ document.addEventListener('keydown', function (e) {
         }
     } else if (e.key === "End") {
         e.preventDefault();
-        if (current !== greetingsData.length - 1) {
-            current = greetingsData.length - 1;
+        if (current !== emergencyData.length - 1) {
+            current = emergencyData.length - 1;
             updateLesson('next');
         }
     } else if (e.key === " " || e.key === "Spacebar") {
-        // NEW: Space bar to replay video
+        // Space bar to replay video
         e.preventDefault();
         const videoEl = document.getElementById('signVideo');
         resetAndPlayVideo(videoEl);
@@ -564,18 +541,18 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// CRITICAL: Initialize IMMEDIATELY with cached data
-current = getLastPositionSync(); // Get cached position synchronously
-learnedItems = getLearnedItemsSync(); // Get cached learned greetings
+// Initialize immediately with cached data
+current = getLastPositionSync();
+learnedNeeds = getLearnedNeedsSync();
 
-console.log(`⚡ Instant resume at greeting: ${greetingsData[current].greeting}`);
+console.log(`⚡ Instant resume at emergency need: ${emergencyData[current].need}`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
-    preloadVideos(); // CHANGED: preload videos instead of images
+    preloadVideos();
     
-    // INSTANT display with cached position - NO LOADING DELAY
+    // Instant display with cached position
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -590,19 +567,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current greeting as learned now that we're initialized
-            markItemAsLearned();
+            // Mark current need as learned now that we're initialized
+            markNeedAsLearned();
         }, 600);
     }, 100);
     
-    // NEW: Add click-to-replay functionality on video
+    // Add click-to-replay functionality on video
     const videoEl = document.getElementById('signVideo');
     if (videoEl) {
         videoEl.addEventListener('click', function() {
             resetAndPlayVideo(this);
         });
         
-        // NEW: Loop video continuously
+        // Loop video continuously
         videoEl.addEventListener('ended', function() {
             this.currentTime = 0;
             this.play();
@@ -616,7 +593,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (startQuizBtn) {
         startQuizBtn.addEventListener('click', function() {
-            window.location.href = 'greetingsquiz.html';
+            window.location.href = 'emergencyquiz.html';
         });
     }
     

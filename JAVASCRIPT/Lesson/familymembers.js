@@ -1,5 +1,5 @@
 // Import Firebase modules
-import { auth, db } from './firebase.js';
+import { auth, db } from '../firebase.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 

@@ -1,42 +1,47 @@
 // Import Firebase modules
-import { auth, db } from './firebase.js';
+import { auth, db } from '../firebase.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// Filipino Sign Language School/Educational Context Data
-const educationalData = [
-  {
-    term: "Teacher",
-    desc: `<strong>A person who educates and guides students.</strong><br>Used to refer to educators in schools and learning environments.<br>Filipino: "Guro"`,
-    video: "/PICTURES/fsl_school_education/GURO.mp4",
-  },
-  {
-    term: "Student",
-    desc: `<strong>A person who is learning or studying.</strong><br>Used to refer to learners in educational institutions.<br>Filipino: "Estudyante"`,
-    video: "/PICTURES/fsl_school_education/ESTUDYANTE.mp4",
-  },
-  {
-    term: "Study",
-    desc: `<strong>The act of learning or gaining knowledge.</strong><br>Used to describe the process of education and acquiring information.<br>Filipino: "Aral"`,
-    video: "/PICTURES/fsl_school_education/ARAL.mp4",
-  },
+// Filipino Sign Language Common Phrases Data
+const phrasesData = [
+    { 
+        phrase: 'AKO SI', 
+        desc: `<strong>I am - Used to introduce yourself.</strong><br>Example: "Ako si Juan" (I am Juan)<br>Filipino: "Ako si"`, 
+        video: '/PICTURES/fsl_common_phrases/AKO SI.mp4' 
+    },
+    { 
+        phrase: 'OO', 
+        desc: `<strong>Yes - Used to agree or confirm.</strong><br>Example: "Oo, tama ka" (Yes, you are right)<br>Filipino: "Oo"`, 
+        video: '/PICTURES/fsl_common_phrases/OO.mp4' 
+    },
+    { 
+        phrase: 'HINDI', 
+        desc: `<strong>No - Used to disagree or deny.</strong><br>Example: "Hindi, mali yan" (No, that's wrong)<br>Filipino: "Hindi"`, 
+        video: '/PICTURES/fsl_common_phrases/HINDI.mp4' 
+    },
+    { 
+        phrase: 'AKO AY MABUTI', 
+        desc: `<strong>I am fine - Used to respond when asked how you are.</strong><br>Example: "Ako ay mabuti, salamat" (I am fine, thank you)<br>Filipino: "Ako ay mabuti"`, 
+        video: '/PICTURES/fsl_common_phrases/AKO AY MABUTI.mp4' 
+    }
 ];
 
 let current = 0;
 let isAnimating = false;
 let currentUser = null;
-let learnedTerms = new Set();
+let learnedPhrases = new Set();
 let isInitialized = false;
 
-// Get last position from sessionStorage immediately (synchronous)
+// OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
 function getLastPositionSync() {
     try {
-        const cached = sessionStorage.getItem('educational_position');
+        const cached = sessionStorage.getItem('phrases_position');
         if (cached) {
-            const { term, timestamp } = JSON.parse(cached);
+            const { phrase, timestamp } = JSON.parse(cached);
             // Cache valid for 24 hours
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-                const index = educationalData.findIndex(item => item.term === term);
+                const index = phrasesData.findIndex(item => item.phrase === phrase);
                 if (index !== -1) {
                     return index;
                 }
@@ -45,14 +50,14 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
-    return 0; // Default to 'Teacher'
+    return 0; // Default to 'AKO SI'
 }
 
-// Save position to sessionStorage immediately (synchronous)
-function savePositionSync(term) {
+// OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
+function savePositionSync(phrase) {
     try {
-        sessionStorage.setItem('educational_position', JSON.stringify({
-            term,
+        sessionStorage.setItem('phrases_position', JSON.stringify({
+            phrase,
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -60,15 +65,15 @@ function savePositionSync(term) {
     }
 }
 
-// Get learned educational terms from sessionStorage
-function getLearnedTermsSync() {
+// OPTIMIZATION 3: Get learned phrases from sessionStorage
+function getLearnedPhrasesSync() {
     try {
-        const cached = sessionStorage.getItem('educational_learned');
+        const cached = sessionStorage.getItem('phrases_learned');
         if (cached) {
-            const { items, timestamp } = JSON.parse(cached);
+            const { phrases, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
-                return new Set(items);
+                return new Set(phrases);
             }
         }
     } catch (error) {
@@ -77,11 +82,11 @@ function getLearnedTermsSync() {
     return new Set();
 }
 
-// Save learned educational terms to sessionStorage
-function saveLearnedTermsSync(items) {
+// OPTIMIZATION 4: Save learned phrases to sessionStorage
+function saveLearnedPhrasesSync(phrases) {
     try {
-        sessionStorage.setItem('educational_learned', JSON.stringify({
-            items: Array.from(items),
+        sessionStorage.setItem('phrases_learned', JSON.stringify({
+            phrases: Array.from(phrases),
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -91,9 +96,9 @@ function saveLearnedTermsSync(items) {
 
 // Preload videos for smoother transitions
 function preloadVideos() {
-    educationalData.forEach(item => {
+    phrasesData.forEach(item => {
         const video = document.createElement('video');
-        video.preload = 'metadata';
+        video.preload = 'metadata'; // Load metadata only to save bandwidth
         video.src = item.video;
     });
 }
@@ -103,33 +108,33 @@ async function loadUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'educational');
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'phrases');
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
             const data = progressSnap.data();
-            learnedTerms = new Set(data.learnedTerms || []);
+            learnedPhrases = new Set(data.learnedPhrases || []);
             
             // Update sessionStorage with fresh data from Firebase
-            saveLearnedTermsSync(learnedTerms);
+            saveLearnedPhrasesSync(learnedPhrases);
             
             // Update position if different from cached
-            if (data.lastViewedTerm) {
-                const lastIndex = educationalData.findIndex(item => item.term === data.lastViewedTerm);
+            if (data.lastViewedPhrase) {
+                const lastIndex = phrasesData.findIndex(item => item.phrase === data.lastViewedPhrase);
                 if (lastIndex !== -1 && lastIndex !== current) {
                     current = lastIndex;
-                    savePositionSync(data.lastViewedTerm);
-                    updateLesson('next', true);
+                    savePositionSync(data.lastViewedPhrase);
+                    updateLesson('next', true); // Update display silently
                 }
             }
             
-            console.log('✓ Background sync complete:', learnedTerms.size, 'educational terms learned');
+            console.log('✓ Background sync complete:', learnedPhrases.size, 'phrases learned');
         } else {
             // Initialize progress document if it doesn't exist
             await setDoc(progressRef, {
-                learnedTerms: [],
-                total: 3,
-                lastViewedTerm: educationalData[current].term,
+                learnedPhrases: [],
+                total: 4,
+                lastViewedPhrase: phrasesData[current].phrase,
                 lastUpdated: new Date()
             });
         }
@@ -143,36 +148,36 @@ async function saveUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'educational');
-        const learnedArray = Array.from(learnedTerms);
-        const currentTerm = educationalData[current].term;
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'phrases');
+        const learnedArray = Array.from(learnedPhrases);
+        const currentPhrase = phrasesData[current].phrase;
         
         // Save to sessionStorage immediately
-        saveLearnedTermsSync(learnedTerms);
-        savePositionSync(currentTerm);
+        saveLearnedPhrasesSync(learnedPhrases);
+        savePositionSync(currentPhrase);
         
         // Save to Firebase in background
         await setDoc(progressRef, {
-            learnedTerms: learnedArray,
+            learnedPhrases: learnedArray,
             completed: learnedArray.length,
-            total: 3,
-            percentage: Math.round((learnedArray.length / 3) * 100),
-            lastViewedTerm: currentTerm,
+            total: 4,
+            percentage: Math.round((learnedArray.length / 4) * 100),
+            lastViewedPhrase: currentPhrase,
             lastUpdated: new Date()
         }, { merge: true });
 
-        console.log('✓ Progress saved:', learnedArray.length, '/', 3, '- At:', currentTerm);
+        console.log('✓ Progress saved:', learnedArray.length, '/', 4, '- At:', currentPhrase);
     } catch (error) {
         console.error('Error saving progress:', error);
     }
 }
 
-// Mark current educational term as learned
-function markTermAsLearned() {
-    const currentTerm = educationalData[current].term;
+// Mark current phrase as learned
+function markPhraseAsLearned() {
+    const currentPhrase = phrasesData[current].phrase;
     
-    if (!learnedTerms.has(currentTerm)) {
-        learnedTerms.add(currentTerm);
+    if (!learnedPhrases.has(currentPhrase)) {
+        learnedPhrases.add(currentPhrase);
     }
     
     // Save progress (non-blocking)
@@ -183,6 +188,7 @@ function markTermAsLearned() {
 function playVideo(videoElement) {
     videoElement.play().catch(error => {
         console.log('Video autoplay prevented:', error);
+        // Autoplay was prevented, video will play on user interaction
     });
 }
 
@@ -199,7 +205,7 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         isAnimating = true;
     }
     
-    const greetingEl = document.getElementById('greeting');
+    const phraseEl = document.getElementById('letter');
     const descEl = document.getElementById('desc');
     const videoEl = document.getElementById('signVideo');
     const leftContent = document.querySelector('.lesson-left');
@@ -207,20 +213,20 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     if (skipAnimation) {
         // Immediate update without animation
-        greetingEl.textContent = educationalData[current].term;
-        descEl.innerHTML = `<p>${educationalData[current].desc}</p>`;
+        phraseEl.textContent = phrasesData[current].phrase;
+        descEl.innerHTML = `<p>${phrasesData[current].desc}</p>`;
         
         // Update video source and play
-        videoEl.src = educationalData[current].video;
-        videoEl.load();
-        playVideo(videoEl);
+        videoEl.src = phrasesData[current].video;
+        videoEl.load(); // Load the new video
+        playVideo(videoEl); // Auto-play
         
         updateNavButtons();
-        updateEducationalStyling();
+        updatePhraseStyling();
         
         // Mark as learned after initial display
         if (isInitialized) {
-            markTermAsLearned();
+            markPhraseAsLearned();
         }
         return;
     }
@@ -235,15 +241,15 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     // Update content after a short delay for smooth transition
     setTimeout(() => {
-        // Mark current term as learned before moving
-        markTermAsLearned();
+        // Mark current phrase as learned before moving
+        markPhraseAsLearned();
         
         // Update the content
-        greetingEl.textContent = educationalData[current].term;
-        descEl.innerHTML = `<p>${educationalData[current].desc}</p>`;
+        phraseEl.textContent = phrasesData[current].phrase;
+        descEl.innerHTML = `<p>${phrasesData[current].desc}</p>`;
         
         // Update video source and reset/play
-        videoEl.src = educationalData[current].video;
+        videoEl.src = phrasesData[current].video;
         videoEl.load();
         resetAndPlayVideo(videoEl);
         
@@ -256,15 +262,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         // Update navigation button visibility
         updateNavButtons();
         
-        // Update educational styling
-        updateEducationalStyling();
-        
-        // Check if we're on the last slide and show quiz modal
-        if (current === educationalData.length - 1) {
-            setTimeout(() => {
-                showQuizModal();
-            }, 500); // Show modal after animation completes
-        }
+        // Update phrase-based styling
+        updatePhraseStyling();
         
         // Clean up animation classes after animation completes
         setTimeout(() => {
@@ -278,9 +277,7 @@ function updateLesson(direction = 'next', skipAnimation = false) {
 
 function updateNavButtons() {
     const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
     
-    // Update previous button
     if (current === 0) {
         prevBtn.style.opacity = '0.3';
         prevBtn.style.pointerEvents = 'none';
@@ -288,22 +285,18 @@ function updateNavButtons() {
         prevBtn.style.opacity = '1';
         prevBtn.style.pointerEvents = 'auto';
     }
-    
-    // Next button always enabled for looping
-    nextBtn.style.opacity = '1';
-    nextBtn.style.pointerEvents = 'auto';
 }
 
-// Add educational-specific styling
-function updateEducationalStyling() {
+// Add phrase-based styling
+function updatePhraseStyling() {
     const lessonCard = document.querySelector('.lesson-card');
-    const currentTerm = educationalData[current].term.toLowerCase().replace(/\s+/g, '');
+    const currentPhrase = phrasesData[current].phrase.toLowerCase().replace(/\s+/g, '');
     
-    // Remove existing term classes
-    lessonCard.className = lessonCard.className.replace(/term-\w+/g, '');
+    // Remove existing phrase classes
+    lessonCard.className = lessonCard.className.replace(/phrase-\w+/g, '');
     
-    // Add current term class
-    lessonCard.classList.add(`term-${currentTerm}`);
+    // Add current phrase class
+    lessonCard.classList.add(`phrase-${currentPhrase}`);
 }
 
 // Add CSS animations dynamically
@@ -366,37 +359,44 @@ function addAnimationStyles() {
             transition: opacity 0.2s ease;
         }
         
-        #greeting {
+        #letter {
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         
-        .lesson-card:not(.animating) #greeting:hover {
+        .lesson-card:not(.animating) #letter:hover {
             transform: scale(1.05);
         }
         
-        /* School/Educational Context specific colors */
-        .term-teacher #greeting { 
-            color: #8E44AD; 
-            text-shadow: 0 2px 4px rgba(142, 68, 173, 0.4);
+        /* Phrase-specific color scheme */
+        .phrase-akosi #letter { 
+            color: #3B82F6; 
+            text-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
         }
-        .term-student #greeting { 
-            color: #3498DB; 
-            text-shadow: 0 2px 4px rgba(52, 152, 219, 0.4);
+        .phrase-oo #letter { 
+            color: #10B981; 
+            text-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
         }
-        .term-study #greeting { 
-            color: #E67E22; 
-            text-shadow: 0 2px 4px rgba(230, 126, 34, 0.4);
+        .phrase-hindi #letter { 
+            color: #EF4444; 
+            text-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+        }
+        .phrase-akoaymabuti #letter { 
+            color: #F59E0B; 
+            text-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
         }
         
-        /* Add subtle background gradients based on educational terms */
-        .term-teacher {
-            background: linear-gradient(135deg, #fff 0%, #f3e5f5 100%);
+        /* Subtle background gradients based on phrase */
+        .phrase-akosi {
+            background: linear-gradient(135deg, #fff 0%, #eff6ff 100%);
         }
-        .term-student {
-            background: linear-gradient(135deg, #fff 0%, #e3f2fd 100%);
+        .phrase-oo {
+            background: linear-gradient(135deg, #fff 0%, #ecfdf5 100%);
         }
-        .term-study {
-            background: linear-gradient(135deg, #fff 0%, #fff3e0 100%);
+        .phrase-hindi {
+            background: linear-gradient(135deg, #fff 0%, #fef2f2 100%);
+        }
+        .phrase-akoaymabuti {
+            background: linear-gradient(135deg, #fff 0%, #fffbeb 100%);
         }
     `;
     document.head.appendChild(style);
@@ -404,9 +404,10 @@ function addAnimationStyles() {
 
 // Enhanced navigation with direction awareness
 function navigatePrevious() {
-    if (isAnimating || current === 0) return;
+    if (isAnimating) return;
     
-    current--;
+    const newIndex = (current === 0) ? phrasesData.length - 1 : current - 1;
+    current = newIndex;
     updateLesson('prev');
 }
 
@@ -429,14 +430,15 @@ function hideQuizModal() {
 function navigateNext() {
     if (isAnimating) return;
     
-    // Check if we're on the last slide
-    if (current === educationalData.length - 1) {
-        // Show quiz modal instead of looping
+    // Check if we're on the last item
+    if (current === phrasesData.length - 1) {
+        // Show custom popup modal asking if ready for quiz
         showQuizModal();
         return;
     }
     
-    current++;
+    const newIndex = current + 1;
+    current = newIndex;
     updateLesson('next');
 }
 
@@ -462,8 +464,8 @@ document.addEventListener('keydown', function (e) {
         }
     } else if (e.key === "End") {
         e.preventDefault();
-        if (current !== educationalData.length - 1) {
-            current = educationalData.length - 1;
+        if (current !== phrasesData.length - 1) {
+            current = phrasesData.length - 1;
             updateLesson('next');
         }
     } else if (e.key === " " || e.key === "Spacebar") {
@@ -512,18 +514,18 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// Initialize immediately with cached data
-current = getLastPositionSync();
-learnedTerms = getLearnedTermsSync();
+// CRITICAL: Initialize IMMEDIATELY with cached data
+current = getLastPositionSync(); // Get cached position synchronously
+learnedPhrases = getLearnedPhrasesSync(); // Get cached learned phrases
 
-console.log(`⚡ Instant resume at educational term: ${educationalData[current].term}`);
+console.log(`⚡ Instant resume at phrase: ${phrasesData[current].phrase}`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
     preloadVideos();
     
-    // Instant display with cached position
+    // INSTANT display with cached position - NO LOADING DELAY
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -538,8 +540,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current term as learned now that we're initialized
-            markTermAsLearned();
+            // Mark current phrase as learned now that we're initialized
+            markPhraseAsLearned();
         }, 600);
     }, 100);
     
@@ -564,7 +566,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (startQuizBtn) {
         startQuizBtn.addEventListener('click', function() {
-            window.location.href = 'educationalcontextquiz.html';
+            window.location.href = 'phrasesquiz.html';
         });
     }
     

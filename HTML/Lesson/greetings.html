@@ -3,18 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/CSS/timemarkers.css">
+    <link rel="stylesheet" href="/CSS/Lesson/greetings.css">
     <link rel="stylesheet" href="/CSS/video.css">
-    <title>GestSure - Time Markers Lesson</title>
+    <title>GestSure - Greetings Lesson</title>
   </head>
   <body>
     <!-- Header Navigation -->
     <header class="header">
       <nav class="navbar">
         <div class="nav-links">
-          <a href="home.html" class="nav-link">Home</a>
-          <a href="interpreter.html" class="nav-link">Interpreter</a>
-          <a href="lessons.html" class="nav-link active">Lessons</a>
+          <a href="/HTML/home.html" class="nav-link">Home</a>
+          <a href="/HTML/interpreter.html" class="nav-link">Interpreter</a>
+          <a href="/HTML/lessons.html" class="nav-link active">Lessons</a>
         </div>
         <div class="logo-nav">
           <img src="/PICTURES/logo.png" alt="GestSure Logo" class="nav-logo" />
@@ -26,29 +26,30 @@
     <!-- Main Content -->
     <main class="main-content">
       <div class="lesson-container">
-        <h1 class="lesson-title">Time Markers</h1>
+        <h1 class="lesson-title">Greetings</h1>
         <div class="lesson-card">
           <button class="nav-arrow left" aria-label="Previous" id="prevBtn">
             &lt;
           </button>
           <div class="lesson-left">
-            <span class="lesson-greeting" id="greeting">Now</span>
+            <span class="lesson-greeting" id="greeting">Good Morning</span>
             <div class="lesson-desc" id="desc">
               <p>
-                <strong>Indicates the present time.</strong><br />
-                Used to refer to the current moment or ongoing action.<br />
-                Filipino: "Ngayon"
+                <strong>A warm greeting used in the morning.</strong><br />
+                Used from early morning until around noon.<br />
+                Filipino: "Magandang umaga"
               </p>
             </div>
           </div>
           <div class="lesson-right">
+            <!-- CHANGED: Replaced <img> with <video> element -->
             <video class="lesson-video" 
                    id="signVideo"
                    muted
                    playsinline
                    loop
                    autoplay>
-              <source src="/PICTURES/fsl_time_markers/NGAYON.mp4" type="video/mp4">
+              <source src="/PICTURES/fsl_greetings/goodmorning.mp4" type="video/mp4">
               Your browser does not support the video tag.
             </video>
           </div>
@@ -66,7 +67,7 @@
                 <h2>🎉 Congratulations!</h2>
             </div>
             <div class="modal-body">
-                <p>You have completed the Time Markers lesson!</p>
+                <p>You have completed the Greetings lesson!</p>
                 <p class="modal-question">Are you ready to take the quiz?</p>
             </div>
             <div class="modal-footer">
@@ -76,6 +77,6 @@
         </div>
     </div>
     
-    <script type="module" src="/JAVASCRIPT/timemarkers.js"></script>
+    <script type="module" src="/JAVASCRIPT/Lesson/greetings.js"></script>
   </body>
 </html>

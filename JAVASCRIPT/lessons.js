@@ -4,47 +4,47 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/fi
 
 const lessonMap = {
     alphabetCard: {
-        href: 'alphabet.html',
+        href: 'Lesson/alphabet.html',
         title: 'Continue to Alphabet Lesson?',
         msg: 'Are you sure you want to proceed to the Alphabet lesson?'
     },
     numbersCard: {
-        href: 'numbers.html',
+        href: 'Lesson/numbers.html',
         title: 'Continue to Numbers Lesson?',
         msg: 'Are you sure you want to proceed to the Numbers lesson?'
     },
     greetingsCard: {
-        href: 'greetings.html',
+        href: 'Lesson/greetings.html',
         title: 'Continue to Greetings & Courtesies Lesson?',
         msg: 'Are you sure you want to proceed to the Greetings & Courtesies lesson?'
     },
     whquestionsCard: {
-        href: 'whquestions.html',
+        href: 'Lesson/whquestions.html',
         title: 'Continue to WH Questions Lesson?',
         msg: 'Are you sure you want to proceed to the Basic WH Questions lesson?'
     },
     familyCard: {
-        href: 'familymembers.html',
+        href: 'Lesson/familymembers.html',
         title: 'Continue to Family Members Lesson?',
         msg: 'Are you sure you want to proceed to the Family Members lesson?'
     },
     phrasesCard: {
-        href: 'phrases.html',
+        href: 'Lesson/phrases.html',
         title: 'Continue to Common Phrases Lesson?',
         msg: 'Are you sure you want to proceed to the Common Phrases lesson?'
     },
     emergencyCard: {
-        href: 'emergency.html',
+        href: 'Lesson/emergency.html',
         title: 'Continue to Emergency & Basic Needs Lesson?',
         msg: 'Are you sure you want to proceed to the Emergency & Basic Needs lesson?'
     },
     educationalCard: {
-        href: 'educationalcontext.html',
+        href: 'Lesson/educationalcontext.html',
         title: 'Continue to School/Educational Context Lesson?',
         msg: 'Are you sure you want to proceed to the School/Educational Context lesson?'
     },
     timemarkersCard: {
-        href: 'timemarkers.html',
+        href: 'Lesson/timemarkers.html',
         title: 'Continue to Time Markers Lesson?',
         msg: 'Are you sure you want to proceed to the Time Markers lesson?'
     }

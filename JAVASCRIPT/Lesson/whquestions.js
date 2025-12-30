@@ -1,54 +1,57 @@
 // Import Firebase modules
-import { auth, db } from './firebase.js';
+import { auth, db } from '../firebase.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// Filipino Alphabet A-Z (with example words)
-// CHANGED: img property renamed to video, and paths point to .mp4 files with CAPITAL letter filenames
-const alphabetData = [
-    { letter: 'A', desc: `<strong>The first letter of the Filipino alphabet.</strong><br>—often used to begin words and names.<br>Ex. "A is for aso (dog)."`, video: '/PICTURES/fsl_alphabet/A.mp4' },
-    { letter: 'B', desc: `<strong>The second letter of the Filipino alphabet.</strong><br>Ex. "B is for bata (child)."`, video: '/PICTURES/fsl_alphabet/B.mp4' },
-    { letter: 'C', desc: `<strong>The third letter of the Filipino alphabet.</strong><br>Ex. "C is for cat (pusa)."`, video: '/PICTURES/fsl_alphabet/C.mp4' },
-    { letter: 'D', desc: `<strong>The fourth letter of the Filipino alphabet.</strong><br>Ex. "D is for daga (rat)."`, video: '/PICTURES/fsl_alphabet/D.mp4' },
-    { letter: 'E', desc: `<strong>The fifth letter of the Filipino alphabet.</strong><br>Ex. "E is for eroplano (airplane)."`, video: '/PICTURES/fsl_alphabet/E.mp4' },
-    { letter: 'F', desc: `<strong>The sixth letter of the Filipino alphabet.</strong><br>Ex. "F is for pamilya (family, using the sound 'f' for foreign words)."`, video: '/PICTURES/fsl_alphabet/F.mp4' },
-    { letter: 'G', desc: `<strong>The seventh letter of the Filipino alphabet.</strong><br>Ex. "G is for gabi (night)."`, video: '/PICTURES/fsl_alphabet/G.mp4' },
-    { letter: 'H', desc: `<strong>The eighth letter of the Filipino alphabet.</strong><br>Ex. "H is for hayop (animal)."`, video: '/PICTURES/fsl_alphabet/H.mp4' },
-    { letter: 'I', desc: `<strong>The ninth letter of the Filipino alphabet.</strong><br>Ex. "I is for isla (island)."`, video: '/PICTURES/fsl_alphabet/I.mp4' },
-    { letter: 'J', desc: `<strong>The tenth letter of the Filipino alphabet.</strong><br>Ex. "J is for jeep."`, video: '/PICTURES/fsl_alphabet/J.mp4' },
-    { letter: 'K', desc: `<strong>The eleventh letter of the Filipino alphabet.</strong><br>Ex. "K is for kabayo (horse)."`, video: '/PICTURES/fsl_alphabet/K.mp4' },
-    { letter: 'L', desc: `<strong>The twelfth letter of the Filipino alphabet.</strong><br>Ex. "L is for langit (sky)."`, video: '/PICTURES/fsl_alphabet/L.mp4' },
-    { letter: 'M', desc: `<strong>The thirteenth letter of the Filipino alphabet.</strong><br>Ex. "M is for mata (eye)."`, video: '/PICTURES/fsl_alphabet/M.mp4' },
-    { letter: 'N', desc: `<strong>The fourteenth letter of the Filipino alphabet.</strong><br>Ex. "N is for ngipin (teeth)."`, video: '/PICTURES/fsl_alphabet/N.mp4' },
-    { letter: 'O', desc: `<strong>The fifteenth letter of the Filipino alphabet.</strong><br>Ex. "O is for oso (bear)."`, video: '/PICTURES/fsl_alphabet/O.mp4' },
-    { letter: 'P', desc: `<strong>The sixteenth letter of the Filipino alphabet.</strong><br>Ex. "P is for puno (tree)."`, video: '/PICTURES/fsl_alphabet/P.mp4' },
-    { letter: 'Q', desc: `<strong>The seventeenth letter of the Filipino alphabet.</strong><br>Ex. "Q is for quwento (story, using 'q' for foreign words)."`, video: '/PICTURES/fsl_alphabet/Q.mp4' },
-    { letter: 'R', desc: `<strong>The eighteenth letter of the Filipino alphabet.</strong><br>Ex. "R is for rosas (rose)."`, video: '/PICTURES/fsl_alphabet/R.mp4' },
-    { letter: 'S', desc: `<strong>The nineteenth letter of the Filipino alphabet.</strong><br>Ex. "S is for saging (banana)."`, video: '/PICTURES/fsl_alphabet/S.mp4' },
-    { letter: 'T', desc: `<strong>The twentieth letter of the Filipino alphabet.</strong><br>Ex. "T is for tubig (water)."`, video: '/PICTURES/fsl_alphabet/T.mp4' },
-    { letter: 'U', desc: `<strong>The twenty-first letter of the Filipino alphabet.</strong><br>Ex. "U is for ulan (rain)."`, video: '/PICTURES/fsl_alphabet/U.mp4' },
-    { letter: 'V', desc: `<strong>The twenty-second letter of the Filipino alphabet.</strong><br>Ex. "V is for van (using 'v' for foreign words)."`, video: '/PICTURES/fsl_alphabet/V.mp4' },
-    { letter: 'W', desc: `<strong>The twenty-third letter of the Filipino alphabet.</strong><br>Ex. "W is for walis (broom)."`, video: '/PICTURES/fsl_alphabet/W.mp4' },
-    { letter: 'X', desc: `<strong>The twenty-fourth letter of the Filipino alphabet.</strong><br>Ex. "X is for x-ray (using 'x' for foreign words)."`, video: '/PICTURES/fsl_alphabet/X.mp4' },
-    { letter: 'Y', desc: `<strong>The twenty-fifth letter of the Filipino alphabet.</strong><br>Ex. "Y is for yelo (ice)."`, video: '/PICTURES/fsl_alphabet/Y.mp4' },
-    { letter: 'Z', desc: `<strong>The last letter of the Filipino alphabet.</strong><br>Ex. "Z is for zebra."`, video: '/PICTURES/fsl_alphabet/Z.mp4' }
+// Filipino Sign Language Basic WH Questions Data
+const whQuestionsData = [
+    { 
+        question: 'ANO', 
+        desc: `<strong>What - Used to ask about things or information.</strong><br>Example: "Ano ang pangalan mo?" (What is your name?)<br>Filipino: "Ano"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/ANO.mp4' 
+    },
+    { 
+        question: 'SINO', 
+        desc: `<strong>Who - Used to ask about people or identity.</strong><br>Example: "Sino ang guro mo?" (Who is your teacher?)<br>Filipino: "Sino"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/SINO.mp4' 
+    },
+    { 
+        question: 'SAAN', 
+        desc: `<strong>Where - Used to ask about places or locations.</strong><br>Example: "Saan ka nakatira?" (Where do you live?)<br>Filipino: "Saan"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/SAAN.mp4' 
+    },
+    { 
+        question: 'KAILAN', 
+        desc: `<strong>When - Used to ask about time or date.</strong><br>Example: "Kailan ang birthday mo?" (When is your birthday?)<br>Filipino: "Kailan"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/KAILAN.mp4' 
+    },
+    { 
+        question: 'BAKIT', 
+        desc: `<strong>Why - Used to ask about reasons or causes.</strong><br>Example: "Bakit ka malungkot?" (Why are you sad?)<br>Filipino: "Bakit"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/BAKIT.mp4' 
+    },
+    { 
+        question: 'PAANO', 
+        desc: `<strong>How - Used to ask about methods or ways.</strong><br>Example: "Paano pumunta sa mall?" (How to go to the mall?)<br>Filipino: "Paano"`, 
+        video: '/PICTURES/fsl_basic_wh_questions/PAANO.mp4' 
+    }
 ];
 
 let current = 0;
 let isAnimating = false;
 let currentUser = null;
-let learnedLetters = new Set();
+let learnedQuestions = new Set();
 let isInitialized = false;
 
 // OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
 function getLastPositionSync() {
     try {
-        const cached = sessionStorage.getItem('alphabet_position');
+        const cached = sessionStorage.getItem('whquestions_position');
         if (cached) {
-            const { letter, timestamp } = JSON.parse(cached);
+            const { question, timestamp } = JSON.parse(cached);
             // Cache valid for 24 hours
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-                const index = alphabetData.findIndex(item => item.letter === letter);
+                const index = whQuestionsData.findIndex(item => item.question === question);
                 if (index !== -1) {
                     return index;
                 }
@@ -57,14 +60,14 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
-    return 0; // Default to 'A'
+    return 0; // Default to 'ANO'
 }
 
 // OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
-function savePositionSync(letter) {
+function savePositionSync(question) {
     try {
-        sessionStorage.setItem('alphabet_position', JSON.stringify({
-            letter,
+        sessionStorage.setItem('whquestions_position', JSON.stringify({
+            question,
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -72,15 +75,15 @@ function savePositionSync(letter) {
     }
 }
 
-// OPTIMIZATION 3: Get learned letters from sessionStorage
-function getLearnedLettersSync() {
+// OPTIMIZATION 3: Get learned questions from sessionStorage
+function getLearnedQuestionsSync() {
     try {
-        const cached = sessionStorage.getItem('alphabet_learned');
+        const cached = sessionStorage.getItem('whquestions_learned');
         if (cached) {
-            const { letters, timestamp } = JSON.parse(cached);
+            const { questions, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
-                return new Set(letters);
+                return new Set(questions);
             }
         }
     } catch (error) {
@@ -89,11 +92,11 @@ function getLearnedLettersSync() {
     return new Set();
 }
 
-// OPTIMIZATION 4: Save learned letters to sessionStorage
-function saveLearnedLettersSync(letters) {
+// OPTIMIZATION 4: Save learned questions to sessionStorage
+function saveLearnedQuestionsSync(questions) {
     try {
-        sessionStorage.setItem('alphabet_learned', JSON.stringify({
-            letters: Array.from(letters),
+        sessionStorage.setItem('whquestions_learned', JSON.stringify({
+            questions: Array.from(questions),
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -101,9 +104,9 @@ function saveLearnedLettersSync(letters) {
     }
 }
 
-// NEW: Preload videos for smoother transitions
+// Preload videos for smoother transitions
 function preloadVideos() {
-    alphabetData.forEach(item => {
+    whQuestionsData.forEach(item => {
         const video = document.createElement('video');
         video.preload = 'metadata'; // Load metadata only to save bandwidth
         video.src = item.video;
@@ -115,33 +118,33 @@ async function loadUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'alphabet');
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'whquestions');
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
             const data = progressSnap.data();
-            learnedLetters = new Set(data.learnedLetters || []);
+            learnedQuestions = new Set(data.learnedQuestions || []);
             
             // Update sessionStorage with fresh data from Firebase
-            saveLearnedLettersSync(learnedLetters);
+            saveLearnedQuestionsSync(learnedQuestions);
             
             // Update position if different from cached
-            if (data.lastViewedLetter) {
-                const lastIndex = alphabetData.findIndex(item => item.letter === data.lastViewedLetter);
+            if (data.lastViewedQuestion) {
+                const lastIndex = whQuestionsData.findIndex(item => item.question === data.lastViewedQuestion);
                 if (lastIndex !== -1 && lastIndex !== current) {
                     current = lastIndex;
-                    savePositionSync(data.lastViewedLetter);
+                    savePositionSync(data.lastViewedQuestion);
                     updateLesson('next', true); // Update display silently
                 }
             }
             
-            console.log('✓ Background sync complete:', learnedLetters.size, 'letters learned');
+            console.log('✓ Background sync complete:', learnedQuestions.size, 'questions learned');
         } else {
             // Initialize progress document if it doesn't exist
             await setDoc(progressRef, {
-                learnedLetters: [],
-                total: 26,
-                lastViewedLetter: alphabetData[current].letter,
+                learnedQuestions: [],
+                total: 6,
+                lastViewedQuestion: whQuestionsData[current].question,
                 lastUpdated: new Date()
             });
         }
@@ -155,43 +158,43 @@ async function saveUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'alphabet');
-        const learnedArray = Array.from(learnedLetters);
-        const currentLetter = alphabetData[current].letter;
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'whquestions');
+        const learnedArray = Array.from(learnedQuestions);
+        const currentQuestion = whQuestionsData[current].question;
         
         // Save to sessionStorage immediately
-        saveLearnedLettersSync(learnedLetters);
-        savePositionSync(currentLetter);
+        saveLearnedQuestionsSync(learnedQuestions);
+        savePositionSync(currentQuestion);
         
         // Save to Firebase in background
         await setDoc(progressRef, {
-            learnedLetters: learnedArray,
+            learnedQuestions: learnedArray,
             completed: learnedArray.length,
-            total: 26,
-            percentage: Math.round((learnedArray.length / 26) * 100),
-            lastViewedLetter: currentLetter,
+            total: 6,
+            percentage: Math.round((learnedArray.length / 6) * 100),
+            lastViewedQuestion: currentQuestion,
             lastUpdated: new Date()
         }, { merge: true });
 
-        console.log('✓ Progress saved:', learnedArray.length, '/', 26, '- At:', currentLetter);
+        console.log('✓ Progress saved:', learnedArray.length, '/', 6, '- At:', currentQuestion);
     } catch (error) {
         console.error('Error saving progress:', error);
     }
 }
 
-// Mark current letter as learned
-function markLetterAsLearned() {
-    const currentLetter = alphabetData[current].letter;
+// Mark current question as learned
+function markQuestionAsLearned() {
+    const currentQuestion = whQuestionsData[current].question;
     
-    if (!learnedLetters.has(currentLetter)) {
-        learnedLetters.add(currentLetter);
+    if (!learnedQuestions.has(currentQuestion)) {
+        learnedQuestions.add(currentQuestion);
     }
     
     // Save progress (non-blocking)
     saveUserProgress();
 }
 
-// NEW: Play video when loaded
+// Play video when loaded
 function playVideo(videoElement) {
     videoElement.play().catch(error => {
         console.log('Video autoplay prevented:', error);
@@ -199,7 +202,7 @@ function playVideo(videoElement) {
     });
 }
 
-// NEW: Reset and play video
+// Reset and play video
 function resetAndPlayVideo(videoElement) {
     videoElement.currentTime = 0;
     playVideo(videoElement);
@@ -212,27 +215,28 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         isAnimating = true;
     }
     
-    const letterEl = document.getElementById('letter');
+    const questionEl = document.getElementById('letter');
     const descEl = document.getElementById('desc');
-    const videoEl = document.getElementById('signVideo'); // CHANGED: from signImg to signVideo
+    const videoEl = document.getElementById('signVideo');
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
     
     if (skipAnimation) {
         // Immediate update without animation
-        letterEl.textContent = alphabetData[current].letter;
-        descEl.innerHTML = `<p>${alphabetData[current].desc}</p>`;
+        questionEl.textContent = whQuestionsData[current].question;
+        descEl.innerHTML = `<p>${whQuestionsData[current].desc}</p>`;
         
-        // CHANGED: Update video source and play
-        videoEl.src = alphabetData[current].video;
+        // Update video source and play
+        videoEl.src = whQuestionsData[current].video;
         videoEl.load(); // Load the new video
         playVideo(videoEl); // Auto-play
         
         updateNavButtons();
+        updateQuestionStyling();
         
         // Mark as learned after initial display
         if (isInitialized) {
-            markLetterAsLearned();
+            markQuestionAsLearned();
         }
         return;
     }
@@ -247,15 +251,15 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     // Update content after a short delay for smooth transition
     setTimeout(() => {
-        // Mark current letter as learned before moving
-        markLetterAsLearned();
+        // Mark current question as learned before moving
+        markQuestionAsLearned();
         
         // Update the content
-        letterEl.textContent = alphabetData[current].letter;
-        descEl.innerHTML = `<p>${alphabetData[current].desc}</p>`;
+        questionEl.textContent = whQuestionsData[current].question;
+        descEl.innerHTML = `<p>${whQuestionsData[current].desc}</p>`;
         
-        // CHANGED: Update video source and reset/play
-        videoEl.src = alphabetData[current].video;
+        // Update video source and reset/play
+        videoEl.src = whQuestionsData[current].video;
         videoEl.load();
         resetAndPlayVideo(videoEl);
         
@@ -267,6 +271,9 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         
         // Update navigation button visibility
         updateNavButtons();
+        
+        // Update question-based styling
+        updateQuestionStyling();
         
         // Clean up animation classes after animation completes
         setTimeout(() => {
@@ -281,7 +288,6 @@ function updateLesson(direction = 'next', skipAnimation = false) {
 function updateNavButtons() {
     const prevBtn = document.getElementById('prevBtn');
     
-    // Hide the left arrow if on the first slide, show otherwise
     if (current === 0) {
         prevBtn.style.opacity = '0.3';
         prevBtn.style.pointerEvents = 'none';
@@ -289,6 +295,18 @@ function updateNavButtons() {
         prevBtn.style.opacity = '1';
         prevBtn.style.pointerEvents = 'auto';
     }
+}
+
+// Add question-based styling
+function updateQuestionStyling() {
+    const lessonCard = document.querySelector('.lesson-card');
+    const currentQuestion = whQuestionsData[current].question.toLowerCase();
+    
+    // Remove existing question classes
+    lessonCard.className = lessonCard.className.replace(/question-\w+/g, '');
+    
+    // Add current question class
+    lessonCard.classList.add(`question-${currentQuestion}`);
 }
 
 // Add CSS animations dynamically
@@ -343,21 +361,66 @@ function addAnimationStyles() {
             transform: translateY(-50%) scale(0.95);
         }
         
-        /* CHANGED: Video styles instead of image */
+        .nav-arrow:hover {
+            transform: translateY(-50%) scale(1.1);
+        }
+        
         .lesson-video {
             transition: opacity 0.2s ease;
         }
         
-        .lesson-letter {
+        #letter {
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         
-        .lesson-card:not(.animating) .lesson-letter:hover {
+        .lesson-card:not(.animating) #letter:hover {
             transform: scale(1.05);
         }
         
-        .nav-arrow:hover {
-            transform: translateY(-50%) scale(1.1);
+        /* Question-specific color scheme */
+        .question-ano #letter { 
+            color: #3B82F6; 
+            text-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+        .question-sino #letter { 
+            color: #8B5CF6; 
+            text-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+        }
+        .question-saan #letter { 
+            color: #10B981; 
+            text-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+        .question-kailan #letter { 
+            color: #F59E0B; 
+            text-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+        }
+        .question-bakit #letter { 
+            color: #EF4444; 
+            text-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+        }
+        .question-paano #letter { 
+            color: #06B6D4; 
+            text-shadow: 0 2px 4px rgba(6, 182, 212, 0.3);
+        }
+        
+        /* Subtle background gradients based on question */
+        .question-ano {
+            background: linear-gradient(135deg, #fff 0%, #eff6ff 100%);
+        }
+        .question-sino {
+            background: linear-gradient(135deg, #fff 0%, #f5f3ff 100%);
+        }
+        .question-saan {
+            background: linear-gradient(135deg, #fff 0%, #ecfdf5 100%);
+        }
+        .question-kailan {
+            background: linear-gradient(135deg, #fff 0%, #fffbeb 100%);
+        }
+        .question-bakit {
+            background: linear-gradient(135deg, #fff 0%, #fef2f2 100%);
+        }
+        .question-paano {
+            background: linear-gradient(135deg, #fff 0%, #ecfeff 100%);
         }
     `;
     document.head.appendChild(style);
@@ -367,7 +430,7 @@ function addAnimationStyles() {
 function navigatePrevious() {
     if (isAnimating) return;
     
-    const newIndex = (current === 0) ? alphabetData.length - 1 : current - 1;
+    const newIndex = (current === 0) ? whQuestionsData.length - 1 : current - 1;
     current = newIndex;
     updateLesson('prev');
 }
@@ -391,8 +454,8 @@ function hideQuizModal() {
 function navigateNext() {
     if (isAnimating) return;
     
-    // Check if we're on the last letter (Z)
-    if (current === alphabetData.length - 1) {
+    // Check if we're on the last item
+    if (current === whQuestionsData.length - 1) {
         // Show custom popup modal asking if ready for quiz
         showQuizModal();
         return;
@@ -425,16 +488,12 @@ document.addEventListener('keydown', function (e) {
         }
     } else if (e.key === "End") {
         e.preventDefault();
-        if (current !== alphabetData.length - 1) {
-            current = alphabetData.length - 1;
+        if (current !== whQuestionsData.length - 1) {
+            current = whQuestionsData.length - 1;
             updateLesson('next');
         }
-    } else if (e.key === "Enter" && current === alphabetData.length - 1) {
-        // Allow Enter key to trigger quiz prompt when on last letter
-        e.preventDefault();
-        navigateNext();
     } else if (e.key === " " || e.key === "Spacebar") {
-        // NEW: Space bar to replay video
+        // Space bar to replay video
         e.preventDefault();
         const videoEl = document.getElementById('signVideo');
         resetAndPlayVideo(videoEl);
@@ -480,16 +539,15 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // CRITICAL: Initialize IMMEDIATELY with cached data
-// This runs BEFORE page loads, ensuring instant display
 current = getLastPositionSync(); // Get cached position synchronously
-learnedLetters = getLearnedLettersSync(); // Get cached learned letters
+learnedQuestions = getLearnedQuestionsSync(); // Get cached learned questions
 
-console.log(`⚡ Instant resume at letter: ${alphabetData[current].letter}`);
+console.log(`⚡ Instant resume at question: ${whQuestionsData[current].question}`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
-    preloadVideos(); // CHANGED: preload videos instead of images
+    preloadVideos();
     
     // INSTANT display with cached position - NO LOADING DELAY
     updateLesson('next', true);
@@ -506,19 +564,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current letter as learned now that we're initialized
-            markLetterAsLearned();
+            // Mark current question as learned now that we're initialized
+            markQuestionAsLearned();
         }, 600);
     }, 100);
     
-    // NEW: Add click-to-replay functionality on video
+    // Add click-to-replay functionality on video
     const videoEl = document.getElementById('signVideo');
     if (videoEl) {
         videoEl.addEventListener('click', function() {
             resetAndPlayVideo(this);
         });
         
-        // NEW: Loop video continuously
+        // Loop video continuously
         videoEl.addEventListener('ended', function() {
             this.currentTime = 0;
             this.play();
@@ -532,8 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (startQuizBtn) {
         startQuizBtn.addEventListener('click', function() {
-            // Navigate to alphabet quiz page
-            window.location.href = 'alphabetquiz.html';
+            window.location.href = 'whquestionsquiz.html';
         });
     }
     
@@ -543,7 +600,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Close modal when clicking outside of it
     if (quizModal) {
         quizModal.addEventListener('click', function(e) {
             if (e.target === quizModal) {
@@ -552,7 +608,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Close modal with Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             const modal = document.getElementById('quizModal');

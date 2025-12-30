@@ -1,42 +1,42 @@
 // Import Firebase modules
-import { auth, db } from './firebase.js';
+import { auth, db } from '../firebase.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// Filipino Sign Language Time Markers Data
-const timeMarkersData = [
+// Filipino Sign Language School/Educational Context Data
+const educationalData = [
   {
-    marker: "Now",
-    desc: `<strong>Indicates the present time.</strong><br>Used to refer to the current moment or ongoing action.<br>Filipino: "Ngayon"`,
-    video: "/PICTURES/fsl_time_markers/NGAYON.mp4",
+    term: "Teacher",
+    desc: `<strong>A person who educates and guides students.</strong><br>Used to refer to educators in schools and learning environments.<br>Filipino: "Guro"`,
+    video: "/PICTURES/fsl_school_education/GURO.mp4",
   },
   {
-    marker: "Tomorrow",
-    desc: `<strong>Refers to the day after today.</strong><br>Used to talk about future plans or events happening the next day.<br>Filipino: "Bukas"`,
-    video: "/PICTURES/fsl_time_markers/BUKAS.mp4",
+    term: "Student",
+    desc: `<strong>A person who is learning or studying.</strong><br>Used to refer to learners in educational institutions.<br>Filipino: "Estudyante"`,
+    video: "/PICTURES/fsl_school_education/ESTUDYANTE.mp4",
   },
   {
-    marker: "Later",
-    desc: `<strong>Indicates a time in the near future.</strong><br>Used to refer to something happening soon, but not immediately.<br>Filipino: "Mamaya"`,
-    video: "/PICTURES/fsl_time_markers/MAMAYA.mp4",
+    term: "Study",
+    desc: `<strong>The act of learning or gaining knowledge.</strong><br>Used to describe the process of education and acquiring information.<br>Filipino: "Aral"`,
+    video: "/PICTURES/fsl_school_education/ARAL.mp4",
   },
 ];
 
 let current = 0;
 let isAnimating = false;
 let currentUser = null;
-let learnedItems = new Set();
+let learnedTerms = new Set();
 let isInitialized = false;
 
-// OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
+// Get last position from sessionStorage immediately (synchronous)
 function getLastPositionSync() {
     try {
-        const cached = sessionStorage.getItem('timemarkers_position');
+        const cached = sessionStorage.getItem('educational_position');
         if (cached) {
-            const { marker, timestamp } = JSON.parse(cached);
+            const { term, timestamp } = JSON.parse(cached);
             // Cache valid for 24 hours
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-                const index = timeMarkersData.findIndex(item => item.marker === marker);
+                const index = educationalData.findIndex(item => item.term === term);
                 if (index !== -1) {
                     return index;
                 }
@@ -45,14 +45,14 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
-    return 0; // Default to 'Now'
+    return 0; // Default to 'Teacher'
 }
 
-// OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
-function savePositionSync(marker) {
+// Save position to sessionStorage immediately (synchronous)
+function savePositionSync(term) {
     try {
-        sessionStorage.setItem('timemarkers_position', JSON.stringify({
-            marker,
+        sessionStorage.setItem('educational_position', JSON.stringify({
+            term,
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -60,10 +60,10 @@ function savePositionSync(marker) {
     }
 }
 
-// OPTIMIZATION 3: Get learned time markers from sessionStorage
-function getLearnedItemsSync() {
+// Get learned educational terms from sessionStorage
+function getLearnedTermsSync() {
     try {
-        const cached = sessionStorage.getItem('timemarkers_learned');
+        const cached = sessionStorage.getItem('educational_learned');
         if (cached) {
             const { items, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
@@ -77,10 +77,10 @@ function getLearnedItemsSync() {
     return new Set();
 }
 
-// OPTIMIZATION 4: Save learned time markers to sessionStorage
-function saveLearnedItemsSync(items) {
+// Save learned educational terms to sessionStorage
+function saveLearnedTermsSync(items) {
     try {
-        sessionStorage.setItem('timemarkers_learned', JSON.stringify({
+        sessionStorage.setItem('educational_learned', JSON.stringify({
             items: Array.from(items),
             timestamp: Date.now()
         }));
@@ -91,9 +91,9 @@ function saveLearnedItemsSync(items) {
 
 // Preload videos for smoother transitions
 function preloadVideos() {
-    timeMarkersData.forEach(item => {
+    educationalData.forEach(item => {
         const video = document.createElement('video');
-        video.preload = 'metadata'; // Load metadata only to save bandwidth
+        video.preload = 'metadata';
         video.src = item.video;
     });
 }
@@ -103,33 +103,33 @@ async function loadUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'timemarkers');
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'educational');
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
             const data = progressSnap.data();
-            learnedItems = new Set(data.learnedItems || []);
+            learnedTerms = new Set(data.learnedTerms || []);
             
             // Update sessionStorage with fresh data from Firebase
-            saveLearnedItemsSync(learnedItems);
+            saveLearnedTermsSync(learnedTerms);
             
             // Update position if different from cached
-            if (data.lastViewedItem) {
-                const lastIndex = timeMarkersData.findIndex(item => item.marker === data.lastViewedItem);
+            if (data.lastViewedTerm) {
+                const lastIndex = educationalData.findIndex(item => item.term === data.lastViewedTerm);
                 if (lastIndex !== -1 && lastIndex !== current) {
                     current = lastIndex;
-                    savePositionSync(data.lastViewedItem);
-                    updateLesson('next', true); // Update display silently
+                    savePositionSync(data.lastViewedTerm);
+                    updateLesson('next', true);
                 }
             }
             
-            console.log('✓ Background sync complete:', learnedItems.size, 'time markers learned');
+            console.log('✓ Background sync complete:', learnedTerms.size, 'educational terms learned');
         } else {
             // Initialize progress document if it doesn't exist
             await setDoc(progressRef, {
-                learnedItems: [],
+                learnedTerms: [],
                 total: 3,
-                lastViewedItem: timeMarkersData[current].marker,
+                lastViewedTerm: educationalData[current].term,
                 lastUpdated: new Date()
             });
         }
@@ -143,36 +143,36 @@ async function saveUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'timemarkers');
-        const learnedArray = Array.from(learnedItems);
-        const currentItem = timeMarkersData[current].marker;
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'educational');
+        const learnedArray = Array.from(learnedTerms);
+        const currentTerm = educationalData[current].term;
         
         // Save to sessionStorage immediately
-        saveLearnedItemsSync(learnedItems);
-        savePositionSync(currentItem);
+        saveLearnedTermsSync(learnedTerms);
+        savePositionSync(currentTerm);
         
         // Save to Firebase in background
         await setDoc(progressRef, {
-            learnedItems: learnedArray,
+            learnedTerms: learnedArray,
             completed: learnedArray.length,
             total: 3,
             percentage: Math.round((learnedArray.length / 3) * 100),
-            lastViewedItem: currentItem,
+            lastViewedTerm: currentTerm,
             lastUpdated: new Date()
         }, { merge: true });
 
-        console.log('✓ Progress saved:', learnedArray.length, '/', 3, '- At:', currentItem);
+        console.log('✓ Progress saved:', learnedArray.length, '/', 3, '- At:', currentTerm);
     } catch (error) {
         console.error('Error saving progress:', error);
     }
 }
 
-// Mark current time marker as learned
-function markItemAsLearned() {
-    const currentItem = timeMarkersData[current].marker;
+// Mark current educational term as learned
+function markTermAsLearned() {
+    const currentTerm = educationalData[current].term;
     
-    if (!learnedItems.has(currentItem)) {
-        learnedItems.add(currentItem);
+    if (!learnedTerms.has(currentTerm)) {
+        learnedTerms.add(currentTerm);
     }
     
     // Save progress (non-blocking)
@@ -183,7 +183,6 @@ function markItemAsLearned() {
 function playVideo(videoElement) {
     videoElement.play().catch(error => {
         console.log('Video autoplay prevented:', error);
-        // Autoplay was prevented, video will play on user interaction
     });
 }
 
@@ -208,20 +207,20 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     if (skipAnimation) {
         // Immediate update without animation
-        greetingEl.textContent = timeMarkersData[current].marker;
-        descEl.innerHTML = `<p>${timeMarkersData[current].desc}</p>`;
+        greetingEl.textContent = educationalData[current].term;
+        descEl.innerHTML = `<p>${educationalData[current].desc}</p>`;
         
         // Update video source and play
-        videoEl.src = timeMarkersData[current].video;
-        videoEl.load(); // Load the new video
-        playVideo(videoEl); // Auto-play
+        videoEl.src = educationalData[current].video;
+        videoEl.load();
+        playVideo(videoEl);
         
         updateNavButtons();
-        updateTimeMarkerStyling();
+        updateEducationalStyling();
         
         // Mark as learned after initial display
         if (isInitialized) {
-            markItemAsLearned();
+            markTermAsLearned();
         }
         return;
     }
@@ -236,15 +235,15 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     // Update content after a short delay for smooth transition
     setTimeout(() => {
-        // Mark current time marker as learned before moving
-        markItemAsLearned();
+        // Mark current term as learned before moving
+        markTermAsLearned();
         
         // Update the content
-        greetingEl.textContent = timeMarkersData[current].marker;
-        descEl.innerHTML = `<p>${timeMarkersData[current].desc}</p>`;
+        greetingEl.textContent = educationalData[current].term;
+        descEl.innerHTML = `<p>${educationalData[current].desc}</p>`;
         
         // Update video source and reset/play
-        videoEl.src = timeMarkersData[current].video;
+        videoEl.src = educationalData[current].video;
         videoEl.load();
         resetAndPlayVideo(videoEl);
         
@@ -257,11 +256,11 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         // Update navigation button visibility
         updateNavButtons();
         
-        // Update time marker styling
-        updateTimeMarkerStyling();
+        // Update educational styling
+        updateEducationalStyling();
         
         // Check if we're on the last slide and show quiz modal
-        if (current === timeMarkersData.length - 1) {
+        if (current === educationalData.length - 1) {
             setTimeout(() => {
                 showQuizModal();
             }, 500); // Show modal after animation completes
@@ -295,16 +294,16 @@ function updateNavButtons() {
     nextBtn.style.pointerEvents = 'auto';
 }
 
-// Add time marker specific styling
-function updateTimeMarkerStyling() {
+// Add educational-specific styling
+function updateEducationalStyling() {
     const lessonCard = document.querySelector('.lesson-card');
-    const currentMarker = timeMarkersData[current].marker.toLowerCase().replace(/\s+/g, '');
+    const currentTerm = educationalData[current].term.toLowerCase().replace(/\s+/g, '');
     
-    // Remove existing marker classes
-    lessonCard.className = lessonCard.className.replace(/marker-\w+/g, '');
+    // Remove existing term classes
+    lessonCard.className = lessonCard.className.replace(/term-\w+/g, '');
     
-    // Add current marker class
-    lessonCard.classList.add(`marker-${currentMarker}`);
+    // Add current term class
+    lessonCard.classList.add(`term-${currentTerm}`);
 }
 
 // Add CSS animations dynamically
@@ -375,28 +374,28 @@ function addAnimationStyles() {
             transform: scale(1.05);
         }
         
-        /* Time marker specific colors */
-        .marker-now #greeting { 
+        /* School/Educational Context specific colors */
+        .term-teacher #greeting { 
+            color: #8E44AD; 
+            text-shadow: 0 2px 4px rgba(142, 68, 173, 0.4);
+        }
+        .term-student #greeting { 
             color: #3498DB; 
-            text-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+            text-shadow: 0 2px 4px rgba(52, 152, 219, 0.4);
         }
-        .marker-tomorrow #greeting { 
-            color: #2ECC71; 
-            text-shadow: 0 2px 4px rgba(46, 204, 113, 0.3);
-        }
-        .marker-later #greeting { 
-            color: #F39C12; 
-            text-shadow: 0 2px 4px rgba(243, 156, 18, 0.3);
+        .term-study #greeting { 
+            color: #E67E22; 
+            text-shadow: 0 2px 4px rgba(230, 126, 34, 0.4);
         }
         
-        /* Add subtle background gradients based on time marker */
-        .marker-now {
+        /* Add subtle background gradients based on educational terms */
+        .term-teacher {
+            background: linear-gradient(135deg, #fff 0%, #f3e5f5 100%);
+        }
+        .term-student {
             background: linear-gradient(135deg, #fff 0%, #e3f2fd 100%);
         }
-        .marker-tomorrow {
-            background: linear-gradient(135deg, #fff 0%, #e8f5e9 100%);
-        }
-        .marker-later {
+        .term-study {
             background: linear-gradient(135deg, #fff 0%, #fff3e0 100%);
         }
     `;
@@ -431,7 +430,7 @@ function navigateNext() {
     if (isAnimating) return;
     
     // Check if we're on the last slide
-    if (current === timeMarkersData.length - 1) {
+    if (current === educationalData.length - 1) {
         // Show quiz modal instead of looping
         showQuizModal();
         return;
@@ -463,8 +462,8 @@ document.addEventListener('keydown', function (e) {
         }
     } else if (e.key === "End") {
         e.preventDefault();
-        if (current !== timeMarkersData.length - 1) {
-            current = timeMarkersData.length - 1;
+        if (current !== educationalData.length - 1) {
+            current = educationalData.length - 1;
             updateLesson('next');
         }
     } else if (e.key === " " || e.key === "Spacebar") {
@@ -513,18 +512,18 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// CRITICAL: Initialize IMMEDIATELY with cached data
-current = getLastPositionSync(); // Get cached position synchronously
-learnedItems = getLearnedItemsSync(); // Get cached learned time markers
+// Initialize immediately with cached data
+current = getLastPositionSync();
+learnedTerms = getLearnedTermsSync();
 
-console.log(`⚡ Instant resume at time marker: ${timeMarkersData[current].marker}`);
+console.log(`⚡ Instant resume at educational term: ${educationalData[current].term}`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
     preloadVideos();
     
-    // INSTANT display with cached position - NO LOADING DELAY
+    // Instant display with cached position
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -539,8 +538,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current time marker as learned now that we're initialized
-            markItemAsLearned();
+            // Mark current term as learned now that we're initialized
+            markTermAsLearned();
         }, 600);
     }, 100);
     
@@ -565,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (startQuizBtn) {
         startQuizBtn.addEventListener('click', function() {
-            window.location.href = 'timemarkersquiz.html';
+            window.location.href = 'educationalcontextquiz.html';
         });
     }
     

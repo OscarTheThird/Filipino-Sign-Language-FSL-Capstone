@@ -1,57 +1,54 @@
 // Import Firebase modules
-import { auth, db } from './firebase.js';
+import { auth, db } from '../firebase.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// Filipino Sign Language Emergency & Basic Needs Data
-const emergencyData = [
-  {
-    need: "Help Me",
-    desc: `<strong>An urgent request for assistance.</strong><br>Used in emergency situations when you need immediate help.<br>Filipino: "Tulungan mo ako"`,
-    video: "/PICTURES/fsl_emergency/TULUNGAN.mp4",
-  },
-  {
-    need: "Water",
-    desc: `<strong>Requesting water to drink.</strong><br>A basic necessity for hydration and survival.<br>Filipino: "Tubig"`,
-    video: "/PICTURES/fsl_emergency/TUBIG.mp4",
-  },
-  {
-    need: "Eat",
-    desc: `<strong>Expressing the action of eating.</strong><br>Used to indicate the need or desire to eat food.<br>Filipino: "Kain"`,
-    video: "/PICTURES/fsl_emergency/KAIN.mp4",
-  },
-  {
-    need: "Food",
-    desc: `<strong>Requesting food or meals.</strong><br>A basic necessity for nourishment and energy.<br>Filipino: "Pagkain"`,
-    video: "/PICTURES/fsl_emergency/PAGKAIN.mp4",
-  },
-  {
-    need: "Stop",
-    desc: `<strong>Commanding to halt or cease action.</strong><br>Used to signal someone to stop what they're doing immediately.<br>Filipino: "Hinto"`,
-    video: "/PICTURES/fsl_emergency/HINTO.mp4",
-  },
-  {
-    need: "Drink",
-    desc: `<strong>Expressing the action of drinking.</strong><br>Used to indicate the need or desire to drink liquids.<br>Filipino: "Inom"`,
-    video: "/PICTURES/fsl_emergency/INOM.mp4",
-  },
+// Filipino Alphabet A-Z (with example words)
+// CHANGED: img property renamed to video, and paths point to .mp4 files with CAPITAL letter filenames
+const alphabetData = [
+    { letter: 'A', desc: `<strong>The first letter of the Filipino alphabet.</strong><br>—often used to begin words and names.<br>Ex. "A is for aso (dog)."`, video: '/PICTURES/fsl_alphabet/A.mp4' },
+    { letter: 'B', desc: `<strong>The second letter of the Filipino alphabet.</strong><br>Ex. "B is for bata (child)."`, video: '/PICTURES/fsl_alphabet/B.mp4' },
+    { letter: 'C', desc: `<strong>The third letter of the Filipino alphabet.</strong><br>Ex. "C is for cat (pusa)."`, video: '/PICTURES/fsl_alphabet/C.mp4' },
+    { letter: 'D', desc: `<strong>The fourth letter of the Filipino alphabet.</strong><br>Ex. "D is for daga (rat)."`, video: '/PICTURES/fsl_alphabet/D.mp4' },
+    { letter: 'E', desc: `<strong>The fifth letter of the Filipino alphabet.</strong><br>Ex. "E is for eroplano (airplane)."`, video: '/PICTURES/fsl_alphabet/E.mp4' },
+    { letter: 'F', desc: `<strong>The sixth letter of the Filipino alphabet.</strong><br>Ex. "F is for pamilya (family, using the sound 'f' for foreign words)."`, video: '/PICTURES/fsl_alphabet/F.mp4' },
+    { letter: 'G', desc: `<strong>The seventh letter of the Filipino alphabet.</strong><br>Ex. "G is for gabi (night)."`, video: '/PICTURES/fsl_alphabet/G.mp4' },
+    { letter: 'H', desc: `<strong>The eighth letter of the Filipino alphabet.</strong><br>Ex. "H is for hayop (animal)."`, video: '/PICTURES/fsl_alphabet/H.mp4' },
+    { letter: 'I', desc: `<strong>The ninth letter of the Filipino alphabet.</strong><br>Ex. "I is for isla (island)."`, video: '/PICTURES/fsl_alphabet/I.mp4' },
+    { letter: 'J', desc: `<strong>The tenth letter of the Filipino alphabet.</strong><br>Ex. "J is for jeep."`, video: '/PICTURES/fsl_alphabet/J.mp4' },
+    { letter: 'K', desc: `<strong>The eleventh letter of the Filipino alphabet.</strong><br>Ex. "K is for kabayo (horse)."`, video: '/PICTURES/fsl_alphabet/K.mp4' },
+    { letter: 'L', desc: `<strong>The twelfth letter of the Filipino alphabet.</strong><br>Ex. "L is for langit (sky)."`, video: '/PICTURES/fsl_alphabet/L.mp4' },
+    { letter: 'M', desc: `<strong>The thirteenth letter of the Filipino alphabet.</strong><br>Ex. "M is for mata (eye)."`, video: '/PICTURES/fsl_alphabet/M.mp4' },
+    { letter: 'N', desc: `<strong>The fourteenth letter of the Filipino alphabet.</strong><br>Ex. "N is for ngipin (teeth)."`, video: '/PICTURES/fsl_alphabet/N.mp4' },
+    { letter: 'O', desc: `<strong>The fifteenth letter of the Filipino alphabet.</strong><br>Ex. "O is for oso (bear)."`, video: '/PICTURES/fsl_alphabet/O.mp4' },
+    { letter: 'P', desc: `<strong>The sixteenth letter of the Filipino alphabet.</strong><br>Ex. "P is for puno (tree)."`, video: '/PICTURES/fsl_alphabet/P.mp4' },
+    { letter: 'Q', desc: `<strong>The seventeenth letter of the Filipino alphabet.</strong><br>Ex. "Q is for quwento (story, using 'q' for foreign words)."`, video: '/PICTURES/fsl_alphabet/Q.mp4' },
+    { letter: 'R', desc: `<strong>The eighteenth letter of the Filipino alphabet.</strong><br>Ex. "R is for rosas (rose)."`, video: '/PICTURES/fsl_alphabet/R.mp4' },
+    { letter: 'S', desc: `<strong>The nineteenth letter of the Filipino alphabet.</strong><br>Ex. "S is for saging (banana)."`, video: '/PICTURES/fsl_alphabet/S.mp4' },
+    { letter: 'T', desc: `<strong>The twentieth letter of the Filipino alphabet.</strong><br>Ex. "T is for tubig (water)."`, video: '/PICTURES/fsl_alphabet/T.mp4' },
+    { letter: 'U', desc: `<strong>The twenty-first letter of the Filipino alphabet.</strong><br>Ex. "U is for ulan (rain)."`, video: '/PICTURES/fsl_alphabet/U.mp4' },
+    { letter: 'V', desc: `<strong>The twenty-second letter of the Filipino alphabet.</strong><br>Ex. "V is for van (using 'v' for foreign words)."`, video: '/PICTURES/fsl_alphabet/V.mp4' },
+    { letter: 'W', desc: `<strong>The twenty-third letter of the Filipino alphabet.</strong><br>Ex. "W is for walis (broom)."`, video: '/PICTURES/fsl_alphabet/W.mp4' },
+    { letter: 'X', desc: `<strong>The twenty-fourth letter of the Filipino alphabet.</strong><br>Ex. "X is for x-ray (using 'x' for foreign words)."`, video: '/PICTURES/fsl_alphabet/X.mp4' },
+    { letter: 'Y', desc: `<strong>The twenty-fifth letter of the Filipino alphabet.</strong><br>Ex. "Y is for yelo (ice)."`, video: '/PICTURES/fsl_alphabet/Y.mp4' },
+    { letter: 'Z', desc: `<strong>The last letter of the Filipino alphabet.</strong><br>Ex. "Z is for zebra."`, video: '/PICTURES/fsl_alphabet/Z.mp4' }
 ];
 
 let current = 0;
 let isAnimating = false;
 let currentUser = null;
-let learnedNeeds = new Set();
+let learnedLetters = new Set();
 let isInitialized = false;
 
-// Get last position from sessionStorage immediately (synchronous)
+// OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
 function getLastPositionSync() {
     try {
-        const cached = sessionStorage.getItem('emergency_position');
+        const cached = sessionStorage.getItem('alphabet_position');
         if (cached) {
-            const { need, timestamp } = JSON.parse(cached);
+            const { letter, timestamp } = JSON.parse(cached);
             // Cache valid for 24 hours
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-                const index = emergencyData.findIndex(item => item.need === need);
+                const index = alphabetData.findIndex(item => item.letter === letter);
                 if (index !== -1) {
                     return index;
                 }
@@ -60,14 +57,14 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
-    return 0; // Default to 'Help Me'
+    return 0; // Default to 'A'
 }
 
-// Save position to sessionStorage immediately (synchronous)
-function savePositionSync(need) {
+// OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
+function savePositionSync(letter) {
     try {
-        sessionStorage.setItem('emergency_position', JSON.stringify({
-            need,
+        sessionStorage.setItem('alphabet_position', JSON.stringify({
+            letter,
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -75,15 +72,15 @@ function savePositionSync(need) {
     }
 }
 
-// Get learned emergency needs from sessionStorage
-function getLearnedNeedsSync() {
+// OPTIMIZATION 3: Get learned letters from sessionStorage
+function getLearnedLettersSync() {
     try {
-        const cached = sessionStorage.getItem('emergency_learned');
+        const cached = sessionStorage.getItem('alphabet_learned');
         if (cached) {
-            const { items, timestamp } = JSON.parse(cached);
+            const { letters, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
-                return new Set(items);
+                return new Set(letters);
             }
         }
     } catch (error) {
@@ -92,11 +89,11 @@ function getLearnedNeedsSync() {
     return new Set();
 }
 
-// Save learned emergency needs to sessionStorage
-function saveLearnedNeedsSync(items) {
+// OPTIMIZATION 4: Save learned letters to sessionStorage
+function saveLearnedLettersSync(letters) {
     try {
-        sessionStorage.setItem('emergency_learned', JSON.stringify({
-            items: Array.from(items),
+        sessionStorage.setItem('alphabet_learned', JSON.stringify({
+            letters: Array.from(letters),
             timestamp: Date.now()
         }));
     } catch (error) {
@@ -104,11 +101,11 @@ function saveLearnedNeedsSync(items) {
     }
 }
 
-// Preload videos for smoother transitions
+// NEW: Preload videos for smoother transitions
 function preloadVideos() {
-    emergencyData.forEach(item => {
+    alphabetData.forEach(item => {
         const video = document.createElement('video');
-        video.preload = 'metadata';
+        video.preload = 'metadata'; // Load metadata only to save bandwidth
         video.src = item.video;
     });
 }
@@ -118,33 +115,33 @@ async function loadUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'emergency');
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'alphabet');
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
             const data = progressSnap.data();
-            learnedNeeds = new Set(data.learnedNeeds || []);
+            learnedLetters = new Set(data.learnedLetters || []);
             
             // Update sessionStorage with fresh data from Firebase
-            saveLearnedNeedsSync(learnedNeeds);
+            saveLearnedLettersSync(learnedLetters);
             
             // Update position if different from cached
-            if (data.lastViewedNeed) {
-                const lastIndex = emergencyData.findIndex(item => item.need === data.lastViewedNeed);
+            if (data.lastViewedLetter) {
+                const lastIndex = alphabetData.findIndex(item => item.letter === data.lastViewedLetter);
                 if (lastIndex !== -1 && lastIndex !== current) {
                     current = lastIndex;
-                    savePositionSync(data.lastViewedNeed);
-                    updateLesson('next', true);
+                    savePositionSync(data.lastViewedLetter);
+                    updateLesson('next', true); // Update display silently
                 }
             }
             
-            console.log('✓ Background sync complete:', learnedNeeds.size, 'emergency needs learned');
+            console.log('✓ Background sync complete:', learnedLetters.size, 'letters learned');
         } else {
             // Initialize progress document if it doesn't exist
             await setDoc(progressRef, {
-                learnedNeeds: [],
-                total: 6,
-                lastViewedNeed: emergencyData[current].need,
+                learnedLetters: [],
+                total: 26,
+                lastViewedLetter: alphabetData[current].letter,
                 lastUpdated: new Date()
             });
         }
@@ -158,50 +155,51 @@ async function saveUserProgress() {
     if (!currentUser) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'emergency');
-        const learnedArray = Array.from(learnedNeeds);
-        const currentNeed = emergencyData[current].need;
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'alphabet');
+        const learnedArray = Array.from(learnedLetters);
+        const currentLetter = alphabetData[current].letter;
         
         // Save to sessionStorage immediately
-        saveLearnedNeedsSync(learnedNeeds);
-        savePositionSync(currentNeed);
+        saveLearnedLettersSync(learnedLetters);
+        savePositionSync(currentLetter);
         
         // Save to Firebase in background
         await setDoc(progressRef, {
-            learnedNeeds: learnedArray,
+            learnedLetters: learnedArray,
             completed: learnedArray.length,
-            total: 6,
-            percentage: Math.round((learnedArray.length / 6) * 100),
-            lastViewedNeed: currentNeed,
+            total: 26,
+            percentage: Math.round((learnedArray.length / 26) * 100),
+            lastViewedLetter: currentLetter,
             lastUpdated: new Date()
         }, { merge: true });
 
-        console.log('✓ Progress saved:', learnedArray.length, '/', 6, '- At:', currentNeed);
+        console.log('✓ Progress saved:', learnedArray.length, '/', 26, '- At:', currentLetter);
     } catch (error) {
         console.error('Error saving progress:', error);
     }
 }
 
-// Mark current emergency need as learned
-function markNeedAsLearned() {
-    const currentNeed = emergencyData[current].need;
+// Mark current letter as learned
+function markLetterAsLearned() {
+    const currentLetter = alphabetData[current].letter;
     
-    if (!learnedNeeds.has(currentNeed)) {
-        learnedNeeds.add(currentNeed);
+    if (!learnedLetters.has(currentLetter)) {
+        learnedLetters.add(currentLetter);
     }
     
     // Save progress (non-blocking)
     saveUserProgress();
 }
 
-// Play video when loaded
+// NEW: Play video when loaded
 function playVideo(videoElement) {
     videoElement.play().catch(error => {
         console.log('Video autoplay prevented:', error);
+        // Autoplay was prevented, video will play on user interaction
     });
 }
 
-// Reset and play video
+// NEW: Reset and play video
 function resetAndPlayVideo(videoElement) {
     videoElement.currentTime = 0;
     playVideo(videoElement);
@@ -214,28 +212,27 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         isAnimating = true;
     }
     
-    const greetingEl = document.getElementById('greeting');
+    const letterEl = document.getElementById('letter');
     const descEl = document.getElementById('desc');
-    const videoEl = document.getElementById('signVideo');
+    const videoEl = document.getElementById('signVideo'); // CHANGED: from signImg to signVideo
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
     
     if (skipAnimation) {
         // Immediate update without animation
-        greetingEl.textContent = emergencyData[current].need;
-        descEl.innerHTML = `<p>${emergencyData[current].desc}</p>`;
+        letterEl.textContent = alphabetData[current].letter;
+        descEl.innerHTML = `<p>${alphabetData[current].desc}</p>`;
         
-        // Update video source and play
-        videoEl.src = emergencyData[current].video;
-        videoEl.load();
-        playVideo(videoEl);
+        // CHANGED: Update video source and play
+        videoEl.src = alphabetData[current].video;
+        videoEl.load(); // Load the new video
+        playVideo(videoEl); // Auto-play
         
         updateNavButtons();
-        updateEmergencyStyling();
         
         // Mark as learned after initial display
         if (isInitialized) {
-            markNeedAsLearned();
+            markLetterAsLearned();
         }
         return;
     }
@@ -250,15 +247,15 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     // Update content after a short delay for smooth transition
     setTimeout(() => {
-        // Mark current need as learned before moving
-        markNeedAsLearned();
+        // Mark current letter as learned before moving
+        markLetterAsLearned();
         
         // Update the content
-        greetingEl.textContent = emergencyData[current].need;
-        descEl.innerHTML = `<p>${emergencyData[current].desc}</p>`;
+        letterEl.textContent = alphabetData[current].letter;
+        descEl.innerHTML = `<p>${alphabetData[current].desc}</p>`;
         
-        // Update video source and reset/play
-        videoEl.src = emergencyData[current].video;
+        // CHANGED: Update video source and reset/play
+        videoEl.src = alphabetData[current].video;
         videoEl.load();
         resetAndPlayVideo(videoEl);
         
@@ -270,9 +267,6 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         
         // Update navigation button visibility
         updateNavButtons();
-        
-        // Update emergency styling
-        updateEmergencyStyling();
         
         // Clean up animation classes after animation completes
         setTimeout(() => {
@@ -286,9 +280,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
 
 function updateNavButtons() {
     const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
     
-    // Update previous button
+    // Hide the left arrow if on the first slide, show otherwise
     if (current === 0) {
         prevBtn.style.opacity = '0.3';
         prevBtn.style.pointerEvents = 'none';
@@ -296,22 +289,6 @@ function updateNavButtons() {
         prevBtn.style.opacity = '1';
         prevBtn.style.pointerEvents = 'auto';
     }
-    
-    // Next button always enabled - clicking on last slide will show quiz modal
-    nextBtn.style.opacity = '1';
-    nextBtn.style.pointerEvents = 'auto';
-}
-
-// Add emergency-specific styling
-function updateEmergencyStyling() {
-    const lessonCard = document.querySelector('.lesson-card');
-    const currentNeed = emergencyData[current].need.toLowerCase().replace(/\s+/g, '');
-    
-    // Remove existing need classes
-    lessonCard.className = lessonCard.className.replace(/need-\w+/g, '');
-    
-    // Add current need class
-    lessonCard.classList.add(`need-${currentNeed}`);
 }
 
 // Add CSS animations dynamically
@@ -366,66 +343,21 @@ function addAnimationStyles() {
             transform: translateY(-50%) scale(0.95);
         }
         
-        .nav-arrow:hover {
-            transform: translateY(-50%) scale(1.1);
-        }
-        
+        /* CHANGED: Video styles instead of image */
         .lesson-video {
             transition: opacity 0.2s ease;
         }
         
-        #greeting {
+        .lesson-letter {
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         
-        .lesson-card:not(.animating) #greeting:hover {
+        .lesson-card:not(.animating) .lesson-letter:hover {
             transform: scale(1.05);
         }
         
-        /* Emergency & Basic Needs specific colors */
-        .need-helpme #greeting { 
-            color: #E74C3C; 
-            text-shadow: 0 2px 4px rgba(231, 76, 60, 0.4);
-        }
-        .need-water #greeting { 
-            color: #3498DB; 
-            text-shadow: 0 2px 4px rgba(52, 152, 219, 0.4);
-        }
-        .need-eat #greeting { 
-            color: #E67E22; 
-            text-shadow: 0 2px 4px rgba(230, 126, 34, 0.4);
-        }
-        .need-food #greeting { 
-            color: #27AE60; 
-            text-shadow: 0 2px 4px rgba(39, 174, 96, 0.4);
-        }
-        .need-stop #greeting { 
-            color: #C0392B; 
-            text-shadow: 0 2px 4px rgba(192, 57, 43, 0.4);
-        }
-        .need-drink #greeting { 
-            color: #16A085; 
-            text-shadow: 0 2px 4px rgba(22, 160, 133, 0.4);
-        }
-        
-        /* Add subtle background gradients based on emergency needs */
-        .need-helpme {
-            background: linear-gradient(135deg, #fff 0%, #ffebee 100%);
-        }
-        .need-water {
-            background: linear-gradient(135deg, #fff 0%, #e3f2fd 100%);
-        }
-        .need-eat {
-            background: linear-gradient(135deg, #fff 0%, #fff3e0 100%);
-        }
-        .need-food {
-            background: linear-gradient(135deg, #fff 0%, #e8f5e9 100%);
-        }
-        .need-stop {
-            background: linear-gradient(135deg, #fff 0%, #ffcdd2 100%);
-        }
-        .need-drink {
-            background: linear-gradient(135deg, #fff 0%, #e0f2f1 100%);
+        .nav-arrow:hover {
+            transform: translateY(-50%) scale(1.1);
         }
     `;
     document.head.appendChild(style);
@@ -433,9 +365,10 @@ function addAnimationStyles() {
 
 // Enhanced navigation with direction awareness
 function navigatePrevious() {
-    if (isAnimating || current === 0) return;
+    if (isAnimating) return;
     
-    current--;
+    const newIndex = (current === 0) ? alphabetData.length - 1 : current - 1;
+    current = newIndex;
     updateLesson('prev');
 }
 
@@ -458,14 +391,15 @@ function hideQuizModal() {
 function navigateNext() {
     if (isAnimating) return;
     
-    // Check if we're on the last item
-    if (current === emergencyData.length - 1) {
+    // Check if we're on the last letter (Z)
+    if (current === alphabetData.length - 1) {
         // Show custom popup modal asking if ready for quiz
         showQuizModal();
         return;
     }
     
-    current++;
+    const newIndex = current + 1;
+    current = newIndex;
     updateLesson('next');
 }
 
@@ -491,12 +425,16 @@ document.addEventListener('keydown', function (e) {
         }
     } else if (e.key === "End") {
         e.preventDefault();
-        if (current !== emergencyData.length - 1) {
-            current = emergencyData.length - 1;
+        if (current !== alphabetData.length - 1) {
+            current = alphabetData.length - 1;
             updateLesson('next');
         }
+    } else if (e.key === "Enter" && current === alphabetData.length - 1) {
+        // Allow Enter key to trigger quiz prompt when on last letter
+        e.preventDefault();
+        navigateNext();
     } else if (e.key === " " || e.key === "Spacebar") {
-        // Space bar to replay video
+        // NEW: Space bar to replay video
         e.preventDefault();
         const videoEl = document.getElementById('signVideo');
         resetAndPlayVideo(videoEl);
@@ -541,18 +479,19 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// Initialize immediately with cached data
-current = getLastPositionSync();
-learnedNeeds = getLearnedNeedsSync();
+// CRITICAL: Initialize IMMEDIATELY with cached data
+// This runs BEFORE page loads, ensuring instant display
+current = getLastPositionSync(); // Get cached position synchronously
+learnedLetters = getLearnedLettersSync(); // Get cached learned letters
 
-console.log(`⚡ Instant resume at emergency need: ${emergencyData[current].need}`);
+console.log(`⚡ Instant resume at letter: ${alphabetData[current].letter}`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
-    preloadVideos();
+    preloadVideos(); // CHANGED: preload videos instead of images
     
-    // Instant display with cached position
+    // INSTANT display with cached position - NO LOADING DELAY
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -567,19 +506,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current need as learned now that we're initialized
-            markNeedAsLearned();
+            // Mark current letter as learned now that we're initialized
+            markLetterAsLearned();
         }, 600);
     }, 100);
     
-    // Add click-to-replay functionality on video
+    // NEW: Add click-to-replay functionality on video
     const videoEl = document.getElementById('signVideo');
     if (videoEl) {
         videoEl.addEventListener('click', function() {
             resetAndPlayVideo(this);
         });
         
-        // Loop video continuously
+        // NEW: Loop video continuously
         videoEl.addEventListener('ended', function() {
             this.currentTime = 0;
             this.play();
@@ -593,7 +532,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (startQuizBtn) {
         startQuizBtn.addEventListener('click', function() {
-            window.location.href = 'emergencyquiz.html';
+            // Navigate to alphabet quiz page
+            window.location.href = 'alphabetquiz.html';
         });
     }
     
@@ -603,6 +543,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Close modal when clicking outside of it
     if (quizModal) {
         quizModal.addEventListener('click', function(e) {
             if (e.target === quizModal) {
@@ -611,6 +552,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Close modal with Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             const modal = document.getElementById('quizModal');

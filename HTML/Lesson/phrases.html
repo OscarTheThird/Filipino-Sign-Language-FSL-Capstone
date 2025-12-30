@@ -3,18 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/CSS/greetings.css">
+    <link rel="stylesheet" href="/CSS/Lesson/phrases.css">
     <link rel="stylesheet" href="/CSS/video.css">
-    <title>GestSure - Greetings Lesson</title>
+    <title>GestSure - Common Phrases Lesson</title>
   </head>
   <body>
     <!-- Header Navigation -->
     <header class="header">
       <nav class="navbar">
         <div class="nav-links">
-          <a href="home.html" class="nav-link">Home</a>
-          <a href="interpreter.html" class="nav-link">Interpreter</a>
-          <a href="lessons.html" class="nav-link active">Lessons</a>
+          <a href="/HTML/home.html" class="nav-link">Home</a>
+          <a href="/HTML/interpreter.html" class="nav-link">Interpreter</a>
+          <a href="/HTML/lessons.html" class="nav-link active">Lessons</a>
         </div>
         <div class="logo-nav">
           <img src="/PICTURES/logo.png" alt="GestSure Logo" class="nav-logo" />
@@ -26,30 +26,30 @@
     <!-- Main Content -->
     <main class="main-content">
       <div class="lesson-container">
-        <h1 class="lesson-title">Greetings</h1>
+        <h1 class="lesson-title">Common Phrases</h1>
         <div class="lesson-card">
           <button class="nav-arrow left" aria-label="Previous" id="prevBtn">
             &lt;
           </button>
           <div class="lesson-left">
-            <span class="lesson-greeting" id="greeting">Good Morning</span>
+            <span class="lesson-letter" id="letter">AKO SI</span>
             <div class="lesson-desc" id="desc">
               <p>
-                <strong>A warm greeting used in the morning.</strong><br />
-                Used from early morning until around noon.<br />
-                Filipino: "Magandang umaga"
+                <strong>I am - Used to introduce yourself.</strong><br />
+                Example: "Ako si Juan" (I am Juan)<br />
+                Filipino: "Ako si"
               </p>
             </div>
           </div>
           <div class="lesson-right">
-            <!-- CHANGED: Replaced <img> with <video> element -->
+            <!-- Video element for sign language demonstration -->
             <video class="lesson-video" 
                    id="signVideo"
                    muted
                    playsinline
                    loop
                    autoplay>
-              <source src="/PICTURES/fsl_greetings/goodmorning.mp4" type="video/mp4">
+              <source src="/PICTURES/fsl_common_phrases/AKO SI.mp4" type="video/mp4">
               Your browser does not support the video tag.
             </video>
           </div>
@@ -67,7 +67,7 @@
                 <h2>🎉 Congratulations!</h2>
             </div>
             <div class="modal-body">
-                <p>You have completed the Greetings lesson!</p>
+                <p>You have completed the Common Phrases lesson!</p>
                 <p class="modal-question">Are you ready to take the quiz?</p>
             </div>
             <div class="modal-footer">
@@ -77,6 +77,6 @@
         </div>
     </div>
     
-    <script type="module" src="/JAVASCRIPT/greetings.js"></script>
+    <script type="module" src="/JAVASCRIPT/Lesson/phrases.js"></script>
   </body>
 </html>

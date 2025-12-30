@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GestSure - Numbers Lesson</title>
-    <link rel="stylesheet" href="/CSS/numbers.css">
+    <link rel="stylesheet" href="/CSS/Lesson/familymembers.css">
     <link rel="stylesheet" href="/CSS/video.css">
+    <title>GestSure - Family Members Lesson</title>
 </head>
 <body>
-    <!-- Header Navigation (Copied from lessons.html) -->
+    <!-- Header Navigation -->
     <header class="header">
         <nav class="navbar">
             <div class="nav-links">
-                <a href="home.html" class="nav-link">Home</a>
-                <a href="interpreter.html" class="nav-link">Interpreter</a>
-                <a href="lessons.html" class="nav-link active">Lessons</a>
+                <a href="/HTML/home.html" class="nav-link">Home</a>
+                <a href="/HTML/interpreter.html" class="nav-link">Interpreter</a>
+                <a href="/HTML/lessons.html" class="nav-link active">Lessons</a>
             </div>
             <div class="logo-nav">
                 <img src="/PICTURES/logo.png" alt="GestSure Logo" class="nav-logo">
@@ -26,24 +26,28 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="lesson-container">
-            <h1 class="lesson-title">Numbers</h1>
+            <h1 class="lesson-title">Family Members</h1>
             <div class="lesson-card">
                 <button class="nav-arrow left" aria-label="Previous" id="prevBtn">&lt;</button>
                 <div class="lesson-left">
-                    <span class="lesson-letter" id="letter">1</span>
+                    <span class="lesson-letter" id="letter">TATAY</span>
                     <div class="lesson-desc" id="desc">
-                        
+                        <p>
+                            <strong>Father - The male parent of a child.</strong><br>
+                            English: "Father" or "Dad"<br>
+                            Filipino: "Tatay" or "Ama"
+                        </p>
                     </div>
                 </div>
                 <div class="lesson-right">
-                    <!-- CHANGED: Replaced <img> with <video> element -->
+                    <!-- Video element for sign language demonstration -->
                     <video class="lesson-video" 
                            id="signVideo"
                            muted
                            playsinline
                            loop
                            autoplay>
-                        <source src="/PICTURES/fsl_numbers/1.mp4" type="video/mp4">
+                        <source src="/PICTURES/fsl_family_members/TATAY.mp4" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
                 </div>
@@ -59,7 +63,7 @@
                 <h2>🎉 Congratulations!</h2>
             </div>
             <div class="modal-body">
-                <p>You have completed the Numbers lesson!</p>
+                <p>You have completed the Family Members lesson!</p>
                 <p class="modal-question">Are you ready to take the quiz?</p>
             </div>
             <div class="modal-footer">
@@ -68,8 +72,7 @@
             </div>
         </div>
     </div>
-   
-    <script type="module" src="/JAVASCRIPT/numbers.js"></script>
-       
+    
+    <script type="module" src="/JAVASCRIPT/Lesson/familymembers.js"></script>   
 </body>
 </html>
