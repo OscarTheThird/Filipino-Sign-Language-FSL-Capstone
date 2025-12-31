@@ -62,6 +62,25 @@
             </div>
         </div>
     </main>
+
+    <!-- Navigation Warning Modal -->
+    <div class="modal-overlay" id="navigationWarningModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚠️ Warning!</h2>
+            </div>
+            <div class="modal-body">
+                <p>You have an active quiz in progress.</p>
+                <p class="modal-question">If you leave this page, your quiz progress will be lost and you will need to restart from the beginning.</p>
+                <p style="margin-top: 15px; font-weight: 600; color: #ef4444;">Are you sure you want to leave?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" id="cancelNavigationBtn">Stay on Quiz</button>
+                <button class="modal-btn modal-btn-primary" id="confirmNavigationBtn">Yes, Leave Quiz</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="/JAVASCRIPT/Quiz/numbersquiz.js"></script>       
 </body>
 </html>

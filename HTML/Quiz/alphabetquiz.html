@@ -22,6 +22,7 @@
             </div>
         </nav>
     </header>
+
     <!-- Main Content -->
     <main class="main-content">
         <div class="quiz-container">
@@ -49,7 +50,6 @@
                 <div class="quiz-feedback" id="quizFeedback"></div>
                 <div class="quiz-actions">
                     <button class="quiz-btn" id="nextBtn" style="display: none;">Next Question</button>
-                    <button class="quiz-btn" id="restartBtn" style="display: none;">Restart Quiz</button>
                 </div>
             </div>
             <div class="quiz-results" id="quizResults" style="display: none;">
@@ -62,7 +62,26 @@
             </div>
         </div>
     </main>
+
+    <!-- Navigation Warning Modal -->
+    <div class="modal-overlay" id="navigationWarningModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚠️ Warning!</h2>
+            </div>
+            <div class="modal-body">
+                <p>You have an active quiz in progress.</p>
+                <p class="modal-question">If you leave this page, your quiz progress will be lost and you will need to restart from the beginning.</p>
+                <p style="margin-top: 15px; font-weight: 600; color: #ef4444;">Are you sure you want to leave?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" id="cancelNavigationBtn">Stay on Quiz</button>
+                <button class="modal-btn modal-btn-primary" id="confirmNavigationBtn">Yes, Leave Quiz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ONLY load the quiz script on quiz pages -->
     <script type="module" src="/JAVASCRIPT/Quiz/alphabetquiz.js"></script>       
 </body>
 </html>
-
