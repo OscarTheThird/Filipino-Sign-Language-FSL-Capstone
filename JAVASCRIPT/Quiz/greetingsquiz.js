@@ -1,6 +1,6 @@
-// Import Firebase modules
-import { auth, db } from './firebase.js';
-import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+// Import Firebase modules from your existing firebase.js
+import { auth, db } from '../firebase.js';
+import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 // Filipino Sign Language Greetings Data
@@ -21,6 +21,7 @@ let questions = [];
 let currentUser = null;
 let selectedAnswer = null;
 let isAnswered = false;
+let quizStartTime = null;
 
 // Shuffle array function
 function shuffleArray(array) {
@@ -32,7 +33,7 @@ function shuffleArray(array) {
     return shuffled;
 }
 
-// Generate quiz questions (all 8 greetings)
+// Generate quiz questions
 function generateQuestions() {
     const shuffled = shuffleArray([...greetingsData]);
     questions = shuffled.map(item => ({
@@ -43,13 +44,18 @@ function generateQuestions() {
 }
 
 // Generate 4 options (1 correct + 3 random wrong answers)
-function generateOptions(correctGreeting) {
-    const options = [correctGreeting];
-    const availableGreetings = greetingsData.map(item => item.greeting).filter(greeting => greeting !== correctGreeting);
-    const shuffled = shuffleArray(availableGreetings);
+function generateOptions(correctAnswer) {
+    const options = [correctAnswer];
+    const availableOptions = greetingsData.map(item => item.greeting).filter(opt => opt !== correctAnswer);
+    const shuffled = shuffleArray(availableOptions);
     
     for (let i = 0; i < 3 && i < shuffled.length; i++) {
         options.push(shuffled[i]);
+    }
+    
+    // If we don't have enough options, repeat one
+    while (options.length < 4 && shuffled.length > 0) {
+        options.push(shuffled[0]);
     }
     
     return shuffleArray(options);
@@ -147,15 +153,10 @@ function selectAnswer(selected, correct, buttonElement) {
     // Update score display
     const scoreEl = document.getElementById('score');
     scoreEl.textContent = `Score: ${score}/${currentQuestion + 1}`;
-
-    // Save progress if user is logged in
-    if (currentUser) {
-        saveQuizProgress();
-    }
 }
 
 // Show results
-function showResults() {
+async function showResults() {
     const quizCard = document.querySelector('.quiz-card');
     const resultsEl = document.getElementById('quizResults');
     const finalScoreEl = document.getElementById('finalScore');
@@ -168,59 +169,86 @@ function showResults() {
 
     // Save final quiz results if user is logged in
     if (currentUser) {
-        saveFinalQuizResults(score, questions.length, percentage);
-    }
-}
-
-// Save quiz progress to Firebase
-async function saveQuizProgress() {
-    if (!currentUser) return;
-
-    try {
-        const quizRef = doc(db, 'users', currentUser.uid, 'quizzes', 'greetings');
-        const quizSnap = await getDoc(quizRef);
-
-        const progressData = {
-            currentQuestion: currentQuestion + 1,
-            currentScore: score,
-            totalQuestions: questions.length,
-            lastUpdated: new Date()
-        };
-
-        if (quizSnap.exists()) {
-            await setDoc(quizRef, progressData, { merge: true });
-        } else {
-            await setDoc(quizRef, progressData);
-        }
-    } catch (error) {
-        console.error('Error saving quiz progress:', error);
+        await saveFinalQuizResults(score, questions.length, percentage);
     }
 }
 
 // Save final quiz results to Firebase
-async function saveFinalQuizResults(score, total, percentage) {
-    if (!currentUser) return;
+async function saveFinalQuizResults(finalScore, total, percentage) {
+    if (!currentUser) {
+        console.log('User not authenticated, skipping save');
+        return;
+    }
 
     try {
-        const quizRef = doc(db, 'users', currentUser.uid, 'quizzes', 'greetings');
-        await setDoc(quizRef, {
-            score: score,
-            total: total,
+        const quizEndTime = new Date();
+        const durationSeconds = quizStartTime ? Math.floor((quizEndTime - quizStartTime) / 1000) : 0;
+
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'greetings-quiz');
+        
+        const progressSnap = await getDoc(progressRef);
+        const existingData = progressSnap.exists() ? progressSnap.data() : {};
+        const currentAttempts = existingData.attempts || 0;
+        
+        const progressData = {
+            score: finalScore,
+            totalQuestions: total,
             percentage: percentage,
-            completed: true,
-            completedAt: new Date(),
-            lastUpdated: new Date()
-        }, { merge: true });
+            attempts: currentAttempts + 1,
+            completedAt: serverTimestamp(),
+            lastAttempt: {
+                score: finalScore,
+                total: total,
+                percentage: percentage,
+                completedAt: serverTimestamp(),
+                duration: durationSeconds
+            },
+            bestScore: Math.max(finalScore, existingData.bestScore || 0),
+            bestPercentage: Math.max(percentage, existingData.bestPercentage || 0)
+        };
+
+        await setDoc(progressRef, progressData, { merge: true });
+        console.log('Quiz results saved successfully!');
+        showSaveConfirmation();
+        
     } catch (error) {
         console.error('Error saving final quiz results:', error);
+        showSaveError(error.message);
     }
 }
 
+// Show confirmation that data was saved
+function showSaveConfirmation() {
+    const resultsEl = document.getElementById('quizResults');
+    const confirmMsg = document.createElement('div');
+    confirmMsg.className = 'save-confirmation';
+    confirmMsg.textContent = '✓ Progress saved to your account';
+    confirmMsg.style.cssText = 'color: #4CAF50; margin-top: 15px; font-weight: 500;';
+    
+    const finalScoreEl = document.getElementById('finalScore');
+    finalScoreEl.parentNode.insertBefore(confirmMsg, finalScoreEl.nextSibling);
+}
+
+// Show error message if save failed
+function showSaveError(errorMsg) {
+    const resultsEl = document.getElementById('quizResults');
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'save-error';
+    errorDiv.textContent = '⚠ Could not save progress. Please check your connection.';
+    errorDiv.style.cssText = 'color: #f44336; margin-top: 15px; font-size: 14px;';
+    
+    const finalScoreEl = document.getElementById('finalScore');
+    finalScoreEl.parentNode.insertBefore(errorDiv, finalScoreEl.nextSibling);
+    
+    console.error('Save error details:', errorMsg);
+}
+
 // Initialize quiz
-function initQuiz() {
+async function initQuiz() {
     generateQuestions();
     currentQuestion = 0;
     score = 0;
+    quizStartTime = new Date();
     displayQuestion();
 
     // Next button handler
@@ -236,16 +264,19 @@ function initQuiz() {
 }
 
 // Auth state observer
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
+        console.log('User authenticated:', user.uid);
     } else {
         currentUser = null;
+        console.log('User not authenticated');
     }
 });
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    initQuiz();
+document.addEventListener('DOMContentLoaded', async function() {
+    setTimeout(async () => {
+        await initQuiz();
+    }, 500);
 });
-
