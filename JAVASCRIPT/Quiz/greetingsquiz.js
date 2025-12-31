@@ -1,18 +1,36 @@
 // Import Firebase modules from your existing firebase.js
 import { auth, db } from '../firebase.js';
-import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { doc, getDoc, setDoc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// Filipino Sign Language Greetings Data
-const greetingsData = [
-    { greeting: "Good Morning", video: "/PICTURES/fsl_greetings/MAGANDANG UMAGA.mp4" },
-    { greeting: "Good Noon", video: "/PICTURES/fsl_greetings/MAGANDANG TANGHALI.mp4" },
-    { greeting: "Good Afternoon", video: "/PICTURES/fsl_greetings/MAGANDANG HAPON.mp4" },
-    { greeting: "Good Evening", video: "/PICTURES/fsl_greetings/MAGANDANG GABI.mp4" },
-    { greeting: "Hello", video: "/PICTURES/fsl_greetings/HELLO.mp4" },
-    { greeting: "How are you", video: "/PICTURES/fsl_greetings/KAMUSTA KA.mp4" },
-    { greeting: "Thank you", video: "/PICTURES/fsl_greetings/SALAMAT.mp4" },
-    { greeting: "Goodbye", video: "/PICTURES/fsl_greetings/PAALAM.mp4" }
+// Filipino Alphabet A-Z
+const alphabetData = [
+    { letter: 'A', video: '/PICTURES/fsl_alphabet/A.mp4' },
+    { letter: 'B', video: '/PICTURES/fsl_alphabet/B.mp4' },
+    { letter: 'C', video: '/PICTURES/fsl_alphabet/C.mp4' },
+    { letter: 'D', video: '/PICTURES/fsl_alphabet/D.mp4' },
+    { letter: 'E', video: '/PICTURES/fsl_alphabet/E.mp4' },
+    { letter: 'F', video: '/PICTURES/fsl_alphabet/F.mp4' },
+    { letter: 'G', video: '/PICTURES/fsl_alphabet/G.mp4' },
+    { letter: 'H', video: '/PICTURES/fsl_alphabet/H.mp4' },
+    { letter: 'I', video: '/PICTURES/fsl_alphabet/I.mp4' },
+    { letter: 'J', video: '/PICTURES/fsl_alphabet/J.mp4' },
+    { letter: 'K', video: '/PICTURES/fsl_alphabet/K.mp4' },
+    { letter: 'L', video: '/PICTURES/fsl_alphabet/L.mp4' },
+    { letter: 'M', video: '/PICTURES/fsl_alphabet/M.mp4' },
+    { letter: 'N', video: '/PICTURES/fsl_alphabet/N.mp4' },
+    { letter: 'O', video: '/PICTURES/fsl_alphabet/O.mp4' },
+    { letter: 'P', video: '/PICTURES/fsl_alphabet/P.mp4' },
+    { letter: 'Q', video: '/PICTURES/fsl_alphabet/Q.mp4' },
+    { letter: 'R', video: '/PICTURES/fsl_alphabet/R.mp4' },
+    { letter: 'S', video: '/PICTURES/fsl_alphabet/S.mp4' },
+    { letter: 'T', video: '/PICTURES/fsl_alphabet/T.mp4' },
+    { letter: 'U', video: '/PICTURES/fsl_alphabet/U.mp4' },
+    { letter: 'V', video: '/PICTURES/fsl_alphabet/V.mp4' },
+    { letter: 'W', video: '/PICTURES/fsl_alphabet/W.mp4' },
+    { letter: 'X', video: '/PICTURES/fsl_alphabet/X.mp4' },
+    { letter: 'Y', video: '/PICTURES/fsl_alphabet/Y.mp4' },
+    { letter: 'Z', video: '/PICTURES/fsl_alphabet/Z.mp4' }
 ];
 
 let currentQuestion = 0;
@@ -29,6 +47,50 @@ let isOnline = navigator.onLine;
 let pendingSaves = [];
 
 // ============================================================================
+// HEARTBEAT SYSTEM - Indicates quiz page is open
+// ============================================================================
+
+let heartbeatInterval = null;
+const QUIZ_ID = 'greetings-quiz';
+
+// Start sending heartbeats to indicate quiz page is open
+function startHeartbeat(userId) {
+    // Clear any existing interval
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+    }
+    
+    // Send heartbeat every 15 seconds
+    heartbeatInterval = setInterval(async () => {
+        if (!navigator.onLine) {
+            console.log('Offline - skipping heartbeat');
+            return;
+        }
+        
+        try {
+            const activeQuizRef = doc(db, 'users', userId, 'activeQuiz', QUIZ_ID);
+            await updateDoc(activeQuizRef, {
+                lastHeartbeat: serverTimestamp()
+            });
+            console.log('💓 Heartbeat sent');
+        } catch (error) {
+            console.error('Error sending heartbeat:', error);
+        }
+    }, 15000); // Every 15 seconds
+    
+    console.log('✓ Heartbeat system started');
+}
+
+// Stop sending heartbeats
+function stopHeartbeat() {
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+        console.log('✓ Heartbeat system stopped');
+    }
+}
+
+// ============================================================================
 // NETWORK STATUS MONITORING
 // ============================================================================
 
@@ -37,6 +99,11 @@ window.addEventListener('online', () => {
     isOnline = true;
     console.log('✓ Network connection restored');
     showNetworkStatus('Connection restored', 'success');
+    
+    // Restart heartbeat if quiz is active
+    if (quizActive && currentUser) {
+        startHeartbeat(currentUser.uid);
+    }
     
     // Retry pending saves
     retryPendingSaves();
@@ -136,29 +203,24 @@ function shuffleArray(array) {
     return shuffled;
 }
 
-// Generate quiz questions
+// Generate quiz questions (10 random letters)
 function generateQuestions() {
-    const shuffled = shuffleArray([...greetingsData]);
-    questions = shuffled.map(item => ({
-        correctAnswer: item.greeting,
+    const shuffled = shuffleArray([...alphabetData]);
+    questions = shuffled.slice(0, 10).map(item => ({
+        correctAnswer: item.letter,
         video: item.video,
-        options: generateOptions(item.greeting)
+        options: generateOptions(item.letter)
     }));
 }
 
 // Generate 4 options (1 correct + 3 random wrong answers)
-function generateOptions(correctAnswer) {
-    const options = [correctAnswer];
-    const availableOptions = greetingsData.map(item => item.greeting).filter(opt => opt !== correctAnswer);
-    const shuffled = shuffleArray(availableOptions);
+function generateOptions(correctLetter) {
+    const options = [correctLetter];
+    const availableLetters = alphabetData.map(item => item.letter).filter(letter => letter !== correctLetter);
+    const shuffled = shuffleArray(availableLetters);
     
     for (let i = 0; i < 3 && i < shuffled.length; i++) {
         options.push(shuffled[i]);
-    }
-    
-    // If we don't have enough options, repeat one
-    while (options.length < 4 && shuffled.length > 0) {
-        options.push(shuffled[0]);
     }
     
     return shuffleArray(options);
@@ -273,6 +335,9 @@ async function showResults() {
     // Mark quiz as completed
     quizActive = false;
 
+    // Stop heartbeat system
+    stopHeartbeat();
+
     // Clear active quiz session and save results
     if (currentUser) {
         await clearActiveQuizSession();
@@ -339,7 +404,7 @@ async function saveFinalQuizResultsToFirestore(finalScore, total, percentage) {
     const quizEndTime = new Date();
     const durationSeconds = quizStartTime ? Math.floor((quizEndTime - quizStartTime) / 1000) : 0;
 
-    // Reference to the user's progress document for greetings-quiz
+    // Reference to the user's progress document for alphabet-quiz
     const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'greetings-quiz');
     
     // Get existing data to preserve attempts count
@@ -410,7 +475,7 @@ function showSaveError(errorMsg) {
 // QUIZ PROTECTION & ANTI-CHEATING FEATURES
 // ============================================================================
 
-// Save active quiz session to Firebase
+// Save active quiz session to Firebase (with initial heartbeat)
 async function saveActiveQuizSession() {
     if (!currentUser) return;
 
@@ -421,16 +486,20 @@ async function saveActiveQuizSession() {
     }
 
     try {
-        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', 'greetings-quiz');
+        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', QUIZ_ID);
         await setDoc(sessionRef, {
             active: true,
             startedAt: serverTimestamp(),
+            lastHeartbeat: serverTimestamp(), // Initial heartbeat
             currentQuestion: currentQuestion,
             score: score,
             questions: questions,
             tabSwitches: tabSwitchCount
         });
-        console.log('Active quiz session saved');
+        console.log('Active quiz session saved with initial heartbeat');
+        
+        // Start the heartbeat system
+        startHeartbeat(currentUser.uid);
     } catch (error) {
         console.error('Error saving active quiz session:', error);
         // Don't throw - allow quiz to continue even if save fails
@@ -441,6 +510,9 @@ async function saveActiveQuizSession() {
 async function clearActiveQuizSession() {
     if (!currentUser) return;
 
+    // Stop heartbeat first
+    stopHeartbeat();
+
     // Check if online before attempting delete
     if (!navigator.onLine) {
         console.log('Cannot clear session - offline');
@@ -448,7 +520,7 @@ async function clearActiveQuizSession() {
     }
 
     try {
-        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', 'greetings-quiz');
+        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', QUIZ_ID);
         await deleteDoc(sessionRef);
         console.log('Active quiz session cleared');
     } catch (error) {
@@ -461,7 +533,7 @@ async function checkActiveQuizSession() {
     if (!currentUser || !navigator.onLine) return null;
 
     try {
-        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', 'greetings-quiz');
+        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', QUIZ_ID);
         const sessionSnap = await getDoc(sessionRef);
 
         if (sessionSnap.exists()) {
@@ -557,6 +629,17 @@ function handleBackButton(event) {
 // Handle before unload (closing tab/browser)
 function handleBeforeUnload(event) {
     if (quizActive) {
+        // Stop heartbeat when user tries to close
+        stopHeartbeat();
+        
+        // Try to clear the session (may not complete before page closes)
+        if (currentUser && navigator.onLine) {
+            // Use sendBeacon for more reliable cleanup on page unload
+            const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', QUIZ_ID);
+            // Delete the session
+            deleteDoc(sessionRef).catch(err => console.log('Cleanup failed:', err));
+        }
+        
         event.preventDefault();
         event.returnValue = 'You have an active quiz. If you leave, your progress will be lost and you will need to restart.';
         return event.returnValue;
@@ -572,7 +655,7 @@ function handleVisibilityChange() {
         // Show warning
         showTabSwitchWarning();
         
-        // Save updated session (only if online)
+        // Save updated session (only if online) - heartbeat runs automatically
         if (currentUser && navigator.onLine) {
             saveActiveQuizSession();
         }
@@ -614,6 +697,9 @@ function showTabSwitchWarning() {
 // Confirm navigation away from quiz
 function confirmNavigationAway() {
     hideNavigationWarning();
+    
+    // Stop heartbeat
+    stopHeartbeat();
     
     // Clear session and restart quiz
     if (currentUser && navigator.onLine) {
@@ -659,7 +745,7 @@ async function initQuiz() {
     if (currentUser) {
         await loadPreviousQuizData();
         if (navigator.onLine) {
-            await saveActiveQuizSession();
+            await saveActiveQuizSession(); // This will start heartbeat
         }
     }
     
@@ -672,7 +758,7 @@ async function initQuiz() {
     document.getElementById('nextBtn').onclick = async () => {
         currentQuestion++;
         
-        // Save progress (only if online)
+        // Save progress (only if online) - heartbeat runs automatically
         if (currentUser && navigator.onLine) {
             await saveActiveQuizSession();
         }
@@ -758,6 +844,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         updateAuthStatus();
         await initQuiz();
     }, 500);
+});
+
+// Cleanup on page unload
+window.addEventListener('unload', () => {
+    stopHeartbeat();
 });
 
 // Add CSS animations for warnings

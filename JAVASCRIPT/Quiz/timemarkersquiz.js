@@ -1,6 +1,6 @@
 // Import Firebase modules from your existing firebase.js
 import { auth, db } from '../firebase.js';
-import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { doc, getDoc, setDoc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 // Filipino Sign Language Data
@@ -24,6 +24,50 @@ let isOnline = navigator.onLine;
 let pendingSaves = [];
 
 // ============================================================================
+// HEARTBEAT SYSTEM - Indicates quiz page is open
+// ============================================================================
+
+let heartbeatInterval = null;
+const QUIZ_ID = 'time-markers-quiz';
+
+// Start sending heartbeats to indicate quiz page is open
+function startHeartbeat(userId) {
+    // Clear any existing interval
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+    }
+    
+    // Send heartbeat every 15 seconds
+    heartbeatInterval = setInterval(async () => {
+        if (!navigator.onLine) {
+            console.log('Offline - skipping heartbeat');
+            return;
+        }
+        
+        try {
+            const activeQuizRef = doc(db, 'users', userId, 'activeQuiz', QUIZ_ID);
+            await updateDoc(activeQuizRef, {
+                lastHeartbeat: serverTimestamp()
+            });
+            console.log('💓 Heartbeat sent');
+        } catch (error) {
+            console.error('Error sending heartbeat:', error);
+        }
+    }, 15000); // Every 15 seconds
+    
+    console.log('✓ Heartbeat system started');
+}
+
+// Stop sending heartbeats
+function stopHeartbeat() {
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+        console.log('✓ Heartbeat system stopped');
+    }
+}
+
+// ============================================================================
 // NETWORK STATUS MONITORING
 // ============================================================================
 
@@ -32,6 +76,11 @@ window.addEventListener('online', () => {
     isOnline = true;
     console.log('✓ Network connection restored');
     showNetworkStatus('Connection restored', 'success');
+    
+    // Restart heartbeat if quiz is active
+    if (quizActive && currentUser) {
+        startHeartbeat(currentUser.uid);
+    }
     
     // Retry pending saves
     retryPendingSaves();
@@ -268,6 +317,9 @@ async function showResults() {
     // Mark quiz as completed
     quizActive = false;
 
+    // Stop heartbeat system
+    stopHeartbeat();
+
     // Clear active quiz session and save results
     if (currentUser) {
         await clearActiveQuizSession();
@@ -283,7 +335,7 @@ async function loadPreviousQuizData() {
     if (!currentUser || !navigator.onLine) return;
 
     try {
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'time-markers-quiz');
+        const progressRef = doc(db, 'users', currentUser.uid, 'progress', QUIZ_ID);
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
@@ -335,7 +387,7 @@ async function saveFinalQuizResultsToFirestore(finalScore, total, percentage) {
     const durationSeconds = quizStartTime ? Math.floor((quizEndTime - quizStartTime) / 1000) : 0;
 
     // Reference to the user's progress document
-    const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'time-markers-quiz');
+    const progressRef = doc(db, 'users', currentUser.uid, 'progress', QUIZ_ID);
     
     // Get existing data to preserve attempts count
     const progressSnap = await getDoc(progressRef);
@@ -405,7 +457,7 @@ function showSaveError(errorMsg) {
 // QUIZ PROTECTION & ANTI-CHEATING FEATURES
 // ============================================================================
 
-// Save active quiz session to Firebase
+// Save active quiz session to Firebase (with initial heartbeat)
 async function saveActiveQuizSession() {
     if (!currentUser) return;
 
@@ -416,16 +468,20 @@ async function saveActiveQuizSession() {
     }
 
     try {
-        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', 'time-markers-quiz');
+        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', QUIZ_ID);
         await setDoc(sessionRef, {
             active: true,
             startedAt: serverTimestamp(),
+            lastHeartbeat: serverTimestamp(), // Initial heartbeat
             currentQuestion: currentQuestion,
             score: score,
             questions: questions,
             tabSwitches: tabSwitchCount
         });
-        console.log('Active quiz session saved');
+        console.log('Active quiz session saved with initial heartbeat');
+        
+        // Start the heartbeat system
+        startHeartbeat(currentUser.uid);
     } catch (error) {
         console.error('Error saving active quiz session:', error);
         // Don't throw - allow quiz to continue even if save fails
@@ -436,6 +492,9 @@ async function saveActiveQuizSession() {
 async function clearActiveQuizSession() {
     if (!currentUser) return;
 
+    // Stop heartbeat first
+    stopHeartbeat();
+
     // Check if online before attempting delete
     if (!navigator.onLine) {
         console.log('Cannot clear session - offline');
@@ -443,7 +502,7 @@ async function clearActiveQuizSession() {
     }
 
     try {
-        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', 'time-markers-quiz');
+        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', QUIZ_ID);
         await deleteDoc(sessionRef);
         console.log('Active quiz session cleared');
     } catch (error) {
@@ -456,7 +515,7 @@ async function checkActiveQuizSession() {
     if (!currentUser || !navigator.onLine) return null;
 
     try {
-        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', 'time-markers-quiz');
+        const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', QUIZ_ID);
         const sessionSnap = await getDoc(sessionRef);
 
         if (sessionSnap.exists()) {
@@ -552,6 +611,17 @@ function handleBackButton(event) {
 // Handle before unload (closing tab/browser)
 function handleBeforeUnload(event) {
     if (quizActive) {
+        // Stop heartbeat when user tries to close
+        stopHeartbeat();
+        
+        // Try to clear the session (may not complete before page closes)
+        if (currentUser && navigator.onLine) {
+            // Use sendBeacon for more reliable cleanup on page unload
+            const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', QUIZ_ID);
+            // Delete the session
+            deleteDoc(sessionRef).catch(err => console.log('Cleanup failed:', err));
+        }
+        
         event.preventDefault();
         event.returnValue = 'You have an active quiz. If you leave, your progress will be lost and you will need to restart.';
         return event.returnValue;
@@ -610,6 +680,9 @@ function showTabSwitchWarning() {
 function confirmNavigationAway() {
     hideNavigationWarning();
     
+    // Stop heartbeat
+    stopHeartbeat();
+    
     // Clear session and restart quiz
     if (currentUser && navigator.onLine) {
         clearActiveQuizSession();
@@ -654,7 +727,7 @@ async function initQuiz() {
     if (currentUser) {
         await loadPreviousQuizData();
         if (navigator.onLine) {
-            await saveActiveQuizSession();
+            await saveActiveQuizSession(); // This will start heartbeat
         }
     }
     
@@ -667,7 +740,7 @@ async function initQuiz() {
     document.getElementById('nextBtn').onclick = async () => {
         currentQuestion++;
         
-        // Save progress (only if online)
+        // Save progress (only if online) - heartbeat runs automatically
         if (currentUser && navigator.onLine) {
             await saveActiveQuizSession();
         }
@@ -753,6 +826,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         updateAuthStatus();
         await initQuiz();
     }, 500);
+});
+
+// Cleanup on page unload
+window.addEventListener('unload', () => {
+    stopHeartbeat();
 });
 
 // Add CSS animations for warnings

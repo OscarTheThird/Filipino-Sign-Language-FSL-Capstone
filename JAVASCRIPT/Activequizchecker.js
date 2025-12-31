@@ -2,7 +2,7 @@
 // Import this AFTER firebase.js
 
 import { auth, db } from './firebase.js';
-import { collection, getDocs, query } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { collection, getDocs, query, deleteDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 // Map of quiz IDs to their page URLs
@@ -43,7 +43,7 @@ async function checkActiveQuizSessions(userId) {
         const querySnapshot = await getDocs(query(activeQuizRef));
         
         const now = Date.now();
-        const HEARTBEAT_TIMEOUT = 30000; // 30 seconds - if no heartbeat in 30s, quiz page is closed
+        const HEARTBEAT_TIMEOUT = 20000; // 20 seconds - if no heartbeat in 20s, quiz page is closed
         
         // Check if any quiz is active AND recently active (heartbeat check)
         for (const doc of querySnapshot.docs) {
