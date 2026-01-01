@@ -370,3 +370,34 @@ setupCanvas();
 cameraFeed.addEventListener("loadedmetadata", () => {
   setupCanvas();
 });
+
+// 🚀 PROGRESS PRELOADER - Also preload on interpreter page
+import { auth as authInstance, db } from './firebase.js';
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+onAuthStateChanged(authInstance, async (user) => {
+  if (user) {
+    try {
+      console.log('🚀 [INTERPRETER] Preloading progress data in background...');
+      
+      const progressRef = collection(db, 'users', user.uid, 'progress');
+      const querySnapshot = await getDocs(progressRef);
+      
+      const cachedData = {};
+      querySnapshot.forEach((doc) => {
+        cachedData[doc.id] = doc.data();
+      });
+      
+      sessionStorage.setItem('progress_preloaded', JSON.stringify({
+        data: cachedData,
+        timestamp: Date.now(),
+        userId: user.uid
+      }));
+      
+      console.log('✅ [INTERPRETER] Progress preloaded and cached!');
+    } catch (error) {
+      console.error('[INTERPRETER] Preload error:', error);
+    }
+  }
+});

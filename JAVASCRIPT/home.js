@@ -284,6 +284,8 @@ document.addEventListener("DOMContentLoaded", function () {
         updateNavAuthButtons();
         if (user) {
           console.log("User is signed in:", user.email);
+          // 🚀 PRELOAD PROGRESS DATA IN BACKGROUND
+          preloadProgressData(user);
         } else {
           console.log("User is signed out");
         }
@@ -302,6 +304,36 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 });
+
+// 🚀 PROGRESS PRELOADER - Runs in background on home page
+async function preloadProgressData(user) {
+  try {
+    console.log('🚀 [HOME] Preloading progress data in background...');
+    
+    const { db } = await import('./firebase.js');
+    const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
+    
+    const progressRef = collection(db, 'users', user.uid, 'progress');
+    const querySnapshot = await getDocs(progressRef);
+    
+    // Store raw Firestore data
+    const cachedData = {};
+    querySnapshot.forEach((doc) => {
+      cachedData[doc.id] = doc.data();
+    });
+    
+    // Cache it for instant access on lessons page
+    sessionStorage.setItem('progress_preloaded', JSON.stringify({
+      data: cachedData,
+      timestamp: Date.now(),
+      userId: user.uid
+    }));
+    
+    console.log('✅ [HOME] Progress preloaded and cached!');
+  } catch (error) {
+    console.error('[HOME] Preload error:', error);
+  }
+}
 
 // Carousel code
 class AutoCarousel {
@@ -412,3 +444,6 @@ class AutoCarousel {
 document.addEventListener("DOMContentLoaded", () => {
   new AutoCarousel();
 });
+
+// Export preloader function for use in other pages
+export { preloadProgressData };
