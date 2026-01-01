@@ -4,7 +4,6 @@ import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/f
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 // Filipino Sign Language Greetings Data
-// CHANGED: img property renamed to video, expanded to 8 greetings
 const greetingsData = [
   {
     greeting: "Good Morning",
@@ -54,7 +53,7 @@ let currentUser = null;
 let learnedItems = new Set();
 let isInitialized = false;
 
-// OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
+// Get last position from sessionStorage immediately (synchronous)
 function getLastPositionSync() {
     try {
         const cached = sessionStorage.getItem('greetings_position');
@@ -64,6 +63,7 @@ function getLastPositionSync() {
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
                 const index = greetingsData.findIndex(item => item.greeting === greeting);
                 if (index !== -1) {
+                    console.log(`⚡ Restored position from cache: ${greeting} (index ${index})`);
                     return index;
                 }
             }
@@ -71,22 +71,24 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
+    console.log('⚡ No valid cache, starting at Good Morning (index 0)');
     return 0; // Default to 'Good Morning'
 }
 
-// OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
+// Save position to sessionStorage immediately (synchronous)
 function savePositionSync(greeting) {
     try {
         sessionStorage.setItem('greetings_position', JSON.stringify({
             greeting,
             timestamp: Date.now()
         }));
+        console.log(`💾 Saved position: ${greeting}`);
     } catch (error) {
         console.error('Error saving position cache:', error);
     }
 }
 
-// OPTIMIZATION 3: Get learned greetings from sessionStorage
+// Get learned greetings from sessionStorage
 function getLearnedItemsSync() {
     try {
         const cached = sessionStorage.getItem('greetings_learned');
@@ -94,6 +96,7 @@ function getLearnedItemsSync() {
             const { items, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
+                console.log(`📚 Restored ${items.length} learned greetings from cache`);
                 return new Set(items);
             }
         }
@@ -103,7 +106,7 @@ function getLearnedItemsSync() {
     return new Set();
 }
 
-// OPTIMIZATION 4: Save learned greetings to sessionStorage
+// Save learned greetings to sessionStorage
 function saveLearnedItemsSync(items) {
     try {
         sessionStorage.setItem('greetings_learned', JSON.stringify({
@@ -115,7 +118,7 @@ function saveLearnedItemsSync(items) {
     }
 }
 
-// NEW: Preload videos for smoother transitions
+// Preload videos for smoother transitions
 function preloadVideos() {
     greetingsData.forEach(item => {
         const video = document.createElement('video');
@@ -139,13 +142,15 @@ async function loadUserProgress() {
             // Update sessionStorage with fresh data from Firebase
             saveLearnedItemsSync(learnedItems);
             
-            // Update position if different from cached
+            // 🔥 FIX: Update position if different from cached AND update display
             if (data.lastViewedItem) {
                 const lastIndex = greetingsData.findIndex(item => item.greeting === data.lastViewedItem);
                 if (lastIndex !== -1 && lastIndex !== current) {
+                    console.log(`🔄 Firebase has different position: ${data.lastViewedItem} (index ${lastIndex})`);
                     current = lastIndex;
                     savePositionSync(data.lastViewedItem);
-                    updateLesson('next', true); // Update display silently
+                    // Update the display to show the correct greeting
+                    updateLesson('next', true);
                 }
             }
             
@@ -154,7 +159,7 @@ async function loadUserProgress() {
             // Initialize progress document if it doesn't exist
             await setDoc(progressRef, {
                 learnedItems: [],
-                total: 8, // CHANGED: Updated from 4 to 8
+                total: 8,
                 lastViewedItem: greetingsData[current].greeting,
                 lastUpdated: new Date()
             });
@@ -181,7 +186,7 @@ async function saveUserProgress() {
         await setDoc(progressRef, {
             learnedItems: learnedArray,
             completed: learnedArray.length,
-            total: 8, // CHANGED: Updated from 4 to 8
+            total: 8,
             percentage: Math.round((learnedArray.length / 8) * 100),
             lastViewedItem: currentItem,
             lastUpdated: new Date()
@@ -199,13 +204,14 @@ function markItemAsLearned() {
     
     if (!learnedItems.has(currentItem)) {
         learnedItems.add(currentItem);
+        console.log(`✓ Marked ${currentItem} as learned`);
     }
     
     // Save progress (non-blocking)
     saveUserProgress();
 }
 
-// NEW: Play video when loaded
+// Play video when loaded
 function playVideo(videoElement) {
     videoElement.play().catch(error => {
         console.log('Video autoplay prevented:', error);
@@ -213,7 +219,7 @@ function playVideo(videoElement) {
     });
 }
 
-// NEW: Reset and play video
+// Reset and play video
 function resetAndPlayVideo(videoElement) {
     videoElement.currentTime = 0;
     playVideo(videoElement);
@@ -228,7 +234,7 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     const greetingEl = document.getElementById('greeting');
     const descEl = document.getElementById('desc');
-    const videoEl = document.getElementById('signVideo'); // CHANGED: from signImg to signVideo
+    const videoEl = document.getElementById('signVideo');
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
     
@@ -237,7 +243,7 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         greetingEl.textContent = greetingsData[current].greeting;
         descEl.innerHTML = `<p>${greetingsData[current].desc}</p>`;
         
-        // CHANGED: Update video source and play
+        // Update video source and play
         videoEl.src = greetingsData[current].video;
         videoEl.load(); // Load the new video
         playVideo(videoEl); // Auto-play
@@ -245,10 +251,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         updateNavButtons();
         updateTimeBasedStyling();
         
-        // Mark as learned after initial display
-        if (isInitialized) {
-            markItemAsLearned();
-        }
+        // 🔥 FIX: Don't mark as learned on initial display - wait for user interaction
+        // The greeting is already learned if it's in the cache
         return;
     }
     
@@ -269,7 +273,7 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         greetingEl.textContent = greetingsData[current].greeting;
         descEl.innerHTML = `<p>${greetingsData[current].desc}</p>`;
         
-        // CHANGED: Update video source and reset/play
+        // Update video source and reset/play
         videoEl.src = greetingsData[current].video;
         videoEl.load();
         resetAndPlayVideo(videoEl);
@@ -376,7 +380,6 @@ function addAnimationStyles() {
             transform: translateY(-50%) scale(1.1);
         }
         
-        /* CHANGED: Video styles instead of image */
         .lesson-video {
             transition: opacity 0.2s ease;
         }
@@ -389,7 +392,7 @@ function addAnimationStyles() {
             transform: scale(1.05);
         }
         
-        /* Time-based greeting colors - EXPANDED to 8 greetings */
+        /* Time-based greeting colors */
         .time-goodmorning #greeting { 
             color: #FF6B35; 
             text-shadow: 0 2px 4px rgba(255, 107, 53, 0.3);
@@ -519,7 +522,7 @@ document.addEventListener('keydown', function (e) {
             updateLesson('next');
         }
     } else if (e.key === " " || e.key === "Spacebar") {
-        // NEW: Space bar to replay video
+        // Space bar to replay video
         e.preventDefault();
         const videoEl = document.getElementById('signVideo');
         resetAndPlayVideo(videoEl);
@@ -557,6 +560,7 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         // Load progress in background without blocking UI
+        // This will update the position if Firebase has a more recent one
         loadUserProgress();
     } else {
         console.warn('No user logged in. Progress will not be saved.');
@@ -564,18 +568,21 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// CRITICAL: Initialize IMMEDIATELY with cached data
+// 🔥 CRITICAL FIX: Initialize with cached position BEFORE DOMContentLoaded
+// This ensures the correct position is set before any UI updates
 current = getLastPositionSync(); // Get cached position synchronously
 learnedItems = getLearnedItemsSync(); // Get cached learned greetings
 
-console.log(`⚡ Instant resume at greeting: ${greetingsData[current].greeting}`);
+console.log(`⚡ Instant resume at greeting: ${greetingsData[current].greeting} (index ${current})`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
-    preloadVideos(); // CHANGED: preload videos instead of images
+    preloadVideos();
     
-    // INSTANT display with cached position - NO LOADING DELAY
+    // 🔥 CRITICAL FIX: Display at the CORRECT cached position immediately
+    // The 'current' variable is already set from cache before this runs
+    console.log(`🎯 Displaying greeting at index ${current}: ${greetingsData[current].greeting}`);
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -590,19 +597,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current greeting as learned now that we're initialized
-            markItemAsLearned();
+            // Don't auto-mark as learned on page load - only when user navigates
         }, 600);
     }, 100);
     
-    // NEW: Add click-to-replay functionality on video
+    // Add click-to-replay functionality on video
     const videoEl = document.getElementById('signVideo');
     if (videoEl) {
         videoEl.addEventListener('click', function() {
             resetAndPlayVideo(this);
         });
         
-        // NEW: Loop video continuously
+        // Loop video continuously
         videoEl.addEventListener('ended', function() {
             this.currentTime = 0;
             this.play();

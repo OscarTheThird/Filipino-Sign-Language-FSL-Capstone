@@ -53,6 +53,7 @@ function getLastPositionSync() {
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
                 const index = whQuestionsData.findIndex(item => item.question === question);
                 if (index !== -1) {
+                    console.log(`⚡ Restored position from cache: ${question} (index ${index})`);
                     return index;
                 }
             }
@@ -60,6 +61,7 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
+    console.log('⚡ No valid cache, starting at ANO (index 0)');
     return 0; // Default to 'ANO'
 }
 
@@ -70,6 +72,7 @@ function savePositionSync(question) {
             question,
             timestamp: Date.now()
         }));
+        console.log(`💾 Saved position: ${question}`);
     } catch (error) {
         console.error('Error saving position cache:', error);
     }
@@ -83,6 +86,7 @@ function getLearnedQuestionsSync() {
             const { questions, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
+                console.log(`📚 Restored ${questions.length} learned questions from cache`);
                 return new Set(questions);
             }
         }
@@ -128,13 +132,15 @@ async function loadUserProgress() {
             // Update sessionStorage with fresh data from Firebase
             saveLearnedQuestionsSync(learnedQuestions);
             
-            // Update position if different from cached
+            // 🔥 FIX: Update position if different from cached AND update display
             if (data.lastViewedQuestion) {
                 const lastIndex = whQuestionsData.findIndex(item => item.question === data.lastViewedQuestion);
                 if (lastIndex !== -1 && lastIndex !== current) {
+                    console.log(`🔄 Firebase has different position: ${data.lastViewedQuestion} (index ${lastIndex})`);
                     current = lastIndex;
                     savePositionSync(data.lastViewedQuestion);
-                    updateLesson('next', true); // Update display silently
+                    // Update the display to show the correct question
+                    updateLesson('next', true);
                 }
             }
             
@@ -188,6 +194,7 @@ function markQuestionAsLearned() {
     
     if (!learnedQuestions.has(currentQuestion)) {
         learnedQuestions.add(currentQuestion);
+        console.log(`✓ Marked ${currentQuestion} as learned`);
     }
     
     // Save progress (non-blocking)
@@ -234,10 +241,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         updateNavButtons();
         updateQuestionStyling();
         
-        // Mark as learned after initial display
-        if (isInitialized) {
-            markQuestionAsLearned();
-        }
+        // 🔥 FIX: Don't mark as learned on initial display - wait for user interaction
+        // The question is already learned if it's in the cache
         return;
     }
     
@@ -492,6 +497,10 @@ document.addEventListener('keydown', function (e) {
             current = whQuestionsData.length - 1;
             updateLesson('next');
         }
+    } else if (e.key === "Enter" && current === whQuestionsData.length - 1) {
+        // Allow Enter key to trigger quiz prompt when on last question
+        e.preventDefault();
+        navigateNext();
     } else if (e.key === " " || e.key === "Spacebar") {
         // Space bar to replay video
         e.preventDefault();
@@ -531,6 +540,7 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         // Load progress in background without blocking UI
+        // This will update the position if Firebase has a more recent one
         loadUserProgress();
     } else {
         console.warn('No user logged in. Progress will not be saved.');
@@ -538,18 +548,21 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// CRITICAL: Initialize IMMEDIATELY with cached data
+// 🔥 CRITICAL FIX: Initialize with cached position BEFORE DOMContentLoaded
+// This ensures the correct position is set before any UI updates
 current = getLastPositionSync(); // Get cached position synchronously
 learnedQuestions = getLearnedQuestionsSync(); // Get cached learned questions
 
-console.log(`⚡ Instant resume at question: ${whQuestionsData[current].question}`);
+console.log(`⚡ Instant resume at question: ${whQuestionsData[current].question} (index ${current})`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
     preloadVideos();
     
-    // INSTANT display with cached position - NO LOADING DELAY
+    // 🔥 CRITICAL FIX: Display at the CORRECT cached position immediately
+    // The 'current' variable is already set from cache before this runs
+    console.log(`🎯 Displaying question at index ${current}: ${whQuestionsData[current].question}`);
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -564,8 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current question as learned now that we're initialized
-            markQuestionAsLearned();
+            // Don't auto-mark as learned on page load - only when user navigates
         }, 600);
     }, 100);
     

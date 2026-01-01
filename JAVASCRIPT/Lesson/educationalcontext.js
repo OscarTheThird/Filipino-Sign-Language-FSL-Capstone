@@ -38,6 +38,7 @@ function getLastPositionSync() {
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
                 const index = educationalData.findIndex(item => item.term === term);
                 if (index !== -1) {
+                    console.log(`⚡ Restored position from cache: ${term} (index ${index})`);
                     return index;
                 }
             }
@@ -45,6 +46,7 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
+    console.log('⚡ No valid cache, starting at Teacher (index 0)');
     return 0; // Default to 'Teacher'
 }
 
@@ -55,6 +57,7 @@ function savePositionSync(term) {
             term,
             timestamp: Date.now()
         }));
+        console.log(`💾 Saved position: ${term}`);
     } catch (error) {
         console.error('Error saving position cache:', error);
     }
@@ -68,6 +71,7 @@ function getLearnedTermsSync() {
             const { items, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
+                console.log(`📚 Restored ${items.length} learned terms from cache`);
                 return new Set(items);
             }
         }
@@ -113,12 +117,14 @@ async function loadUserProgress() {
             // Update sessionStorage with fresh data from Firebase
             saveLearnedTermsSync(learnedTerms);
             
-            // Update position if different from cached
+            // 🔥 FIX: Update position if different from cached AND update display
             if (data.lastViewedTerm) {
                 const lastIndex = educationalData.findIndex(item => item.term === data.lastViewedTerm);
                 if (lastIndex !== -1 && lastIndex !== current) {
+                    console.log(`🔄 Firebase has different position: ${data.lastViewedTerm} (index ${lastIndex})`);
                     current = lastIndex;
                     savePositionSync(data.lastViewedTerm);
+                    // Update the display to show the correct term
                     updateLesson('next', true);
                 }
             }
@@ -173,6 +179,7 @@ function markTermAsLearned() {
     
     if (!learnedTerms.has(currentTerm)) {
         learnedTerms.add(currentTerm);
+        console.log(`✓ Marked ${currentTerm} as learned`);
     }
     
     // Save progress (non-blocking)
@@ -218,10 +225,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         updateNavButtons();
         updateEducationalStyling();
         
-        // Mark as learned after initial display
-        if (isInitialized) {
-            markTermAsLearned();
-        }
+        // 🔥 FIX: Don't mark as learned on initial display - wait for user interaction
+        // The term is already learned if it's in the cache
         return;
     }
     
@@ -505,6 +510,7 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         // Load progress in background without blocking UI
+        // This will update the position if Firebase has a more recent one
         loadUserProgress();
     } else {
         console.warn('No user logged in. Progress will not be saved.');
@@ -512,18 +518,21 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// Initialize immediately with cached data
-current = getLastPositionSync();
-learnedTerms = getLearnedTermsSync();
+// 🔥 CRITICAL FIX: Initialize with cached position BEFORE DOMContentLoaded
+// This ensures the correct position is set before any UI updates
+current = getLastPositionSync(); // Get cached position synchronously
+learnedTerms = getLearnedTermsSync(); // Get cached learned terms
 
-console.log(`⚡ Instant resume at educational term: ${educationalData[current].term}`);
+console.log(`⚡ Instant resume at term: ${educationalData[current].term} (index ${current})`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
     preloadVideos();
     
-    // Instant display with cached position
+    // 🔥 CRITICAL FIX: Display at the CORRECT cached position immediately
+    // The 'current' variable is already set from cache before this runs
+    console.log(`🎯 Displaying term at index ${current}: ${educationalData[current].term}`);
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -538,8 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current term as learned now that we're initialized
-            markTermAsLearned();
+            // Don't auto-mark as learned on page load - only when user navigates
         }, 600);
     }, 100);
     

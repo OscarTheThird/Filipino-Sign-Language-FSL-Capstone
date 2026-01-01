@@ -4,7 +4,6 @@ import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.2.1/f
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 // Filipino Sign Language Numbers Data
-// CHANGED: img property renamed to video, and paths point to .mp4 files
 const numbersData = [
     { number: '1', desc: `<strong>Number 1</strong><br>Ex. "Isa ang araw ng pahinga sa isang linggo."`, video: '/PICTURES/fsl_numbers/1.mp4' },
     { number: '2', desc: `<strong>Number 2</strong><br>Ex. "Dalawa ang mata ng tao."`, video: '/PICTURES/fsl_numbers/2.mp4' },
@@ -24,7 +23,7 @@ let currentUser = null;
 let learnedNumbers = new Set();
 let isInitialized = false;
 
-// OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
+// Get last position from sessionStorage immediately (synchronous)
 function getLastPositionSync() {
     try {
         const cached = sessionStorage.getItem('numbers_position');
@@ -34,6 +33,7 @@ function getLastPositionSync() {
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
                 const index = numbersData.findIndex(item => item.number === number);
                 if (index !== -1) {
+                    console.log(`⚡ Restored position from cache: ${number} (index ${index})`);
                     return index;
                 }
             }
@@ -41,22 +41,24 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
+    console.log('⚡ No valid cache, starting at 1 (index 0)');
     return 0; // Default to '1'
 }
 
-// OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
+// Save position to sessionStorage immediately (synchronous)
 function savePositionSync(number) {
     try {
         sessionStorage.setItem('numbers_position', JSON.stringify({
             number,
             timestamp: Date.now()
         }));
+        console.log(`💾 Saved position: ${number}`);
     } catch (error) {
         console.error('Error saving position cache:', error);
     }
 }
 
-// OPTIMIZATION 3: Get learned numbers from sessionStorage
+// Get learned numbers from sessionStorage
 function getLearnedNumbersSync() {
     try {
         const cached = sessionStorage.getItem('numbers_learned');
@@ -64,6 +66,7 @@ function getLearnedNumbersSync() {
             const { numbers, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
+                console.log(`📚 Restored ${numbers.length} learned numbers from cache`);
                 return new Set(numbers);
             }
         }
@@ -73,7 +76,7 @@ function getLearnedNumbersSync() {
     return new Set();
 }
 
-// OPTIMIZATION 4: Save learned numbers to sessionStorage
+// Save learned numbers to sessionStorage
 function saveLearnedNumbersSync(numbers) {
     try {
         sessionStorage.setItem('numbers_learned', JSON.stringify({
@@ -85,7 +88,7 @@ function saveLearnedNumbersSync(numbers) {
     }
 }
 
-// NEW: Preload videos for smoother transitions
+// Preload videos for smoother transitions
 function preloadVideos() {
     numbersData.forEach(item => {
         const video = document.createElement('video');
@@ -109,13 +112,15 @@ async function loadUserProgress() {
             // Update sessionStorage with fresh data from Firebase
             saveLearnedNumbersSync(learnedNumbers);
             
-            // Update position if different from cached
+            // 🔥 FIX: Update position if different from cached AND update display
             if (data.lastViewedNumber) {
                 const lastIndex = numbersData.findIndex(item => item.number === data.lastViewedNumber);
                 if (lastIndex !== -1 && lastIndex !== current) {
+                    console.log(`🔄 Firebase has different position: ${data.lastViewedNumber} (index ${lastIndex})`);
                     current = lastIndex;
                     savePositionSync(data.lastViewedNumber);
-                    updateLesson('next', true); // Update display silently
+                    // Update the display to show the correct number
+                    updateLesson('next', true);
                 }
             }
             
@@ -169,13 +174,14 @@ function markNumberAsLearned() {
     
     if (!learnedNumbers.has(currentNumber)) {
         learnedNumbers.add(currentNumber);
+        console.log(`✓ Marked ${currentNumber} as learned`);
     }
     
     // Save progress (non-blocking)
     saveUserProgress();
 }
 
-// NEW: Play video when loaded
+// Play video when loaded
 function playVideo(videoElement) {
     videoElement.play().catch(error => {
         console.log('Video autoplay prevented:', error);
@@ -183,7 +189,7 @@ function playVideo(videoElement) {
     });
 }
 
-// NEW: Reset and play video
+// Reset and play video
 function resetAndPlayVideo(videoElement) {
     videoElement.currentTime = 0;
     playVideo(videoElement);
@@ -198,7 +204,7 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     const numberEl = document.getElementById('letter');
     const descEl = document.getElementById('desc');
-    const videoEl = document.getElementById('signVideo'); // CHANGED: from signImg to signVideo
+    const videoEl = document.getElementById('signVideo');
     const leftContent = document.querySelector('.lesson-left');
     const rightContent = document.querySelector('.lesson-right');
     
@@ -208,7 +214,7 @@ function updateLesson(direction = 'next', skipAnimation = false) {
             ` <span class="number-visual" style="font-size:0.7em; color:#6d42c7; margin-left:8px;">${'●'.repeat(parseInt(numbersData[current].number) <= 5 ? parseInt(numbersData[current].number) : 5)}${parseInt(numbersData[current].number) > 5 ? '...' : ''}</span>`;
         descEl.innerHTML = `<p>${numbersData[current].desc}</p>`;
         
-        // CHANGED: Update video source and play
+        // Update video source and play
         videoEl.src = numbersData[current].video;
         videoEl.load(); // Load the new video
         playVideo(videoEl); // Auto-play
@@ -216,10 +222,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         updateNavButtons();
         updateNumberStyling();
         
-        // Mark as learned after initial display
-        if (isInitialized) {
-            markNumberAsLearned();
-        }
+        // 🔥 FIX: Don't mark as learned on initial display - wait for user interaction
+        // The number is already learned if it's in the cache
         return;
     }
     
@@ -241,7 +245,7 @@ function updateLesson(direction = 'next', skipAnimation = false) {
             ` <span class="number-visual" style="font-size:0.7em; color:#6d42c7; margin-left:8px;">${'●'.repeat(parseInt(numbersData[current].number) <= 5 ? parseInt(numbersData[current].number) : 5)}${parseInt(numbersData[current].number) > 5 ? '...' : ''}</span>`;
         descEl.innerHTML = `<p>${numbersData[current].desc}</p>`;
         
-        // CHANGED: Update video source and reset/play
+        // Update video source and reset/play
         videoEl.src = numbersData[current].video;
         videoEl.load();
         resetAndPlayVideo(videoEl);
@@ -348,7 +352,6 @@ function addAnimationStyles() {
             transform: translateY(-50%) scale(1.1);
         }
         
-        /* CHANGED: Video styles instead of image */
         .lesson-video {
             transition: opacity 0.2s ease;
         }
@@ -492,7 +495,7 @@ document.addEventListener('keydown', function (e) {
             updateLesson('next');
         }
     } else if (e.key === " " || e.key === "Spacebar") {
-        // NEW: Space bar to replay video
+        // Space bar to replay video
         e.preventDefault();
         const videoEl = document.getElementById('signVideo');
         resetAndPlayVideo(videoEl);
@@ -530,6 +533,7 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         // Load progress in background without blocking UI
+        // This will update the position if Firebase has a more recent one
         loadUserProgress();
     } else {
         console.warn('No user logged in. Progress will not be saved.');
@@ -537,18 +541,21 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// CRITICAL: Initialize IMMEDIATELY with cached data
+// 🔥 CRITICAL FIX: Initialize with cached position BEFORE DOMContentLoaded
+// This ensures the correct position is set before any UI updates
 current = getLastPositionSync(); // Get cached position synchronously
 learnedNumbers = getLearnedNumbersSync(); // Get cached learned numbers
 
-console.log(`⚡ Instant resume at number: ${numbersData[current].number}`);
+console.log(`⚡ Instant resume at number: ${numbersData[current].number} (index ${current})`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
-    preloadVideos(); // CHANGED: preload videos instead of images
+    preloadVideos();
     
-    // INSTANT display with cached position - NO LOADING DELAY
+    // 🔥 CRITICAL FIX: Display at the CORRECT cached position immediately
+    // The 'current' variable is already set from cache before this runs
+    console.log(`🎯 Displaying number at index ${current}: ${numbersData[current].number}`);
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -563,19 +570,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current number as learned now that we're initialized
-            markNumberAsLearned();
+            // Don't auto-mark as learned on page load - only when user navigates
         }, 600);
     }, 100);
     
-    // NEW: Add click-to-replay functionality on video
+    // Add click-to-replay functionality on video
     const videoEl = document.getElementById('signVideo');
     if (videoEl) {
         videoEl.addEventListener('click', function() {
             resetAndPlayVideo(this);
         });
         
-        // NEW: Loop video continuously
+        // Loop video continuously
         videoEl.addEventListener('ended', function() {
             this.currentTime = 0;
             this.play();

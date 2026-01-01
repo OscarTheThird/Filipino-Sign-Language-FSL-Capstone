@@ -33,7 +33,7 @@ let currentUser = null;
 let learnedPhrases = new Set();
 let isInitialized = false;
 
-// OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
+// Get last position from sessionStorage immediately (synchronous)
 function getLastPositionSync() {
     try {
         const cached = sessionStorage.getItem('phrases_position');
@@ -43,6 +43,7 @@ function getLastPositionSync() {
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
                 const index = phrasesData.findIndex(item => item.phrase === phrase);
                 if (index !== -1) {
+                    console.log(`⚡ Restored position from cache: ${phrase} (index ${index})`);
                     return index;
                 }
             }
@@ -50,22 +51,24 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
+    console.log('⚡ No valid cache, starting at AKO SI (index 0)');
     return 0; // Default to 'AKO SI'
 }
 
-// OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
+// Save position to sessionStorage immediately (synchronous)
 function savePositionSync(phrase) {
     try {
         sessionStorage.setItem('phrases_position', JSON.stringify({
             phrase,
             timestamp: Date.now()
         }));
+        console.log(`💾 Saved position: ${phrase}`);
     } catch (error) {
         console.error('Error saving position cache:', error);
     }
 }
 
-// OPTIMIZATION 3: Get learned phrases from sessionStorage
+// Get learned phrases from sessionStorage
 function getLearnedPhrasesSync() {
     try {
         const cached = sessionStorage.getItem('phrases_learned');
@@ -73,6 +76,7 @@ function getLearnedPhrasesSync() {
             const { phrases, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
+                console.log(`📚 Restored ${phrases.length} learned phrases from cache`);
                 return new Set(phrases);
             }
         }
@@ -82,7 +86,7 @@ function getLearnedPhrasesSync() {
     return new Set();
 }
 
-// OPTIMIZATION 4: Save learned phrases to sessionStorage
+// Save learned phrases to sessionStorage
 function saveLearnedPhrasesSync(phrases) {
     try {
         sessionStorage.setItem('phrases_learned', JSON.stringify({
@@ -118,13 +122,15 @@ async function loadUserProgress() {
             // Update sessionStorage with fresh data from Firebase
             saveLearnedPhrasesSync(learnedPhrases);
             
-            // Update position if different from cached
+            // 🔥 FIX: Update position if different from cached AND update display
             if (data.lastViewedPhrase) {
                 const lastIndex = phrasesData.findIndex(item => item.phrase === data.lastViewedPhrase);
                 if (lastIndex !== -1 && lastIndex !== current) {
+                    console.log(`🔄 Firebase has different position: ${data.lastViewedPhrase} (index ${lastIndex})`);
                     current = lastIndex;
                     savePositionSync(data.lastViewedPhrase);
-                    updateLesson('next', true); // Update display silently
+                    // Update the display to show the correct phrase
+                    updateLesson('next', true);
                 }
             }
             
@@ -178,6 +184,7 @@ function markPhraseAsLearned() {
     
     if (!learnedPhrases.has(currentPhrase)) {
         learnedPhrases.add(currentPhrase);
+        console.log(`✓ Marked ${currentPhrase} as learned`);
     }
     
     // Save progress (non-blocking)
@@ -224,10 +231,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         updateNavButtons();
         updatePhraseStyling();
         
-        // Mark as learned after initial display
-        if (isInitialized) {
-            markPhraseAsLearned();
-        }
+        // 🔥 FIX: Don't mark as learned on initial display - wait for user interaction
+        // The phrase is already learned if it's in the cache
         return;
     }
     
@@ -507,6 +512,7 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         // Load progress in background without blocking UI
+        // This will update the position if Firebase has a more recent one
         loadUserProgress();
     } else {
         console.warn('No user logged in. Progress will not be saved.');
@@ -514,18 +520,21 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// CRITICAL: Initialize IMMEDIATELY with cached data
+// 🔥 CRITICAL FIX: Initialize with cached position BEFORE DOMContentLoaded
+// This ensures the correct position is set before any UI updates
 current = getLastPositionSync(); // Get cached position synchronously
 learnedPhrases = getLearnedPhrasesSync(); // Get cached learned phrases
 
-console.log(`⚡ Instant resume at phrase: ${phrasesData[current].phrase}`);
+console.log(`⚡ Instant resume at phrase: ${phrasesData[current].phrase} (index ${current})`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
     preloadVideos();
     
-    // INSTANT display with cached position - NO LOADING DELAY
+    // 🔥 CRITICAL FIX: Display at the CORRECT cached position immediately
+    // The 'current' variable is already set from cache before this runs
+    console.log(`🎯 Displaying phrase at index ${current}: ${phrasesData[current].phrase}`);
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -540,8 +549,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current phrase as learned now that we're initialized
-            markPhraseAsLearned();
+            // Don't auto-mark as learned on page load - only when user navigates
         }, 600);
     }, 100);
     

@@ -33,7 +33,7 @@ let currentUser = null;
 let learnedMembers = new Set();
 let isInitialized = false;
 
-// OPTIMIZATION 1: Get last position from sessionStorage IMMEDIATELY (synchronous)
+// Get last position from sessionStorage immediately (synchronous)
 function getLastPositionSync() {
     try {
         const cached = sessionStorage.getItem('familymembers_position');
@@ -43,6 +43,7 @@ function getLastPositionSync() {
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
                 const index = familyMembersData.findIndex(item => item.member === member);
                 if (index !== -1) {
+                    console.log(`⚡ Restored position from cache: ${member} (index ${index})`);
                     return index;
                 }
             }
@@ -50,22 +51,24 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
+    console.log('⚡ No valid cache, starting at TATAY (index 0)');
     return 0; // Default to 'TATAY'
 }
 
-// OPTIMIZATION 2: Save position to sessionStorage immediately (synchronous)
+// Save position to sessionStorage immediately (synchronous)
 function savePositionSync(member) {
     try {
         sessionStorage.setItem('familymembers_position', JSON.stringify({
             member,
             timestamp: Date.now()
         }));
+        console.log(`💾 Saved position: ${member}`);
     } catch (error) {
         console.error('Error saving position cache:', error);
     }
 }
 
-// OPTIMIZATION 3: Get learned members from sessionStorage
+// Get learned members from sessionStorage
 function getLearnedMembersSync() {
     try {
         const cached = sessionStorage.getItem('familymembers_learned');
@@ -73,6 +76,7 @@ function getLearnedMembersSync() {
             const { members, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
+                console.log(`📚 Restored ${members.length} learned members from cache`);
                 return new Set(members);
             }
         }
@@ -82,7 +86,7 @@ function getLearnedMembersSync() {
     return new Set();
 }
 
-// OPTIMIZATION 4: Save learned members to sessionStorage
+// Save learned members to sessionStorage
 function saveLearnedMembersSync(members) {
     try {
         sessionStorage.setItem('familymembers_learned', JSON.stringify({
@@ -118,13 +122,15 @@ async function loadUserProgress() {
             // Update sessionStorage with fresh data from Firebase
             saveLearnedMembersSync(learnedMembers);
             
-            // Update position if different from cached
+            // 🔥 FIX: Update position if different from cached AND update display
             if (data.lastViewedMember) {
                 const lastIndex = familyMembersData.findIndex(item => item.member === data.lastViewedMember);
                 if (lastIndex !== -1 && lastIndex !== current) {
+                    console.log(`🔄 Firebase has different position: ${data.lastViewedMember} (index ${lastIndex})`);
                     current = lastIndex;
                     savePositionSync(data.lastViewedMember);
-                    updateLesson('next', true); // Update display silently
+                    // Update the display to show the correct member
+                    updateLesson('next', true);
                 }
             }
             
@@ -178,6 +184,7 @@ function markMemberAsLearned() {
     
     if (!learnedMembers.has(currentMember)) {
         learnedMembers.add(currentMember);
+        console.log(`✓ Marked ${currentMember} as learned`);
     }
     
     // Save progress (non-blocking)
@@ -224,10 +231,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         updateNavButtons();
         updateMemberStyling();
         
-        // Mark as learned after initial display
-        if (isInitialized) {
-            markMemberAsLearned();
-        }
+        // 🔥 FIX: Don't mark as learned on initial display - wait for user interaction
+        // The member is already learned if it's in the cache
         return;
     }
     
@@ -507,6 +512,7 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         // Load progress in background without blocking UI
+        // This will update the position if Firebase has a more recent one
         loadUserProgress();
     } else {
         console.warn('No user logged in. Progress will not be saved.');
@@ -514,18 +520,21 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// CRITICAL: Initialize IMMEDIATELY with cached data
+// 🔥 CRITICAL FIX: Initialize with cached position BEFORE DOMContentLoaded
+// This ensures the correct position is set before any UI updates
 current = getLastPositionSync(); // Get cached position synchronously
 learnedMembers = getLearnedMembersSync(); // Get cached learned family members
 
-console.log(`⚡ Instant resume at family member: ${familyMembersData[current].member}`);
+console.log(`⚡ Instant resume at family member: ${familyMembersData[current].member} (index ${current})`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
     preloadVideos();
     
-    // INSTANT display with cached position - NO LOADING DELAY
+    // 🔥 CRITICAL FIX: Display at the CORRECT cached position immediately
+    // The 'current' variable is already set from cache before this runs
+    console.log(`🎯 Displaying family member at index ${current}: ${familyMembersData[current].member}`);
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -540,8 +549,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current family member as learned now that we're initialized
-            markMemberAsLearned();
+            // Don't auto-mark as learned on page load - only when user navigates
         }, 600);
     }, 100);
     

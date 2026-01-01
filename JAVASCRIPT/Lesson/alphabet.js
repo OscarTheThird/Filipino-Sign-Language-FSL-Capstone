@@ -50,6 +50,7 @@ function getLastPositionSync() {
             if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
                 const index = alphabetData.findIndex(item => item.letter === letter);
                 if (index !== -1) {
+                    console.log(`⚡ Restored position from cache: ${letter} (index ${index})`);
                     return index;
                 }
             }
@@ -57,6 +58,7 @@ function getLastPositionSync() {
     } catch (error) {
         console.error('Error reading position cache:', error);
     }
+    console.log('⚡ No valid cache, starting at A (index 0)');
     return 0; // Default to 'A'
 }
 
@@ -67,6 +69,7 @@ function savePositionSync(letter) {
             letter,
             timestamp: Date.now()
         }));
+        console.log(`💾 Saved position: ${letter}`);
     } catch (error) {
         console.error('Error saving position cache:', error);
     }
@@ -80,6 +83,7 @@ function getLearnedLettersSync() {
             const { letters, timestamp } = JSON.parse(cached);
             // Cache valid for 1 hour
             if (Date.now() - timestamp < 60 * 60 * 1000) {
+                console.log(`📚 Restored ${letters.length} learned letters from cache`);
                 return new Set(letters);
             }
         }
@@ -125,13 +129,15 @@ async function loadUserProgress() {
             // Update sessionStorage with fresh data from Firebase
             saveLearnedLettersSync(learnedLetters);
             
-            // Update position if different from cached
+            // 🔥 FIX: Update position if different from cached AND update display
             if (data.lastViewedLetter) {
                 const lastIndex = alphabetData.findIndex(item => item.letter === data.lastViewedLetter);
                 if (lastIndex !== -1 && lastIndex !== current) {
+                    console.log(`🔄 Firebase has different position: ${data.lastViewedLetter} (index ${lastIndex})`);
                     current = lastIndex;
                     savePositionSync(data.lastViewedLetter);
-                    updateLesson('next', true); // Update display silently
+                    // Update the display to show the correct letter
+                    updateLesson('next', true);
                 }
             }
             
@@ -185,6 +191,7 @@ function markLetterAsLearned() {
     
     if (!learnedLetters.has(currentLetter)) {
         learnedLetters.add(currentLetter);
+        console.log(`✓ Marked ${currentLetter} as learned`);
     }
     
     // Save progress (non-blocking)
@@ -230,10 +237,8 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         
         updateNavButtons();
         
-        // Mark as learned after initial display
-        if (isInitialized) {
-            markLetterAsLearned();
-        }
+        // 🔥 FIX: Don't mark as learned on initial display - wait for user interaction
+        // The letter is already learned if it's in the cache
         return;
     }
     
@@ -472,6 +477,7 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         // Load progress in background without blocking UI
+        // This will update the position if Firebase has a more recent one
         loadUserProgress();
     } else {
         console.warn('No user logged in. Progress will not be saved.');
@@ -479,19 +485,21 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// CRITICAL: Initialize IMMEDIATELY with cached data
-// This runs BEFORE page loads, ensuring instant display
+// 🔥 CRITICAL FIX: Initialize with cached position BEFORE DOMContentLoaded
+// This ensures the correct position is set before any UI updates
 current = getLastPositionSync(); // Get cached position synchronously
 learnedLetters = getLearnedLettersSync(); // Get cached learned letters
 
-console.log(`⚡ Instant resume at letter: ${alphabetData[current].letter}`);
+console.log(`⚡ Instant resume at letter: ${alphabetData[current].letter} (index ${current})`);
 
 // Initialize the lesson
 document.addEventListener('DOMContentLoaded', function() {
     addAnimationStyles();
     preloadVideos(); // CHANGED: preload videos instead of images
     
-    // INSTANT display with cached position - NO LOADING DELAY
+    // 🔥 CRITICAL FIX: Display at the CORRECT cached position immediately
+    // The 'current' variable is already set from cache before this runs
+    console.log(`🎯 Displaying letter at index ${current}: ${alphabetData[current].letter}`);
     updateLesson('next', true);
     
     const lessonCard = document.querySelector('.lesson-card');
@@ -506,8 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Mark current letter as learned now that we're initialized
-            markLetterAsLearned();
+            // Don't auto-mark as learned on page load - only when user navigates
         }, 600);
     }, 100);
     
