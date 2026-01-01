@@ -203,23 +203,26 @@ function shuffleArray(array) {
     return shuffled;
 }
 
-// Generate quiz questions (10 random letters)
+// UPDATED: Generate quiz questions (dynamic length - max 10 or dataset size)
 function generateQuestions() {
+    // FEATURE 1: Dynamic quiz length - max 10 or dataset size
+    const maxQuestions = Math.min(10, alphabetData.length);
     const shuffled = shuffleArray([...alphabetData]);
-    questions = shuffled.slice(0, 10).map(item => ({
+    questions = shuffled.slice(0, maxQuestions).map(item => ({
         correctAnswer: item.letter,
         video: item.video,
         options: generateOptions(item.letter)
     }));
 }
 
-// Generate 4 options (1 correct + 3 random wrong answers)
+// UPDATED: Generate 3 options (1 correct + 2 random wrong answers)
 function generateOptions(correctLetter) {
     const options = [correctLetter];
     const availableLetters = alphabetData.map(item => item.letter).filter(letter => letter !== correctLetter);
     const shuffled = shuffleArray(availableLetters);
     
-    for (let i = 0; i < 3 && i < shuffled.length; i++) {
+    // FEATURE 2: Changed to 3 total choices (1 correct + 2 wrong)
+    for (let i = 0; i < 2 && i < shuffled.length; i++) {
         options.push(shuffled[i]);
     }
     
@@ -494,7 +497,8 @@ async function saveActiveQuizSession() {
             currentQuestion: currentQuestion,
             score: score,
             questions: questions,
-            tabSwitches: tabSwitchCount
+            tabSwitches: tabSwitchCount,
+            quizStartTime: quizStartTime.toISOString() // FEATURE 3: Save start time
         });
         console.log('Active quiz session saved with initial heartbeat');
         
@@ -528,7 +532,7 @@ async function clearActiveQuizSession() {
     }
 }
 
-// Check if user has an active quiz session
+// UPDATED: Check if user has an active quiz session with heartbeat freshness check
 async function checkActiveQuizSession() {
     if (!currentUser || !navigator.onLine) return null;
 
@@ -537,13 +541,53 @@ async function checkActiveQuizSession() {
         const sessionSnap = await getDoc(sessionRef);
 
         if (sessionSnap.exists()) {
-            return sessionSnap.data();
+            const sessionData = sessionSnap.data();
+            
+            // FEATURE 3: Check if heartbeat is recent (within last 30 seconds)
+            if (sessionData.lastHeartbeat) {
+                const lastHeartbeatTime = sessionData.lastHeartbeat.toDate();
+                const now = new Date();
+                const secondsSinceLastHeartbeat = (now - lastHeartbeatTime) / 1000;
+                
+                // If heartbeat is older than 30 seconds, quiz is NOT actively open
+                if (secondsSinceLastHeartbeat > 30) {
+                    console.log(`⚠ Quiz session exists but heartbeat is stale (${Math.round(secondsSinceLastHeartbeat)}s ago)`);
+                    console.log('Quiz is not actively open - clearing stale session');
+                    
+                    // Clear the stale session
+                    await deleteDoc(sessionRef);
+                    return null;
+                }
+                
+                console.log(`✓ Quiz session is active (heartbeat ${Math.round(secondsSinceLastHeartbeat)}s ago)`);
+            }
+            
+            return sessionData;
         }
         return null;
     } catch (error) {
         console.error('Error checking active quiz session:', error);
         return null;
     }
+}
+
+// FEATURE 3: Restore quiz state from saved session
+function restoreQuizState(sessionData) {
+    currentQuestion = sessionData.currentQuestion || 0;
+    score = sessionData.score || 0;
+    tabSwitchCount = sessionData.tabSwitches || 0;
+    
+    // Restore questions array with exact same options
+    if (sessionData.questions && sessionData.questions.length > 0) {
+        questions = sessionData.questions;
+    }
+    
+    // Restore start time for accurate duration tracking
+    if (sessionData.quizStartTime) {
+        quizStartTime = new Date(sessionData.quizStartTime);
+    }
+    
+    console.log(`Restored quiz state: Question ${currentQuestion + 1}, Score ${score}/${currentQuestion}`);
 }
 
 // Show navigation warning modal
@@ -723,23 +767,29 @@ function cancelNavigationAway() {
     hideNavigationWarning();
 }
 
-// Initialize quiz
+// UPDATED: Initialize quiz with state restoration
 async function initQuiz() {
-    // Check if user has active quiz session
+    let activeSession = null;
+    
+    // FEATURE 3: Check if user has active quiz session WITH RECENT HEARTBEAT
     if (currentUser && navigator.onLine) {
-        const activeSession = await checkActiveQuizSession();
+        activeSession = await checkActiveQuizSession(); // Returns null if heartbeat is stale
         if (activeSession && activeSession.active) {
-            console.log('Resuming active quiz session');
-            // Could optionally restore quiz state here
-            // For now, we'll just start fresh but keep the session active
+            console.log('Active quiz session found with recent heartbeat! Restoring state...');
+            restoreQuizState(activeSession);
+        } else if (!activeSession) {
+            console.log('No active session or heartbeat is stale - starting fresh quiz');
         }
     }
 
-    generateQuestions();
-    currentQuestion = 0;
-    score = 0;
-    tabSwitchCount = 0;
-    quizStartTime = new Date();
+    // Only generate new questions if we don't have a saved session with recent heartbeat
+    if (!activeSession || !activeSession.questions || activeSession.questions.length === 0) {
+        generateQuestions();
+        currentQuestion = 0;
+        score = 0;
+        tabSwitchCount = 0;
+        quizStartTime = new Date();
+    }
     
     // Load previous data if user is logged in
     if (currentUser) {
