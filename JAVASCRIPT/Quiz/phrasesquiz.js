@@ -3,34 +3,12 @@ import { auth, db } from '../firebase.js';
 import { doc, getDoc, setDoc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-// Filipino Alphabet A-Z
-const alphabetData = [
-    { letter: 'A', video: '/PICTURES/fsl_alphabet/A.mp4' },
-    { letter: 'B', video: '/PICTURES/fsl_alphabet/B.mp4' },
-    { letter: 'C', video: '/PICTURES/fsl_alphabet/C.mp4' },
-    { letter: 'D', video: '/PICTURES/fsl_alphabet/D.mp4' },
-    { letter: 'E', video: '/PICTURES/fsl_alphabet/E.mp4' },
-    { letter: 'F', video: '/PICTURES/fsl_alphabet/F.mp4' },
-    { letter: 'G', video: '/PICTURES/fsl_alphabet/G.mp4' },
-    { letter: 'H', video: '/PICTURES/fsl_alphabet/H.mp4' },
-    { letter: 'I', video: '/PICTURES/fsl_alphabet/I.mp4' },
-    { letter: 'J', video: '/PICTURES/fsl_alphabet/J.mp4' },
-    { letter: 'K', video: '/PICTURES/fsl_alphabet/K.mp4' },
-    { letter: 'L', video: '/PICTURES/fsl_alphabet/L.mp4' },
-    { letter: 'M', video: '/PICTURES/fsl_alphabet/M.mp4' },
-    { letter: 'N', video: '/PICTURES/fsl_alphabet/N.mp4' },
-    { letter: 'O', video: '/PICTURES/fsl_alphabet/O.mp4' },
-    { letter: 'P', video: '/PICTURES/fsl_alphabet/P.mp4' },
-    { letter: 'Q', video: '/PICTURES/fsl_alphabet/Q.mp4' },
-    { letter: 'R', video: '/PICTURES/fsl_alphabet/R.mp4' },
-    { letter: 'S', video: '/PICTURES/fsl_alphabet/S.mp4' },
-    { letter: 'T', video: '/PICTURES/fsl_alphabet/T.mp4' },
-    { letter: 'U', video: '/PICTURES/fsl_alphabet/U.mp4' },
-    { letter: 'V', video: '/PICTURES/fsl_alphabet/V.mp4' },
-    { letter: 'W', video: '/PICTURES/fsl_alphabet/W.mp4' },
-    { letter: 'X', video: '/PICTURES/fsl_alphabet/X.mp4' },
-    { letter: 'Y', video: '/PICTURES/fsl_alphabet/Y.mp4' },
-    { letter: 'Z', video: '/PICTURES/fsl_alphabet/Z.mp4' }
+// Filipino Sign Language Common Phrases
+const phrasesData = [
+    { phrase: 'I am fine', video: '/PICTURES/fsl_common_phrases/AKO AY MABUTI.mp4' },
+    { phrase: 'I am', video: '/PICTURES/fsl_common_phrases/AKO SI.mp4' },
+    { phrase: 'No', video: '/PICTURES/fsl_common_phrases/HINDI.mp4' },
+    { phrase: 'Yes', video: '/PICTURES/fsl_common_phrases/OO.mp4' },
 ];
 
 let currentQuestion = 0;
@@ -203,24 +181,29 @@ function shuffleArray(array) {
     return shuffled;
 }
 
-// Generate quiz questions (10 random letters)
+// Generate quiz questions
 function generateQuestions() {
-    const shuffled = shuffleArray([...alphabetData]);
-    questions = shuffled.slice(0, 10).map(item => ({
-        correctAnswer: item.letter,
+    const shuffled = shuffleArray([...phrasesData]);
+    questions = shuffled.map(item => ({
+        correctAnswer: item.phrase,
         video: item.video,
-        options: generateOptions(item.letter)
+        options: generateOptions(item.phrase)
     }));
 }
 
 // Generate 4 options (1 correct + 3 random wrong answers)
-function generateOptions(correctLetter) {
-    const options = [correctLetter];
-    const availableLetters = alphabetData.map(item => item.letter).filter(letter => letter !== correctLetter);
-    const shuffled = shuffleArray(availableLetters);
+function generateOptions(correctAnswer) {
+    const options = [correctAnswer];
+    const availableOptions = phrasesData.map(item => item.phrase).filter(opt => opt !== correctAnswer);
+    const shuffled = shuffleArray(availableOptions);
     
     for (let i = 0; i < 3 && i < shuffled.length; i++) {
         options.push(shuffled[i]);
+    }
+    
+    // If we don't have enough options, repeat some
+    while (options.length < 4 && shuffled.length > 0) {
+        options.push(shuffled[0]);
     }
     
     return shuffleArray(options);
@@ -365,7 +348,7 @@ async function loadPreviousQuizData() {
     }
 }
 
-// Save final quiz results to Firebase (matching Firestore rules structure)
+// Save final quiz results to Firebase
 async function saveFinalQuizResults(finalScore, total, percentage) {
     if (!currentUser) {
         console.log('User not authenticated, skipping save');
@@ -404,7 +387,7 @@ async function saveFinalQuizResultsToFirestore(finalScore, total, percentage) {
     const quizEndTime = new Date();
     const durationSeconds = quizStartTime ? Math.floor((quizEndTime - quizStartTime) / 1000) : 0;
 
-    // Reference to the user's progress document for alphabet-quiz
+    // Reference to the user's progress document
     const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'phrases-quiz');
     
     // Get existing data to preserve attempts count
@@ -634,9 +617,7 @@ function handleBeforeUnload(event) {
         
         // Try to clear the session (may not complete before page closes)
         if (currentUser && navigator.onLine) {
-            // Use sendBeacon for more reliable cleanup on page unload
             const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', QUIZ_ID);
-            // Delete the session
             deleteDoc(sessionRef).catch(err => console.log('Cleanup failed:', err));
         }
         
@@ -655,7 +636,7 @@ function handleVisibilityChange() {
         // Show warning
         showTabSwitchWarning();
         
-        // Save updated session (only if online) - heartbeat runs automatically
+        // Save updated session (only if online)
         if (currentUser && navigator.onLine) {
             saveActiveQuizSession();
         }
@@ -701,7 +682,7 @@ function confirmNavigationAway() {
     // Stop heartbeat
     stopHeartbeat();
     
-    // Clear session and restart quiz
+    // Clear session
     if (currentUser && navigator.onLine) {
         clearActiveQuizSession();
     }
@@ -730,8 +711,6 @@ async function initQuiz() {
         const activeSession = await checkActiveQuizSession();
         if (activeSession && activeSession.active) {
             console.log('Resuming active quiz session');
-            // Could optionally restore quiz state here
-            // For now, we'll just start fresh but keep the session active
         }
     }
 
@@ -758,7 +737,7 @@ async function initQuiz() {
     document.getElementById('nextBtn').onclick = async () => {
         currentQuestion++;
         
-        // Save progress (only if online) - heartbeat runs automatically
+        // Save progress (only if online)
         if (currentUser && navigator.onLine) {
             await saveActiveQuizSession();
         }
@@ -766,7 +745,7 @@ async function initQuiz() {
         displayQuestion();
     };
 
-    // Restart button handler (in results)
+    // Restart button handler
     const restartBtn = document.getElementById('restartBtn');
     if (restartBtn) {
         restartBtn.onclick = () => {
@@ -822,7 +801,6 @@ onAuthStateChanged(auth, async (user) => {
             
             if (activeSession && activeSession.active && !isOnQuizPage) {
                 console.log('Active quiz detected! Redirecting to quiz page...');
-                // Get the base path and construct the quiz URL
                 const basePath = window.location.origin;
                 window.location.href = basePath + '/HTML/Quiz/phrasesquiz.html';
             }
