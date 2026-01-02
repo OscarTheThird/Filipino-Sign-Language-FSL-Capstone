@@ -449,3 +449,43 @@ body {
         width: 100%;
     }
 }
+
+/* Unified lesson typography - ensure consistent font and sizes across lessons */
+.lesson-title {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #6d42c7;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-align: left;
+  align-self: flex-start;
+  letter-spacing: 1px;
+}
+.lesson-desc {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 1.1rem;
+  color: #181818;
+  font-weight: 500;
+  line-height: 1.5;
+  max-width: 370px;
+}
+.lesson-letter,
+.lesson-greeting {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 2.4rem;
+  font-weight: 600;
+  color: #181818;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 1200px) {
+  .lesson-title { font-size: 1.8rem; }
+  .lesson-letter, .lesson-greeting { font-size: 2rem; }
+  .lesson-desc { font-size: 1rem; }
+}
+
+@media (max-width: 640px) {
+  .lesson-title { font-size: 1.6rem; }
+  .lesson-letter, .lesson-greeting { font-size: 1.5rem; }
+  .lesson-desc { font-size: 0.95rem; }
+}

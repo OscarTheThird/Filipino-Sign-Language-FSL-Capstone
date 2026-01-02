@@ -20,6 +20,32 @@ const detectedText = document.getElementById("detectedText");
 const confidenceScore = document.getElementById("confidenceScore");
 const placeholderText = document.getElementById("placeholderText");
 const fpsCounter = document.getElementById("fpsCounter");
+// Mode buttons
+const btnAlphabet = document.getElementById("btnAlphabet");
+const btnNumbers = document.getElementById("btnNumbers");
+const btnWords = document.getElementById("btnWords");
+
+let currentMode = 'alphabet';
+
+function setMode(mode) {
+  currentMode = mode;
+  // toggle active classes and aria-selected
+  [[btnAlphabet,'alphabet'],[btnNumbers,'numbers'],[btnWords,'words']].forEach(([btn, m])=>{
+    if(!btn) return;
+    const isActive = m === mode;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+
+  // Optionally update UI to reflect mode change
+  if (detectedText) {
+    detectedText.textContent = `Mode: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
+  }
+}
+
+if (btnAlphabet) btnAlphabet.addEventListener('click', ()=> setMode('alphabet'));
+if (btnNumbers) btnNumbers.addEventListener('click', ()=> setMode('numbers'));
+if (btnWords) btnWords.addEventListener('click', ()=> setMode('words'));
 
 // Sample detection data for demo
 const sampleDetections = [

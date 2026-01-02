@@ -28,13 +28,19 @@
     <main class="main-content">
         <!-- Left Section - Camera Feed -->
         <section class="camera-section">
+            <div class="mode-buttons" role="tablist" aria-label="Interpreter Modes">
+                <button class="mode-btn active" id="btnAlphabet" role="tab" aria-selected="true">Alphabet</button>
+                <button class="mode-btn" id="btnNumbers" role="tab" aria-selected="false">Numbers</button>
+                <button class="mode-btn" id="btnWords" role="tab" aria-selected="false">Words</button>
+            </div>
+
             <div class="camera-container">
                 <video class="camera-feed" id="cameraFeed" autoplay muted>
                     Your browser does not support the video element.
                 </video>
                 <canvas class="tracking-overlay" id="trackingOverlay"></canvas>
             </div>
-            
+
             <!-- Camera Controls -->
             <div class="camera-controls">
                 <button class="control-btn" id="startBtn">
