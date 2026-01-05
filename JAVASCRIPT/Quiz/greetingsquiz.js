@@ -27,6 +27,7 @@ let quizActive = false;
 let tabSwitchCount = 0;
 let isOnline = navigator.onLine;
 let pendingSaves = [];
+const MAX_TAB_SWITCHES = 3; // Maximum allowed tab switches before quiz reset
 
 // ============================================================================
 // HEARTBEAT SYSTEM - Indicates quiz page is open
@@ -198,14 +199,19 @@ function generateQuestions() {
 }
 
 // UPDATED: Generate 3 options (1 correct + 2 random wrong answers)
-function generateOptions(correctLetter) {
-    const options = [correctLetter];
-    const availableLetters = greetingsData.map(item => item.greeting).filter(letter => letter !== correctLetter);
-    const shuffled = shuffleArray(availableLetters);
+function generateOptions(correctAnswer) {
+    const options = [correctAnswer];
+    const availableOptions = greetingsData.map(item => item.greeting).filter(opt => opt !== correctAnswer);
+    const shuffled = shuffleArray(availableOptions);
     
     // FEATURE 2: Changed to 3 total choices (1 correct + 2 wrong)
     for (let i = 0; i < 2 && i < shuffled.length; i++) {
         options.push(shuffled[i]);
+    }
+    
+    // If we don't have enough options, repeat some
+    while (options.length < 3 && shuffled.length > 0) {
+        options.push(shuffled[0]);
     }
     
     return shuffleArray(options);
@@ -350,7 +356,7 @@ async function loadPreviousQuizData() {
     }
 }
 
-// Save final quiz results to Firebase (matching Firestore rules structure)
+// Save final quiz results to Firebase
 async function saveFinalQuizResults(finalScore, total, percentage) {
     if (!currentUser) {
         console.log('User not authenticated, skipping save');
@@ -389,7 +395,7 @@ async function saveFinalQuizResultsToFirestore(finalScore, total, percentage) {
     const quizEndTime = new Date();
     const durationSeconds = quizStartTime ? Math.floor((quizEndTime - quizStartTime) / 1000) : 0;
 
-    // Reference to the user's progress document for alphabet-quiz
+    // Reference to the user's progress document
     const progressRef = doc(db, 'users', currentUser.uid, 'progress', 'greetings-quiz');
     
     // Get existing data to preserve attempts count
@@ -572,6 +578,56 @@ function restoreQuizState(sessionData) {
     console.log(`Restored quiz state: Question ${currentQuestion + 1}, Score ${score}/${currentQuestion}`);
 }
 
+// NEW: Reset quiz with new randomized questions
+async function resetQuizDueToTabSwitches() {
+    console.log('🔄 Resetting quiz due to exceeding maximum tab switches');
+    
+    // Stop heartbeat
+    stopHeartbeat();
+    
+    // Clear active session
+    if (currentUser && navigator.onLine) {
+        await clearActiveQuizSession();
+    }
+    
+    // Show reset notification
+    showQuizResetNotification();
+    
+    // Wait 3 seconds to show notification, then reload page
+    setTimeout(() => {
+        location.reload();
+    }, 3000);
+}
+
+// NEW: Show quiz reset notification
+function showQuizResetNotification() {
+    const notification = document.createElement('div');
+    notification.className = 'quiz-reset-notification';
+    notification.innerHTML = `
+        <div class="reset-content">
+            <div class="reset-icon">🔄</div>
+            <h2>Quiz Reset!</h2>
+            <p>You have exceeded the maximum number of tab switches (${MAX_TAB_SWITCHES}).</p>
+            <p>The quiz will restart with new randomized questions...</p>
+        </div>
+    `;
+    notification.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        animation: fadeIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+}
+
 // Show navigation warning modal
 function showNavigationWarning() {
     const modal = document.getElementById('navigationWarningModal');
@@ -660,9 +716,7 @@ function handleBeforeUnload(event) {
         
         // Try to clear the session (may not complete before page closes)
         if (currentUser && navigator.onLine) {
-            // Use sendBeacon for more reliable cleanup on page unload
             const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', QUIZ_ID);
-            // Delete the session
             deleteDoc(sessionRef).catch(err => console.log('Cleanup failed:', err));
         }
         
@@ -672,52 +726,70 @@ function handleBeforeUnload(event) {
     }
 }
 
-// Handle tab visibility changes
-function handleVisibilityChange() {
+// UPDATED: Handle tab visibility changes with maximum limit
+async function handleVisibilityChange() {
     if (quizActive && document.hidden) {
         tabSwitchCount++;
-        console.log(`Tab switch detected. Count: ${tabSwitchCount}`);
+        console.log(`Tab switch detected. Count: ${tabSwitchCount}/${MAX_TAB_SWITCHES}`);
         
-        // Show warning
+        // Check if exceeded maximum
+        if (tabSwitchCount > MAX_TAB_SWITCHES) {
+            console.log(`⚠️ Exceeded maximum tab switches! Resetting quiz...`);
+            await resetQuizDueToTabSwitches();
+            return;
+        }
+        
+        // Show warning with remaining attempts
         showTabSwitchWarning();
         
-        // Save updated session (only if online) - heartbeat runs automatically
+        // Save updated session (only if online)
         if (currentUser && navigator.onLine) {
             saveActiveQuizSession();
         }
     }
 }
 
-// Show tab switch warning
+// UPDATED: Show tab switch warning with remaining attempts
 function showTabSwitchWarning() {
+    const remainingAttempts = MAX_TAB_SWITCHES - tabSwitchCount;
+    const isLastWarning = remainingAttempts === 0;
+    
     const warningDiv = document.createElement('div');
     warningDiv.className = 'tab-switch-warning';
     warningDiv.innerHTML = `
         <div class="warning-content">
-            <span class="warning-icon">⚠️</span>
-            <span class="warning-text">Tab switch detected! This activity is being monitored.</span>
+            <span class="warning-icon">${isLastWarning ? '🚨' : '⚠️'}</span>
+            <div class="warning-text">
+                <strong>${isLastWarning ? 'FINAL WARNING!' : `Tab Switch Detected! (${tabSwitchCount}/${MAX_TAB_SWITCHES})`}</strong>
+                <p style="margin: 5px 0 0 0; font-size: 0.9em;">
+                    ${isLastWarning 
+                        ? 'One more tab switch will reset your quiz!' 
+                        : `${remainingAttempts} warning${remainingAttempts !== 1 ? 's' : ''} remaining before quiz reset`}
+                </p>
+            </div>
         </div>
     `;
     warningDiv.style.cssText = `
         position: fixed;
         top: 80px;
         right: 20px;
-        background: #ff9800;
+        background: ${isLastWarning ? '#ef4444' : '#ff9800'};
         color: white;
         padding: 15px 20px;
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         z-index: 9999;
         animation: slideInRight 0.3s ease;
+        min-width: 300px;
     `;
 
     document.body.appendChild(warningDiv);
 
-    // Remove after 3 seconds
+    // Remove after 4 seconds (longer for final warning)
     setTimeout(() => {
         warningDiv.style.animation = 'slideOutRight 0.3s ease';
         setTimeout(() => warningDiv.remove(), 300);
-    }, 3000);
+    }, isLastWarning ? 5000 : 4000);
 }
 
 // Confirm navigation away from quiz
@@ -727,7 +799,7 @@ function confirmNavigationAway() {
     // Stop heartbeat
     stopHeartbeat();
     
-    // Clear session and restart quiz
+    // Clear session
     if (currentUser && navigator.onLine) {
         clearActiveQuizSession();
     }
@@ -790,7 +862,7 @@ async function initQuiz() {
     document.getElementById('nextBtn').onclick = async () => {
         currentQuestion++;
         
-        // Save progress (only if online) - heartbeat runs automatically
+        // Save progress (only if online)
         if (currentUser && navigator.onLine) {
             await saveActiveQuizSession();
         }
@@ -798,7 +870,7 @@ async function initQuiz() {
         displayQuestion();
     };
 
-    // Restart button handler (in results)
+    // Restart button handler
     const restartBtn = document.getElementById('restartBtn');
     if (restartBtn) {
         restartBtn.onclick = () => {
@@ -854,7 +926,6 @@ onAuthStateChanged(auth, async (user) => {
             
             if (activeSession && activeSession.active && !isOnQuizPage) {
                 console.log('Active quiz detected! Redirecting to quiz page...');
-                // Get the base path and construct the quiz URL
                 const basePath = window.location.origin;
                 window.location.href = basePath + '/HTML/Quiz/greetingsquiz.html';
             }
@@ -883,7 +954,7 @@ window.addEventListener('unload', () => {
     stopHeartbeat();
 });
 
-// Add CSS animations for warnings
+// UPDATED: Add CSS animations for warnings and reset notification
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideInRight {
@@ -908,18 +979,70 @@ style.textContent = `
         }
     }
     
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    
     .warning-content {
         display: flex;
-        align-items: center;
-        gap: 10px;
+        align-items: flex-start;
+        gap: 12px;
     }
     
     .warning-icon {
         font-size: 1.5rem;
+        flex-shrink: 0;
     }
     
     .warning-text {
-        font-weight: 600;
+        flex: 1;
+    }
+    
+    .warning-text strong {
+        display: block;
+        font-size: 1.1em;
+        margin-bottom: 5px;
+    }
+    
+    .reset-content {
+        background: white;
+        padding: 40px;
+        border-radius: 16px;
+        text-align: center;
+        max-width: 500px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    
+    .reset-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        animation: spin 2s linear infinite;
+    }
+    
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    
+    .reset-content h2 {
+        color: #ef4444;
+        margin-bottom: 15px;
+        font-size: 2rem;
+    }
+    
+    .reset-content p {
+        color: #666;
+        margin: 10px 0;
+        font-size: 1.1rem;
     }
 `;
 document.head.appendChild(style);

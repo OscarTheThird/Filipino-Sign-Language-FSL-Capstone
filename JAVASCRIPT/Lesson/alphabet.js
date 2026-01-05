@@ -191,7 +191,9 @@ function markLetterAsLearned() {
     
     if (!learnedLetters.has(currentLetter)) {
         learnedLetters.add(currentLetter);
-        console.log(`✓ Marked ${currentLetter} as learned`);
+        console.log(`✓ Marked ${currentLetter} as learned (Total: ${learnedLetters.size}/26)`);
+    } else {
+        console.log(`ℹ️ ${currentLetter} already marked as learned (Total: ${learnedLetters.size}/26)`);
     }
     
     // Save progress (non-blocking)
@@ -237,8 +239,7 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         
         updateNavButtons();
         
-        // 🔥 FIX: Don't mark as learned on initial display - wait for user interaction
-        // The letter is already learned if it's in the cache
+        // Don't mark as learned on initial page load (only when navigating)
         return;
     }
     
@@ -252,9 +253,6 @@ function updateLesson(direction = 'next', skipAnimation = false) {
     
     // Update content after a short delay for smooth transition
     setTimeout(() => {
-        // Mark current letter as learned before moving
-        markLetterAsLearned();
-        
         // Update the content
         letterEl.textContent = alphabetData[current].letter;
         descEl.innerHTML = `<p>${alphabetData[current].desc}</p>`;
@@ -263,6 +261,10 @@ function updateLesson(direction = 'next', skipAnimation = false) {
         videoEl.src = alphabetData[current].video;
         videoEl.load();
         resetAndPlayVideo(videoEl);
+        
+        // 🔥 FIX: Mark NEW letter as learned AFTER arriving at it
+        // This ensures Z gets marked when you navigate TO it
+        markLetterAsLearned();
         
         // Remove old classes and add entrance animation
         leftContent.classList.remove(slideOutClass);
@@ -398,6 +400,9 @@ function navigateNext() {
     
     // Check if we're on the last letter (Z)
     if (current === alphabetData.length - 1) {
+        // 🔥 FIX: Mark Z as learned BEFORE showing quiz modal
+        markLetterAsLearned();
+        
         // Show custom popup modal asking if ready for quiz
         showQuizModal();
         return;
@@ -514,7 +519,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mark as initialized after fade-in completes
         setTimeout(() => {
             isInitialized = true;
-            // Don't auto-mark as learned on page load - only when user navigates
+            // Mark the initially displayed letter as learned after initialization
+            console.log(`📌 Initialization complete. Marking current letter: ${alphabetData[current].letter}`);
+            markLetterAsLearned();
         }, 600);
     }, 100);
     
