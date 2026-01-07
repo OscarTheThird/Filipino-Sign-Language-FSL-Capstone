@@ -1,29 +1,38 @@
-// Import Firebase modules
+// home.js - Full JS for home page with mobile nav shown as a profile-style dropdown (no animation).
+// Desktop behavior unchanged.
+
 import { auth } from "./firebase.js";
 
-// Modal functions and shared UI logic (NO login/register/handleLogin/handleRegister)
+/* ----------------- Modal helpers and login/register UI ----------------- */
+
 function openLoginModal() {
-  document.getElementById("loginModal").style.display = "block";
+  const el = document.getElementById("loginModal");
+  if (el) el.style.display = "block";
 }
 function closeLoginModal() {
-  document.getElementById("loginModal").style.display = "none";
+  const el = document.getElementById("loginModal");
+  if (el) el.style.display = "none";
 }
 function openRegisterModal() {
-  document.getElementById("registerModal").style.display = "block";
+  const el = document.getElementById("registerModal");
+  if (el) el.style.display = "block";
 }
 function closeRegisterModal() {
-  document.getElementById("registerModal").style.display = "none";
+  const el = document.getElementById("registerModal");
+  if (el) el.style.display = "none";
 }
 function switchToRegisterModal(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   closeLoginModal();
   openRegisterModal();
 }
 function switchToLoginModal(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   closeRegisterModal();
   openLoginModal();
 }
+
+/* Close modals when clicking outside */
 window.onclick = function (event) {
   const loginModal = document.getElementById("loginModal");
   const registerModal = document.getElementById("registerModal");
@@ -31,9 +40,11 @@ window.onclick = function (event) {
   if (event.target === registerModal) closeRegisterModal();
 };
 
-// Password show/hide with eye icons
+/* ----------------- Password show/hide (eye icons) ----------------- */
+
 function togglePasswordVisibility(inputId, btn) {
   const input = document.getElementById(inputId);
+  if (!input || !btn) return;
   if (input.type === "password") {
     input.type = "text";
     btn.innerHTML = `
@@ -51,36 +62,79 @@ function togglePasswordVisibility(inputId, btn) {
   }
 }
 
-// Authentication state management for nav buttons
+/* Initialize eye icons in modal forms (set default icon and hide them initially) */
+function initializeEyeIcons() {
+  document.querySelectorAll(".show-hide-btn").forEach((btn) => {
+    btn.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>`;
+    btn.style.display = "none";
+  });
+}
+
+/* Show/hide password toggle buttons based on input content */
+function setupPasswordToggleListeners() {
+  const passwordInputs = document.querySelectorAll('input[type="password"]');
+  passwordInputs.forEach((input) => {
+    const toggleBtn = input.parentElement.querySelector(".show-hide-btn");
+    if (!toggleBtn) return;
+
+    input.addEventListener("input", function () {
+      if (this.value.length > 0) {
+        toggleBtn.style.display = "block";
+      } else {
+        toggleBtn.style.display = "none";
+        this.type = "password";
+        toggleBtn.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>`;
+      }
+    });
+
+    input.addEventListener("blur", function () {
+      if (this.value.length === 0) {
+        toggleBtn.style.display = "none";
+        this.type = "password";
+        toggleBtn.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>`;
+      }
+    });
+  });
+}
+
+/* ----------------- Auth-based nav updates ----------------- */
+
 function updateNavAuthButtons() {
   const loginBtn = document.querySelector(".login-nav-btn");
   const registerBtn = document.querySelector(".register-nav-btn");
-  const profileMenu = document.querySelector(".profile-menu-container");
-  const profileIconImg = document.querySelector(".profile-icon-img");
-  if (auth.currentUser) {
-    loginBtn.style.display = "none";
-    registerBtn.style.display = "none";
-    profileMenu.style.display = "flex";
-    // Set user photo if available, else fallback
-    if (auth.currentUser.photoURL) {
-      profileIconImg.src = auth.currentUser.photoURL;
-    } else {
-      profileIconImg.src = "/PICTURES/Home/profile.png";
-    }
+  const profileMenus = document.querySelectorAll(".profile-menu-container");
+  const profileIconImgs = document.querySelectorAll(".profile-icon-img");
+
+  if (auth && auth.currentUser) {
+    if (loginBtn) loginBtn.style.display = "none";
+    if (registerBtn) registerBtn.style.display = "none";
+    profileMenus.forEach(menu => menu.style.display = "flex");
+    const photoURL = auth.currentUser.photoURL || "../PICTURES/Home/profile.png";
+    profileIconImgs.forEach(img => { if (img) img.src = photoURL; });
   } else {
-    loginBtn.style.display = "inline-block";
-    registerBtn.style.display = "inline-block";
-    profileMenu.style.display = "none";
-    // Reset profile image
-    profileIconImg.src = "/PICTURES/Home/profile.png";
+    if (loginBtn) loginBtn.style.display = "inline-block";
+    if (registerBtn) registerBtn.style.display = "inline-block";
+    profileMenus.forEach(menu => menu.style.display = "none");
+    profileIconImgs.forEach(img => { if (img) img.src = "../PICTURES/Home/profile.png"; });
   }
 }
 
-// Handle logout with confirmation popup
+/* ----------------- Logout flow with confirmation ----------------- */
+
 async function handleLogout() {
-  // Custom popup confirmation
   if (!await showLogoutConfirmation()) {
-    // If user cancels, do nothing
     return;
   }
   try {
@@ -93,14 +147,11 @@ async function handleLogout() {
   }
 }
 
-// Show confirmation modal for logout, returns a Promise<boolean>
 function showLogoutConfirmation() {
   return new Promise((resolve) => {
-    // If already present, remove previous
     let oldModal = document.getElementById('logoutConfirmModal');
     if (oldModal) oldModal.remove();
 
-    // Create modal
     const modal = document.createElement('div');
     modal.id = 'logoutConfirmModal';
     modal.style.position = 'fixed';
@@ -114,7 +165,6 @@ function showLogoutConfirmation() {
     modal.style.justifyContent = 'center';
     modal.style.zIndex = 99999;
 
-    // Modal box
     const box = document.createElement('div');
     box.style.backgroundColor = '#fff';
     box.style.borderRadius = '12px';
@@ -124,7 +174,6 @@ function showLogoutConfirmation() {
     box.style.textAlign = 'center';
     box.style.position = 'relative';
 
-    // Modal content
     box.innerHTML = `
       <h2 style="font-size: 1.25rem; margin: 0 0 12px;">Confirm Logout</h2>
       <p style="color:#444; margin-bottom: 24px;">Are you sure you want to log out of your account?</p>
@@ -137,7 +186,6 @@ function showLogoutConfirmation() {
     modal.appendChild(box);
     document.body.appendChild(modal);
 
-    // Yes = resolve true, No = resolve false
     document.getElementById('logoutYesBtn').onclick = () => {
       document.body.removeChild(modal);
       resolve(true);
@@ -147,7 +195,6 @@ function showLogoutConfirmation() {
       resolve(false);
     };
 
-    // Close on escape key or click outside box
     modal.onclick = (e) => {
       if (e.target === modal) {
         document.body.removeChild(modal);
@@ -166,183 +213,433 @@ function showLogoutConfirmation() {
   });
 }
 
-// Profile menu: toggle dropdown and profile navigation
-function setupProfileDropdown() {
-  const profileMenu = document.querySelector(".profile-menu-container");
-  const profileBtn = document.getElementById("profileIconBtn");
-  // Open/close menu
-  profileBtn.addEventListener("click", function (e) {
-    e.stopPropagation();
-    const isOpen = profileMenu.classList.contains("open");
-    document.querySelectorAll('.profile-menu-container.open').forEach(el => el.classList.remove('open'));
-    if (!isOpen) {
-      profileMenu.classList.add("open");
-      profileBtn.setAttribute("aria-expanded", "true");
+/* ----------------- Mobile description DOM removal/restore ----------------- */
+
+(function mobileDescriptionHandler() {
+  const breakpoint = 700;
+  const descSelector = ".description";
+  let originalContent = null;
+  let emptied = false;
+
+  function checkAndUpdateDescription() {
+    const desc = document.querySelector(descSelector);
+    if (!desc) return;
+
+    if (window.innerWidth <= breakpoint) {
+      if (!emptied) {
+        originalContent = desc.innerHTML;
+        desc.innerHTML = "";
+        desc.setAttribute("data-original-content", "true");
+        emptied = true;
+      }
+      desc.setAttribute("aria-hidden", "true");
+      desc.style.display = "none";
     } else {
-      profileMenu.classList.remove("open");
-      profileBtn.setAttribute("aria-expanded", "false");
+      if (emptied && originalContent !== null) {
+        desc.innerHTML = originalContent;
+        desc.removeAttribute("data-original-content");
+        emptied = false;
+        originalContent = null;
+      }
+      desc.setAttribute("aria-hidden", "false");
+      desc.style.display = "";
     }
+  }
+
+  window.addEventListener("DOMContentLoaded", checkAndUpdateDescription);
+  window.addEventListener("resize", function () {
+    checkAndUpdateDescription();
   });
-  // Close menu on outside click
-  document.addEventListener("click", function (e) {
-    if (!profileMenu.contains(e.target)) {
-      profileMenu.classList.remove("open");
-      profileBtn.setAttribute("aria-expanded", "false");
-    }
-  });
-  // Keyboard accessibility
-  profileBtn.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" || e.key === "Tab") {
-      profileMenu.classList.remove("open");
-      profileBtn.setAttribute("aria-expanded", "false");
-    }
-  });
-  // Menu actions
-  document.getElementById("menuLogout").onclick = (e) => {
-    e.preventDefault();
-    profileMenu.classList.remove("open");
-    handleLogout();
-  };
-  document.getElementById("menuProfile").onclick = (e) => {
-    e.preventDefault();
-    profileMenu.classList.remove("open");
-    // Navigate to profile page
-    window.location.href = "profile.html";
-  };
+})();
+
+/* ----------------- Dropdown positioning helpers (mobile only) ----------------- */
+
+function showMobileAnchoredDropdown(dropdownEl, anchorEl) {
+  if (!dropdownEl || !anchorEl) return;
+  // Ensure element is attached to body to avoid clipping
+  if (dropdownEl.parentElement !== document.body) {
+    document.body.appendChild(dropdownEl);
+  }
+
+  dropdownEl.style.position = "fixed";
+  dropdownEl.style.display = "flex";
+  dropdownEl.style.visibility = "hidden";
+  dropdownEl.style.zIndex = "2000";
+  dropdownEl.style.maxWidth = "calc(100vw - 16px)";
+  dropdownEl.style.boxSizing = "border-box";
+  dropdownEl.style.flexDirection = "column";
+  // Remove animation for nav/dropdown per request
+  dropdownEl.style.animation = "none";
+  dropdownEl.style.transition = "none";
+
+  // Measure anchor and dropdown
+  const rect = anchorEl.getBoundingClientRect();
+  // Temporarily set left/top so getBoundingClientRect can compute dropdown size
+  dropdownEl.style.left = "0px";
+  dropdownEl.style.top = "0px";
+  const ddRect = dropdownEl.getBoundingClientRect();
+  const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+  const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+
+  // Compute horizontal position (keep some margin)
+  let left = rect.left;
+  if (left + ddRect.width > vw - 8) {
+    left = Math.max(8, vw - ddRect.width - 8);
+  }
+  if (left < 8) left = 8;
+
+  // Compute vertical position: prefer below anchor, else above
+  let top = rect.bottom + 6;
+  if (top + ddRect.height > vh - 8) {
+    top = rect.top - ddRect.height - 6;
+    if (top < 8) top = 8;
+  }
+
+  dropdownEl.style.left = `${Math.round(left)}px`;
+  dropdownEl.style.top = `${Math.round(top)}px`;
+  dropdownEl.setAttribute("aria-hidden", "false");
+  dropdownEl.classList.add("open");
+  dropdownEl.style.visibility = "visible";
 }
 
-// Initialize eye icons and hide them initially
-function initializeEyeIcons() {
-  document.querySelectorAll(".show-hide-btn").forEach((btn) => {
-    btn.innerHTML = `
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>`;
-    // Hide the button initially
-    btn.style.display = "none";
-  });
+function hideMobileAnchoredDropdown(dropdownEl) {
+  if (!dropdownEl) return;
+  dropdownEl.style.display = "none";
+  dropdownEl.style.left = "";
+  dropdownEl.style.top = "";
+  dropdownEl.style.position = "";
+  dropdownEl.style.visibility = "";
+  dropdownEl.style.animation = "";
+  dropdownEl.style.transition = "";
+  dropdownEl.setAttribute("aria-hidden", "true");
+  dropdownEl.classList.remove("open");
 }
 
-// Setup password input listeners to show/hide toggle button
-function setupPasswordToggleListeners() {
-  const passwordInputs = document.querySelectorAll('input[type="password"]');
-  passwordInputs.forEach((input) => {
-    const toggleBtn = input.parentElement.querySelector(".show-hide-btn");
-    if (toggleBtn) {
-      // Show button when user starts typing
-      input.addEventListener("input", function () {
-        if (this.value.length > 0) {
-          toggleBtn.style.display = "block";
-        } else {
-          toggleBtn.style.display = "none";
-          this.type = "password";
-          toggleBtn.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>`;
-        }
-      });
+/* ----------------- Mobile nav dropdown creation (profile-style) ----------------- */
 
-      // Hide button and reset when input loses focus and is empty
-      input.addEventListener("blur", function () {
-        if (this.value.length === 0) {
-          toggleBtn.style.display = "none";
-          this.type = "password";
-          toggleBtn.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>`;
-        }
-      });
-    }
-  });
-}
+/*
+  We'll create a mobileNavDropdown (a copy of the nav links) styled like the profile dropdown.
+  On mobile, the hamburger will open this dropdown (Home, Interpreter, Lessons).
+  The dropdown has no animation and uses anchored/fixed positioning to avoid clipping.
+*/
 
-// Make modal and nav functions available globally
-window.openLoginModal = openLoginModal;
-window.closeLoginModal = closeLoginModal;
-window.openRegisterModal = openRegisterModal;
-window.closeRegisterModal = closeRegisterModal;
-window.switchToRegisterModal = switchToRegisterModal;
-window.switchToLoginModal = switchToLoginModal;
-window.togglePasswordVisibility = togglePasswordVisibility;
-window.handleLogout = handleLogout;
+let mobileNavDropdown = null;
 
-// Shared UI initialization
-document.addEventListener("DOMContentLoaded", function () {
-  initializeEyeIcons();
-  setupPasswordToggleListeners();
-  setupProfileDropdown();
+function createMobileNavDropdown() {
+  if (mobileNavDropdown) return mobileNavDropdown;
+  const navLinks = document.getElementById("navLinks");
+  if (!navLinks) return null;
 
-  // Listen for authentication state changes
-  import("https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js")
-    .then(({ onAuthStateChanged }) => {
-      onAuthStateChanged(auth, (user) => {
-        updateNavAuthButtons();
-        if (user) {
-          console.log("User is signed in:", user.email);
-          // 🚀 PRELOAD PROGRESS DATA IN BACKGROUND
-          preloadProgressData(user);
-        } else {
-          console.log("User is signed out");
-        }
-      });
-    });
+  const dd = document.createElement("div");
+  dd.id = "mobileNavDropdown";
+  dd.className = "profile-dropdown"; // reuse profile-dropdown styles
+  dd.style.animation = "none";       // remove fade-in
+  dd.style.transition = "none";      // remove transitions
 
-  // Intercept nav links if not logged in
-  document.querySelectorAll(".nav-link").forEach(function (link) {
-    if (link.getAttribute("data-route") === "home") return;
-    link.addEventListener("click", function (e) {
-      if (!auth.currentUser) {
+  // Build items: clone the nav-link anchors into dropdown items
+  const anchors = navLinks.querySelectorAll(".nav-link");
+  anchors.forEach(a => {
+    const item = document.createElement("a");
+    item.className = "profile-dropdown-item";
+    item.href = a.getAttribute("href") || "#";
+    item.dataset.route = a.dataset.route || "";
+    item.textContent = a.textContent.trim();
+    // On mobile, clicking should close dropdown and navigate (or open login modal if unauthenticated)
+    item.addEventListener("click", function (e) {
+      // allow normal navigation for anchors, but intercept if route requires auth
+      const route = this.dataset.route;
+      if (route && route !== "home" && !auth.currentUser) {
         e.preventDefault();
+        hideMobileAnchoredDropdown(dd);
         openLoginModal();
-        window.intendedRoute = link.getAttribute("href");
+        window.intendedRoute = this.getAttribute("href");
+        return;
+      }
+      // close dropdown and proceed
+      hideMobileAnchoredDropdown(dd);
+      // If href is '#', prevent default
+      if (this.getAttribute("href") === "#") e.preventDefault();
+    });
+    dd.appendChild(item);
+  });
+
+  // Add small aria role
+  dd.setAttribute("role", "menu");
+  dd.setAttribute("aria-hidden", "true");
+
+  mobileNavDropdown = dd;
+  return mobileNavDropdown;
+}
+
+/* ----------------- Profile dropdowns and hamburger behavior ----------------- */
+
+function setupProfileDropdown() {
+  const mobileProfileBtn = document.getElementById("profileIconBtn");
+  const desktopProfileBtn = document.getElementById("profileIconBtnDesktop");
+  const profileDropdown = document.getElementById("profileDropdown");
+
+  // Mobile profile button behavior (anchored, fixed positioning)
+  if (mobileProfileBtn && profileDropdown) {
+    mobileProfileBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      const isMobile = window.innerWidth <= 700;
+      if (!isMobile) {
+        // Not mobile: keep desktop behavior (shouldn't trigger mobile-profile)
+        const mobileProfileMenu = document.querySelector(".mobile-profile");
+        if (mobileProfileMenu) {
+          const isOpen = mobileProfileMenu.classList.contains("open");
+          document.querySelectorAll('.profile-menu-container.open').forEach(el => el.classList.remove('open'));
+          if (!isOpen) {
+            mobileProfileMenu.classList.add("open");
+            mobileProfileBtn.setAttribute("aria-expanded", "true");
+          } else {
+            mobileProfileMenu.classList.remove("open");
+            mobileProfileBtn.setAttribute("aria-expanded", "false");
+          }
+        }
+        return;
+      }
+
+      const currentlyOpen = profileDropdown.classList.contains("open");
+      // close mobile nav dropdown to avoid overlap
+      if (mobileNavDropdown) hideMobileAnchoredDropdown(mobileNavDropdown);
+
+      if (!currentlyOpen) {
+        showMobileAnchoredDropdown(profileDropdown, mobileProfileBtn);
+        mobileProfileBtn.setAttribute("aria-expanded", "true");
+      } else {
+        hideMobileAnchoredDropdown(profileDropdown);
+        mobileProfileBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+
+  // Desktop profile behavior unchanged
+  if (desktopProfileBtn) {
+    const desktopProfileMenu = document.querySelector(".desktop-profile");
+    desktopProfileBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      const isOpen = desktopProfileMenu.classList.contains("open");
+      document.querySelectorAll('.profile-menu-container.open').forEach(el => el.classList.remove('open'));
+      if (!isOpen) {
+        desktopProfileMenu.classList.add("open");
+        desktopProfileBtn.setAttribute("aria-expanded", "true");
+      } else {
+        desktopProfileMenu.classList.remove("open");
+        desktopProfileBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+
+  // Wire mobile profile actions (Profile / Logout)
+  const mobileLogout = document.getElementById("menuLogout");
+  const mobileProfile = document.getElementById("menuProfile");
+  if (mobileLogout) {
+    mobileLogout.onclick = (e) => {
+      e.preventDefault();
+      hideMobileAnchoredDropdown(profileDropdown);
+      handleLogout();
+    };
+  }
+  if (mobileProfile) {
+    mobileProfile.onclick = (e) => {
+      e.preventDefault();
+      hideMobileAnchoredDropdown(profileDropdown);
+      window.location.href = "profile.html";
+    };
+  }
+
+  // Desktop actions unchanged
+  const desktopLogout = document.getElementById("menuLogoutDesktop");
+  const desktopProfile = document.getElementById("menuProfileDesktop");
+  if (desktopLogout) {
+    desktopLogout.onclick = (e) => {
+      e.preventDefault();
+      const desktopProfileMenu = document.querySelector(".desktop-profile");
+      if (desktopProfileMenu) desktopProfileMenu.classList.remove("open");
+      handleLogout();
+    };
+  }
+  if (desktopProfile) {
+    desktopProfile.onclick = (e) => {
+      e.preventDefault();
+      const desktopProfileMenu = document.querySelector(".desktop-profile");
+      if (desktopProfileMenu) desktopProfileMenu.classList.remove("open");
+      window.location.href = "profile.html";
+    };
+  }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener("click", function (e) {
+    if (profileDropdown && profileDropdown.classList.contains("open")) {
+      const anchor = document.getElementById("profileIconBtn");
+      if (anchor && !anchor.contains(e.target) && !profileDropdown.contains(e.target)) {
+        hideMobileAnchoredDropdown(profileDropdown);
+        if (anchor) anchor.setAttribute("aria-expanded", "false");
+      }
+    }
+    if (mobileNavDropdown && mobileNavDropdown.classList.contains("open")) {
+      const anchor = document.getElementById("hamburgerMenu");
+      if (anchor && !anchor.contains(e.target) && !mobileNavDropdown.contains(e.target)) {
+        hideMobileAnchoredDropdown(mobileNavDropdown);
+        if (anchor) anchor.classList.remove("active");
+      }
+    }
+
+    // close desktop profile containers when clicking outside
+    document.querySelectorAll(".profile-menu-container").forEach(profileMenu => {
+      if (!profileMenu.contains(e.target)) {
+        profileMenu.classList.remove("open");
+        const btn = profileMenu.querySelector(".profile-icon-btn");
+        if (btn) btn.setAttribute("aria-expanded", "false");
       }
     });
   });
-});
 
-// 🚀 PROGRESS PRELOADER - Runs in background on home page
+  // Keyboard accessibility for profile buttons
+  const allProfileBtns = document.querySelectorAll(".profile-icon-btn");
+  allProfileBtns.forEach(profileBtn => {
+    profileBtn.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" || e.key === "Tab") {
+        const profileMenu = profileBtn.closest(".profile-menu-container");
+        if (profileMenu) {
+          profileMenu.classList.remove("open");
+          profileBtn.setAttribute("aria-expanded", "false");
+        }
+        const pd = document.getElementById("profileDropdown");
+        if (pd) hideMobileAnchoredDropdown(pd);
+      }
+    });
+  });
+
+  // On resize/orientation change hide anchored dropdowns or re-position if open
+  window.addEventListener("resize", function () {
+    // If moving to desktop view, ensure mobile dropdowns are hidden and return to CSS-driven layout
+    if (window.innerWidth > 700) {
+      if (profileDropdown && profileDropdown.parentElement === document.body) {
+        profileDropdown.style.position = "";
+        profileDropdown.style.left = "";
+        profileDropdown.style.top = "";
+        profileDropdown.style.maxWidth = "";
+        profileDropdown.style.display = "";
+        profileDropdown.style.visibility = "";
+        profileDropdown.style.animation = "";
+        profileDropdown.style.transition = "";
+      }
+      if (mobileNavDropdown && mobileNavDropdown.parentElement === document.body) {
+        mobileNavDropdown.style.position = "";
+        mobileNavDropdown.style.left = "";
+        mobileNavDropdown.style.top = "";
+        mobileNavDropdown.style.maxWidth = "";
+        mobileNavDropdown.style.display = "";
+        mobileNavDropdown.style.visibility = "";
+        mobileNavDropdown.style.animation = "";
+        mobileNavDropdown.style.transition = "";
+      }
+    } else {
+      // If a mobile dropdown is open, reposition it
+      if (profileDropdown && profileDropdown.classList.contains("open")) {
+        const anchor = document.getElementById("profileIconBtn");
+        if (anchor) showMobileAnchoredDropdown(profileDropdown, anchor);
+      }
+      if (mobileNavDropdown && mobileNavDropdown.classList.contains("open")) {
+        const anchor = document.getElementById("hamburgerMenu");
+        if (anchor) showMobileAnchoredDropdown(mobileNavDropdown, anchor);
+      }
+    }
+  });
+}
+
+/* ----------------- Hamburger behavior: show mobile nav dropdown (no animation) ----------------- */
+
+function setupHamburgerMenu() {
+  const hamburgerMenu = document.getElementById("hamburgerMenu");
+  const navLinks = document.getElementById("navLinks");
+
+  if (!hamburgerMenu || !navLinks) return;
+
+  // Prepare mobileNavDropdown (copy of navLinks) so we don't move the original element
+  const mobileDD = createMobileNavDropdown();
+
+  hamburgerMenu.addEventListener("click", function (e) {
+    e.stopPropagation();
+    const isMobile = window.innerWidth <= 700;
+
+    // If mobile, show the mobileNavDropdown anchored to hamburger (profile-style, no animation)
+    if (isMobile && mobileDD) {
+      const currentlyOpen = mobileDD.classList.contains("open");
+
+      // close profile dropdown to avoid overlap
+      const profileDropdown = document.getElementById("profileDropdown");
+      if (profileDropdown) hideMobileAnchoredDropdown(profileDropdown);
+
+      if (!currentlyOpen) {
+        showMobileAnchoredDropdown(mobileDD, hamburgerMenu);
+        hamburgerMenu.classList.add("active");
+      } else {
+        hideMobileAnchoredDropdown(mobileDD);
+        hamburgerMenu.classList.remove("active");
+      }
+      return;
+    }
+
+    // Desktop behavior: toggle nav links (unchanged)
+    const isOpen = navLinks.classList.contains("active");
+    if (!isOpen) {
+      navLinks.classList.add("active");
+      hamburgerMenu.classList.add("active");
+    } else {
+      navLinks.classList.remove("active");
+      hamburgerMenu.classList.remove("active");
+    }
+  });
+
+  // Ensure clicking outside closes mobile nav dropdown (handled in setupProfileDropdown listener too)
+  document.addEventListener("click", function (e) {
+    const mobileDDEl = mobileNavDropdown;
+    if (!mobileDDEl) return;
+    const clickedInsideMobileDD = mobileDDEl.contains(e.target);
+    const clickedHamburger = hamburgerMenu.contains(e.target);
+    if (!clickedInsideMobileDD && !clickedHamburger) {
+      hideMobileAnchoredDropdown(mobileDDEl);
+      hamburgerMenu.classList.remove("active");
+    }
+  });
+}
+
+/* ----------------- Progress preloader (background) ----------------- */
+
 async function preloadProgressData(user) {
   try {
     console.log('🚀 [HOME] Preloading progress data in background...');
-    
     const { db } = await import('./firebase.js');
     const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
-    
     const progressRef = collection(db, 'users', user.uid, 'progress');
     const querySnapshot = await getDocs(progressRef);
-    
-    // Store raw Firestore data
     const cachedData = {};
     querySnapshot.forEach((doc) => {
       cachedData[doc.id] = doc.data();
     });
-    
-    // Cache it for instant access on lessons page
     sessionStorage.setItem('progress_preloaded', JSON.stringify({
       data: cachedData,
       timestamp: Date.now(),
       userId: user.uid
     }));
-    
     console.log('✅ [HOME] Progress preloaded and cached!');
   } catch (error) {
     console.error('[HOME] Preload error:', error);
   }
 }
 
-// Carousel code
+/* ----------------- Carousel (AutoCarousel) ----------------- */
+
 class AutoCarousel {
   constructor() {
     this.currentSlide = 0;
     this.totalSlides = 8;
     this.isPlaying = true;
     this.intervalId = null;
-    this.slideDuration = 3000; // 3 seconds per slide
+    this.slideDuration = 3000;
 
     this.slides = document.getElementById("carouselSlides");
     this.dots = document.querySelectorAll(".dot");
@@ -363,20 +660,20 @@ class AutoCarousel {
   }
 
   init() {
+    if (!this.slides) return;
     this.startAutoPlay();
     this.setupEventListeners();
     this.updateSlideInfo();
+    this.updateDots();
   }
 
   setupEventListeners() {
-    // Dot navigation
     this.dots.forEach((dot, index) => {
       dot.addEventListener("click", () => {
         this.goToSlide(index);
       });
     });
 
-    // Pause on hover
     this.slides.addEventListener("mouseenter", () => {
       if (this.isPlaying) {
         this.pauseAutoPlay();
@@ -392,12 +689,10 @@ class AutoCarousel {
 
   goToSlide(slideIndex) {
     this.currentSlide = slideIndex;
-    const translateX = -(slideIndex * 12.5); // 12.5% per slide
+    const translateX = -(slideIndex * 12.5);
     this.slides.style.transform = `translateX(${translateX}%)`;
     this.updateDots();
     this.updateSlideInfo();
-
-    // Restart autoplay if playing
     if (this.isPlaying) {
       this.restartAutoPlay();
     }
@@ -415,7 +710,9 @@ class AutoCarousel {
   }
 
   updateSlideInfo() {
-    this.currentSlideInfo.textContent = this.slideTexts[this.currentSlide];
+    if (this.currentSlideInfo) {
+      this.currentSlideInfo.textContent = this.slideTexts[this.currentSlide] || "";
+    }
   }
 
   startAutoPlay() {
@@ -440,10 +737,62 @@ class AutoCarousel {
   }
 }
 
-// Initialize carousel when page loads
-document.addEventListener("DOMContentLoaded", () => {
-  new AutoCarousel();
+/* ----------------- Initialization: wire everything on DOMContentLoaded ----------------- */
+
+document.addEventListener("DOMContentLoaded", function () {
+  initializeEyeIcons();
+  setupPasswordToggleListeners();
+  setupProfileDropdown();
+  setupHamburgerMenu();
+
+  // Auth state listener
+  import("https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js")
+    .then(({ onAuthStateChanged }) => {
+      onAuthStateChanged(auth, (user) => {
+        try {
+          updateNavAuthButtons();
+        } catch (e) { console.warn("updateNavAuthButtons failed", e); }
+        if (user) {
+          console.log("User is signed in:", user.email);
+          preloadProgressData(user);
+        } else {
+          console.log("User is signed out");
+        }
+      });
+    })
+    .catch(err => console.error("Failed loading firebase auth:", err));
+
+  // Intercept nav links if not logged in
+  document.querySelectorAll(".nav-link").forEach(function (link) {
+    if (link.getAttribute("data-route") === "home") return;
+    link.addEventListener("click", function (e) {
+      if (!auth.currentUser) {
+        e.preventDefault();
+        openLoginModal();
+        window.intendedRoute = link.getAttribute("href");
+      }
+    });
+  });
+
+  // Initialize carousel
+  try {
+    new AutoCarousel();
+  } catch (err) {
+    console.warn("Carousel init failed:", err);
+  }
 });
 
-// Export preloader function for use in other pages
+/* ----------------- Make some functions globally available ----------------- */
+
+window.openLoginModal = openLoginModal;
+window.closeLoginModal = closeLoginModal;
+window.openRegisterModal = openRegisterModal;
+window.closeRegisterModal = closeRegisterModal;
+window.switchToRegisterModal = switchToRegisterModal;
+window.switchToLoginModal = switchToLoginModal;
+window.togglePasswordVisibility = togglePasswordVisibility;
+window.handleLogout = handleLogout;
+
+/* ----------------- Exports ----------------- */
+
 export { preloadProgressData };

@@ -1,3 +1,5 @@
+/* (This is the updated CSS with mobile-only adjustments, larger logo/gesture text, and swapped hamburger/profile order on mobile) */
+
 * {
   margin: 0;
   padding: 0;
@@ -23,6 +25,14 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 0 60px;
+  position: relative;
+}
+
+/* Profile menu positioning - desktop: inside logo-nav, mobile: separate on left */
+.profile-menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .nav-links {
@@ -58,13 +68,60 @@ body {
   flex-wrap: wrap;
 }
 
+/* Desktop: Show desktop profile menu, hide mobile profile menu */
+.desktop-profile {
+  display: flex !important;
+}
+
+.mobile-profile {
+  display: none !important;
+}
+
+/* Hamburger Menu Button */
+.hamburger-menu {
+  display: none;
+  flex-direction: column;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  gap: 5px;
+  z-index: 1001;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.hamburger-line {
+  width: 25px;
+  height: 3px;
+  background-color: #1e40af;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.hamburger-menu:hover .hamburger-line {
+  background-color: #3b82f6;
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(1) {
+  transform: rotate(45deg) translate(8px, 8px);
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(3) {
+  transform: rotate(-45deg) translate(7px, -7px);
+}
+
 .nav-logo {
   width: 45px;
   height: 45px;
 }
 
 .nav-brand {
-  font-size: 1.8rem;
+  font-size: 2.2rem; /* increased brand size */
   font-weight: 800;
   color: #1e40af;
 }
@@ -125,7 +182,7 @@ body {
 
 /* Main logo - significantly larger size */
 .main-logo-image {
-  width: 250px; /* Increased from 150px to 200px */
+  width: 300px; /* increased from 250 */
   height: auto;
   margin: 0 auto;
 }
@@ -239,7 +296,34 @@ body {
   margin-bottom: 8px;
 }
 
+.current-slide-info {
+  color: #3b82f6;
+  font-weight: 600;
+  font-size: 1.15rem; /* gesture text bigger */
+}
+
 /* Responsive Layout */
+/* Desktop view - hamburger menu hidden, nav links visible */
+@media (min-width: 701px) {
+  .hamburger-menu {
+    display: none;
+  }
+  
+  .nav-links {
+    display: flex !important;
+  }
+  
+  /* Desktop: Show desktop profile menu, hide mobile profile menu */
+  .desktop-profile {
+    display: flex !important;
+  }
+  
+  .mobile-profile {
+    display: none !important;
+  }
+}
+
+/* Tablet adjustments */
 @media (max-width: 1100px) {
   .main-title {
     font-size: 2.7rem;
@@ -258,10 +342,11 @@ body {
     min-height: 220px;
   }
   .main-logo-image {
-    width: 160px; /* Adjusted for tablet size */
+    width: 220px; /* Adjusted for tablet size */
   }
 }
 
+/* Narrower screens */
 @media (max-width: 900px) {
   .main-content {
     flex-direction: column;
@@ -280,10 +365,77 @@ body {
   }
 }
 
+/* MOBILE: <=700px - swap hamburger and profile, minimal styles, hide description */
 @media (max-width: 700px) {
   .navbar {
     padding: 0 12px;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
   }
+  
+  /* Swap order: hamburger left (order:1), logo center (order:2), profile right (order:3) */
+  .hamburger-menu {
+    display: flex;
+    order: 1;
+    margin-right: auto;
+  }
+  .logo-nav {
+    flex-wrap: nowrap;
+    gap: 8px;
+    order: 2;
+    flex: 1;
+    justify-content: center;
+  }
+  .mobile-profile {
+    display: flex !important;
+    order: 3;
+    margin-left: auto;
+  }
+  
+  .desktop-profile {
+    display: none !important;
+  }
+  
+  /* Mobile: Hide login/register buttons, show only logo and brand */
+  .login-nav-btn,
+  .register-nav-btn {
+    display: none;
+  }
+  
+  /* Hide nav links by default on mobile (desktop nav behavior unchanged) */
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #c5d5e8;
+    flex-direction: column;
+    gap: 0;
+    padding: 15px 0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 900;
+    border-top: 1px solid #b0c4de;
+  }
+  
+  /* Show nav links when hamburger menu is active on desktop behavior path */
+  .nav-links.active {
+    display: flex;
+  }
+  
+  .nav-link {
+    width: 100%;
+    padding: 15px 20px;
+    text-align: left;
+    border-radius: 0;
+    font-size: 1rem;
+  }
+  
+  .nav-link:hover {
+    background: rgba(59, 130, 246, 0.15);
+  }
+  
   .main-title {
     font-size: 1.5rem;
   }
@@ -291,7 +443,7 @@ body {
     margin-bottom: 18px;
   }
   .main-logo-image {
-    width: 150px; /* Adjusted for mobile size */
+    width: 180px; /* mobile main logo bigger than original mobile */
   }
   .logo-image {
     width: 60px;
@@ -311,22 +463,129 @@ body {
   }
   .description {
     padding: 17px;
+    font-size: 1rem;
+    display: none; /* hide description from visual layout on mobile */
+  }
+  
+  .main-tagline {
+    font-size: 1rem;
+    letter-spacing: 2px;
+  }
+
+  /* Minimal profile icon & hamburger style for mobile */
+  .profile-icon-btn {
+    width: 36px;
+    height: 36px;
+    margin-left: 0;
+    background: none;
+    border-radius: 50%;
+    padding: 4px;
+  }
+  .profile-icon-img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    object-fit: cover;
+  }
+
+  .hamburger-line {
+    width: 18px;
+    height: 2px;
+    background-color: #1e40af;
+  }
+
+  /* Mobile profile dropdown positioning */
+  .mobile-profile .profile-dropdown {
+    left: auto;
+    right: 12px;
+    top: 56px;
+    min-width: 140px;
+  }
+
+  /* Hamburger dropdown (for burger-triggered profile menu) */
+  .hamburger-dropdown {
+    display: none;
+    position: absolute;
+    top: 56px;
+    left: 12px; /* anchored to left (hamburger) */
+    min-width: 140px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(30,41,71,.12);
+    z-index: 1002;
+    flex-direction: column;
+    padding: 8px 0;
+    border: 1px solid #dbeafe;
+    animation: fadeIn 0.18s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .hamburger-dropdown.open,
+  .mobile-profile.open .profile-dropdown {
+    display: flex;
+  }
+
+  /* Ensure profile dropdown and burger dropdown are mobile-only visible */
+  .desktop-profile .profile-dropdown,
+  #profileDropdownDesktop {
+    display: none !important;
   }
 }
 
 @media (max-width: 500px) {
   .navbar {
-    flex-direction: column;
-    gap: 10px;
     padding: 7px 3vw;
+    flex-wrap: nowrap;
+    justify-content: space-between;
   }
+
+  /* Keep swap consistent for very small screens */
+  .hamburger-menu {
+    display: flex;
+    order: 1;
+    margin-right: auto;
+  }
+  .logo-nav {
+    flex-wrap: nowrap;
+    gap: 6px;
+    order: 2;
+    flex: 1;
+    justify-content: center;
+  }
+  .mobile-profile {
+    display: flex !important;
+    order: 3;
+    margin-left: auto;
+  }
+
   .nav-links {
-    gap: 7px;
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #c5d5e8;
+    flex-direction: column;
+    gap: 0;
+    padding: 10px 0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    border-top: 1px solid #b0c4de;
   }
+  
+  .nav-links.active {
+    display: flex;
+  }
+  
   .nav-link {
     font-size: 0.9rem;
-    padding: 8px 7px;
+    padding: 12px 20px;
+    width: 100%;
+    text-align: left;
+    border-radius: 0;
   }
+  
   .nav-logo {
     width: 32px;
     height: 32px;
@@ -334,6 +593,22 @@ body {
   .nav-brand {
     font-size: 1.1rem;
   }
+  
+  /* Profile dropdown adjustments for small mobile */
+  .mobile-profile .profile-dropdown {
+    min-width: 120px;
+  }
+  
+  .profile-icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .profile-icon-img {
+    width: 30px;
+    height: 30px;
+  }
+  
   .left-section,
   .right-section {
     padding: 7px 2vw;
@@ -350,6 +625,26 @@ body {
   }
   .main-logo-image {
     width: 112px; /* Adjusted for small mobile size */
+  }
+  
+  .description {
+    padding: 15px;
+    font-size: 0.9rem;
+    display: none;
+  }
+  
+  .main-tagline {
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    margin-bottom: 25px;
+  }
+  
+  .status-text {
+    font-size: 0.9rem;
+  }
+
+  .current-slide-info {
+    font-size: 1rem;
   }
 }
 
@@ -702,7 +997,6 @@ body {
 .profile-dropdown {
   display: none;
   position: absolute;
-  right: 0;
   top: 55px;
   min-width: 140px;
   background: #fff;
@@ -713,6 +1007,18 @@ body {
   padding: 8px 0;
   border: 1px solid #dbeafe;
   animation: fadeIn 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* Desktop: Profile dropdown on the right */
+.desktop-profile .profile-dropdown {
+  right: 0;
+  left: auto;
+}
+
+/* Mobile: Profile dropdown on the right (overridden in mobile media queries for exact placement) */
+.mobile-profile .profile-dropdown {
+  left: 0;
+  right: auto;
 }
 
 .profile-menu-container.open .profile-dropdown {
@@ -749,98 +1055,4 @@ body {
 .carousel-control:hover {
   background: rgba(0, 0, 0, 0.7);
   transform: scale(1.1);
-}
-
-.current-slide-info {
-  color: #3b82f6;
-  font-weight: 600;
-}
-
-/* --- Profile Modal Styles --- */
-#profileModal {
-  display: none;
-  position: fixed;
-  z-index: 1200;
-  left: 0; top: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.27);
-  overflow:auto;
-}
-.profile-modal-content {
-  background: #fff;
-  margin: 60px auto 0 auto;
-  border-radius: 10px;
-  box-shadow: 0 5px 32px rgba(0,0,0,0.19);
-  width: 350px;
-  padding: 32px;
-  position: relative;
-  animation: fadeIn 0.18s;
-}
-.profile-modal-main {
-  display: flex; flex-direction: column; align-items: center;
-}
-.profile-modal-img {
-  width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 18px;
-  border: 3px solid #38b000;
-}
-.profile-modal-name {
-  font-size: 1.3em; margin: 0; font-weight: 600; color: #111;
-}
-.profile-modal-email {
-  color: #666; font-size: 1em; margin-bottom: 16px; margin-top: 4px;
-}
-.profile-modal-actions { margin: 12px 0 0 0; }
-.profile-modal-btn {
-  background: #38b000; color: #fff; border: none; border-radius: 6px;
-  padding: 7px 20px; margin: 0 4px; font-size: 1em; cursor: pointer;
-  transition: background 0.2s;
-}
-.profile-modal-btn:hover { background: #2d8700; }
-.profile-edit-input { width: 92%; padding: 6px; margin: 4px 0 8px 0; border-radius: 4px; border: 1px solid #bbb; }
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-@media (max-width: 968px) {
-  .modal-content {
-    max-width: 97vw;
-    min-height: 430px;
-    top: 2vh;
-  }
-  .login-container {
-    flex-direction: column;
-    min-height: 430px;
-    max-width: 97vw;
-  }
-  .left-panel {
-    min-height: 120px;
-    padding: 24px 10px;
-  }
-  .right-panel {
-    padding: 24px 12px;
-  }
-}
-@media (max-width: 640px) {
-  .modal-content {
-    padding: 0;
-  }
-  .login-container {
-    border-radius: 9px;
-  }
-  .left-panel {
-    display: none;
-  }
-  .right-panel {
-    padding: 18px 8px;
-  }
-}
-@media (max-width: 480px) {
-  .login-container {
-    border-radius: 10px;
-  }
-  .right-panel {
-    padding: 15px 5px;
-  }
-  .profile-modal-content {
-    width: 96vw !important;
-    padding: 17px !important;
-  }
 }
