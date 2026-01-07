@@ -626,8 +626,360 @@ async function preloadProgressData(user) {
       userId: user.uid
     }));
     console.log('✅ [HOME] Progress preloaded and cached!');
+    // Update progress display after loading
+    displayProgressData(cachedData);
   } catch (error) {
     console.error('[HOME] Preload error:', error);
+  }
+}
+
+/* ----------------- Display Progress Data ----------------- */
+
+const lessonDisplayNames = {
+  alphabet: 'Alphabet',
+  numbers: 'Numbers',
+  greetings: 'Greetings',
+  whquestions: 'WH Questions',
+  family: 'Family Members',
+  phrases: 'Common Phrases',
+  emergency: 'Emergency',
+  educational: 'Educational Context',
+  timemarkers: 'Time Markers'
+};
+
+const lessonLinks = {
+  alphabet: 'Lesson/alphabet.html',
+  numbers: 'Lesson/numbers.html',
+  greetings: 'Lesson/greetings.html',
+  whquestions: 'Lesson/whquestions.html',
+  family: 'Lesson/familymembers.html',
+  phrases: 'Lesson/phrases.html',
+  emergency: 'Lesson/emergency.html',
+  educational: 'Lesson/educationalcontext.html',
+  timemarkers: 'Lesson/timemarkers.html'
+};
+
+// Gradient classes for different lessons
+const lessonGradients = {
+  alphabet: 'gradient-1',
+  numbers: 'gradient-2',
+  greetings: 'gradient-3',
+  whquestions: 'gradient-4',
+  family: 'gradient-5',
+  phrases: 'gradient-6',
+  emergency: 'gradient-7',
+  educational: 'gradient-8',
+  timemarkers: 'gradient-9'
+};
+
+// Get gradient class with fallback
+function getGradientClass(lessonId, index) {
+  return lessonGradients[lessonId] || `gradient-${(index % 9) + 1}`;
+}
+
+// Sample lessons data for display when no progress exists
+// Always show at least 3 samples
+const sampleLessons = [
+  { id: 'alphabet', total: 26, completed: 0, percentage: 0 },
+  { id: 'greetings', total: 8, completed: 0, percentage: 0 },
+  { id: 'numbers', total: 10, completed: 0, percentage: 0 },
+  { id: 'whquestions', total: 6, completed: 0, percentage: 0 },
+  { id: 'family', total: 4, completed: 0, percentage: 0 },
+  { id: 'phrases', total: 4, completed: 0, percentage: 0 },
+  { id: 'emergency', total: 6, completed: 0, percentage: 0 }
+];
+
+function displayProgressData(progressData) {
+  if (!progressData || Object.keys(progressData).length === 0) {
+    displayEmptyProgress();
+    return;
+  }
+
+  // Find completed lessons (100% progress) for Done Lessons
+  const doneLessons = Object.entries(progressData)
+    .map(([lessonId, data]) => ({
+      id: lessonId,
+      ...data
+    }))
+    .filter(lesson => {
+      const percentage = lesson.percentage || 0;
+      return percentage === 100;
+    })
+    .sort((a, b) => {
+      // Sort by last updated (most recent first)
+      const aTime = a.lastUpdated?.toMillis?.() || 0;
+      const bTime = b.lastUpdated?.toMillis?.() || 0;
+      return bTime - aTime;
+    });
+
+  // Display Done Lessons first (before filtering for continue/suggest)
+  displayDoneLessons(doneLessons);
+
+  // Find all lessons with progress (but not 100% complete) for Continue Lessons
+  // Sort by progress percentage (highest first), then by last updated
+  const continueLessons = Object.entries(progressData)
+    .map(([lessonId, data]) => ({
+      id: lessonId,
+      ...data
+    }))
+    .filter(lesson => {
+      const percentage = lesson.percentage || 0;
+      return percentage > 0 && percentage < 100;
+    })
+    .sort((a, b) => {
+      // Sort by percentage (highest first)
+      const diff = (b.percentage || 0) - (a.percentage || 0);
+      if (diff !== 0) return diff;
+      // If same percentage, sort by last updated (most recent first)
+      const aTime = a.lastUpdated?.toMillis?.() || 0;
+      const bTime = b.lastUpdated?.toMillis?.() || 0;
+      return bTime - aTime;
+    });
+
+  // Display Continue Lessons (show the one with most progress, or first one)
+  const continueLesson = continueLessons.length > 0 ? continueLessons[0] : null;
+  displayContinueLesson(continueLesson);
+
+  // Find suggested lessons (incomplete lessons, prioritizing not started or low progress)
+  // Exclude the continue lesson and done lessons from suggestions
+  const doneLessonIds = new Set(doneLessons.map(l => l.id));
+  let suggestedLessons = Object.entries(progressData)
+    .map(([lessonId, data]) => ({
+      id: lessonId,
+      name: lessonDisplayNames[lessonId] || lessonId,
+      ...data
+    }))
+    .filter(lesson => {
+      const percentage = lesson.percentage || 0;
+      // Show lessons that are not 100% complete, not the continue lesson, and not done
+      return percentage < 100 && lesson.id !== continueLesson?.id && !doneLessonIds.has(lesson.id);
+    })
+    .sort((a, b) => {
+      // Prioritize lessons with 0% progress (not started)
+      const aPercent = a.percentage || 0;
+      const bPercent = b.percentage || 0;
+      if (aPercent === 0 && bPercent > 0) return -1;
+      if (aPercent > 0 && bPercent === 0) return 1;
+      // Then sort by percentage (lowest first for suggestions)
+      return aPercent - bPercent;
+    })
+    .slice(0, 5); // Show up to 5 suggestions
+
+  // Ensure exactly 3 suggestions are shown
+  // (excluding lessons already shown, the continue lesson, and done lessons)
+  if (suggestedLessons.length < 3) {
+    const existingIds = new Set([
+      ...suggestedLessons.map(l => l.id),
+      ...(continueLesson ? [continueLesson.id] : []),
+      ...doneLessons.map(l => l.id)
+    ]);
+    
+    const additionalSamples = sampleLessons
+      .filter(lesson => !existingIds.has(lesson.id))
+      .slice(0, 3 - suggestedLessons.length);
+    
+    suggestedLessons = [...suggestedLessons, ...additionalSamples];
+  } else {
+    // Show exactly 3 suggestions
+    suggestedLessons = suggestedLessons.slice(0, 3);
+  }
+
+  // Display Suggested Lessons
+  displaySuggestedLessons(suggestedLessons);
+}
+
+function createLessonCard(lesson, index = 0) {
+  const lessonName = lessonDisplayNames[lesson.id] || lesson.id;
+  const percentage = lesson.percentage || 0;
+  const completed = lesson.completed || 0;
+  const total = lesson.total || 0;
+  const gradientClass = getGradientClass(lesson.id, index);
+  const lessonLink = lessonLinks[lesson.id] || '#';
+
+  return `
+    <div class="lesson-card" data-lesson-id="${lesson.id}">
+      <div class="lesson-card-header ${gradientClass}">
+        <button class="lesson-play-btn" onclick="event.stopPropagation(); window.location.href='${lessonLink}'">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="lesson-card-body">
+        <h4 class="lesson-card-title">${lessonName}</h4>
+        <div class="lesson-card-stats">
+          <span class="lesson-stat-item">
+            <strong>${total}</strong> Items
+          </span>
+        </div>
+        <div class="lesson-progress-info">
+          <span class="lesson-progress-percentage">${percentage}%</span>
+          <span class="lesson-progress-text">${completed} / ${total} completed</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function displayContinueLesson(lesson) {
+  const continueContent = document.getElementById('continueLessonsContent');
+  if (!continueContent) return;
+
+  if (!lesson) {
+    continueContent.innerHTML = '<div class="empty-state"><p>No lesson in progress. Start learning to see your progress here!</p></div>';
+    return;
+  }
+
+  const cardHTML = createLessonCard(lesson, 0);
+  continueContent.innerHTML = cardHTML;
+
+  // Make card clickable
+  const lessonCard = continueContent.querySelector('.lesson-card');
+  if (lessonCard && lessonLinks[lesson.id]) {
+    lessonCard.addEventListener('click', () => {
+      window.location.href = lessonLinks[lesson.id];
+    });
+  }
+}
+
+function createMoreCard() {
+  return `
+    <div class="more-card" onclick="window.location.href='lessons.html'">
+      <div class="more-card-header">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="16"/>
+          <line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+      </div>
+      <div class="more-card-body">
+        <h4 class="more-card-title">More</h4>
+      </div>
+    </div>
+  `;
+}
+
+function displaySuggestedLessons(lessons) {
+  const suggestContent = document.getElementById('suggestLessonsContent');
+  if (!suggestContent) return;
+
+  // If no lessons provided, show exactly 3 sample lessons
+  if (!lessons || lessons.length === 0) {
+    // Show first 3 sample lessons only
+    const samplesToShow = sampleLessons.slice(0, 3);
+    const sampleCardsHTML = samplesToShow.map((lesson, index) => createLessonCard(lesson, index + 1)).join('');
+    const moreCardHTML = createMoreCard();
+    suggestContent.innerHTML = sampleCardsHTML + moreCardHTML;
+
+    // Make sample cards clickable
+    suggestContent.querySelectorAll('.lesson-card').forEach(card => {
+      const lessonId = card.getAttribute('data-lesson-id');
+      if (lessonId && lessonLinks[lessonId]) {
+        card.addEventListener('click', () => {
+          window.location.href = lessonLinks[lessonId];
+        });
+      }
+    });
+    return;
+  }
+
+  // Show exactly 3 lessons (from progress or supplemented with samples)
+  let lessonsToShow = lessons;
+  if (lessons.length < 3) {
+    const existingIds = new Set(lessons.map(l => l.id));
+    const additionalSamples = sampleLessons
+      .filter(lesson => !existingIds.has(lesson.id))
+      .slice(0, 3 - lessons.length);
+    lessonsToShow = [...lessons, ...additionalSamples];
+  } else {
+    // Show exactly 3 lessons
+    lessonsToShow = lessons.slice(0, 3);
+  }
+
+  const cardsHTML = lessonsToShow.map((lesson, index) => createLessonCard(lesson, index + 1)).join('');
+  const moreCardHTML = createMoreCard();
+  suggestContent.innerHTML = cardsHTML + moreCardHTML;
+
+  // Make cards clickable
+  suggestContent.querySelectorAll('.lesson-card').forEach(card => {
+    const lessonId = card.getAttribute('data-lesson-id');
+    if (lessonId && lessonLinks[lessonId]) {
+      card.addEventListener('click', () => {
+        window.location.href = lessonLinks[lessonId];
+      });
+    }
+  });
+}
+
+function displayDoneLessons(lessons) {
+  const doneContent = document.getElementById('doneLessonsContent');
+  if (!doneContent) return;
+
+  if (!lessons || lessons.length === 0) {
+    doneContent.innerHTML = '<div class="empty-state"><p>No completed lessons yet. Complete a lesson to see it here!</p></div>';
+    return;
+  }
+
+  // Show up to 5 completed lessons
+  const lessonsToShow = lessons.slice(0, 5);
+  const cardsHTML = lessonsToShow.map((lesson, index) => createLessonCard(lesson, index + 8)).join('');
+  doneContent.innerHTML = cardsHTML;
+
+  // Make cards clickable
+  doneContent.querySelectorAll('.lesson-card').forEach(card => {
+    const lessonId = card.getAttribute('data-lesson-id');
+    if (lessonId && lessonLinks[lessonId]) {
+      card.addEventListener('click', () => {
+        window.location.href = lessonLinks[lessonId];
+      });
+    }
+  });
+}
+
+function displayEmptyProgress() {
+  displayContinueLesson(null);
+  // Show exactly 3 sample lessons in Suggest Lessons section
+  displaySuggestedLessons([]);
+  // Show empty Done Lessons section
+  displayDoneLessons([]);
+}
+
+// Load and display progress when page loads
+async function loadAndDisplayProgress() {
+  const user = auth.currentUser;
+  if (!user) {
+    displayEmptyProgress();
+    return;
+  }
+
+  // Try to get from sessionStorage first
+  const cached = sessionStorage.getItem('progress_preloaded');
+  if (cached) {
+    try {
+      const cachedData = JSON.parse(cached);
+      if (cachedData.userId === user.uid && cachedData.data) {
+        displayProgressData(cachedData.data);
+        return;
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached progress:', e);
+    }
+  }
+
+  // If not in cache, load from Firebase
+  try {
+    const { db } = await import('./firebase.js');
+    const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
+    const progressRef = collection(db, 'users', user.uid, 'progress');
+    const querySnapshot = await getDocs(progressRef);
+    const progressData = {};
+    querySnapshot.forEach((doc) => {
+      progressData[doc.id] = doc.data();
+    });
+    displayProgressData(progressData);
+  } catch (error) {
+    console.error('[HOME] Error loading progress:', error);
+    displayEmptyProgress();
   }
 }
 
@@ -755,12 +1107,17 @@ document.addEventListener("DOMContentLoaded", function () {
         if (user) {
           console.log("User is signed in:", user.email);
           preloadProgressData(user);
+          loadAndDisplayProgress();
         } else {
           console.log("User is signed out");
+          displayEmptyProgress();
         }
       });
     })
     .catch(err => console.error("Failed loading firebase auth:", err));
+
+  // Load progress on initial page load
+  loadAndDisplayProgress();
 
   // Intercept nav links if not logged in
   document.querySelectorAll(".nav-link").forEach(function (link) {
