@@ -187,8 +187,8 @@ function shuffleArray(array) {
 // UPDATED: Generate quiz questions (dynamic length - max 10 or dataset size)
 function generateQuestions() {
     // FEATURE 1: Dynamic quiz length - max 10 or dataset size
-    const maxQuestions = Math.min(10, educationalData.length);
-    const shuffled = shuffleArray([...educationalData]);
+    const maxQuestions = Math.min(10, whquestionsData.length);
+    const shuffled = shuffleArray([...whquestionsData]);
     questions = shuffled.slice(0, maxQuestions).map(item => ({
         correctAnswer: item.question,
         video: item.video,
@@ -199,7 +199,7 @@ function generateQuestions() {
 // UPDATED: Generate 3 options (1 correct + 2 random wrong answers)
 function generateOptions(correctAnswer) {
     const options = [correctAnswer];
-    const availableOptions = educationalData.map(item => item.question).filter(opt => opt !== correctAnswer);
+    const availableOptions = whquestionsData.map(item => item.question).filter(opt => opt !== correctAnswer);
     const shuffled = shuffleArray(availableOptions);
     
     // FEATURE 2: Changed to 3 total choices (1 correct + 2 wrong)

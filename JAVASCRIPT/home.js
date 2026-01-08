@@ -118,15 +118,23 @@ function updateNavAuthButtons() {
   const profileIconImgs = document.querySelectorAll(".profile-icon-img");
 
   if (auth && auth.currentUser) {
+    // User is logged in - show profile, hide login/register buttons
     if (loginBtn) loginBtn.style.display = "none";
     if (registerBtn) registerBtn.style.display = "none";
-    profileMenus.forEach(menu => menu.style.display = "flex");
+    profileMenus.forEach(menu => {
+      menu.style.display = "flex";
+      menu.style.visibility = "visible";
+    });
     const photoURL = auth.currentUser.photoURL || "../PICTURES/Home/profile.png";
     profileIconImgs.forEach(img => { if (img) img.src = photoURL; });
   } else {
+    // User is logged out - hide profile, show login/register buttons
     if (loginBtn) loginBtn.style.display = "inline-block";
     if (registerBtn) registerBtn.style.display = "inline-block";
-    profileMenus.forEach(menu => menu.style.display = "none");
+    profileMenus.forEach(menu => {
+      menu.style.display = "none";
+      menu.style.visibility = "hidden";
+    });
     profileIconImgs.forEach(img => { if (img) img.src = "../PICTURES/Home/profile.png"; });
   }
 }
