@@ -30,7 +30,14 @@ const MAX_TAB_SWITCHES = 3; // Maximum allowed tab switches before quiz reset
 // ============================================================================
 
 let heartbeatInterval = null;
+let heartbeatMonitorInterval = null; // 🔥 NEW: Monitor for other tabs' heartbeats
 const QUIZ_ID = 'phrases-quiz';
+const HEARTBEAT_SEND_INTERVAL = 10000; // Send heartbeat every 10 seconds (reduced from 15)
+const HEARTBEAT_CHECK_INTERVAL = 5000; // Check for stale heartbeat every 5 seconds
+const HEARTBEAT_TIMEOUT = 25000; // Consider heartbeat stale after 25 seconds (reduced from 30)
+
+// 🔥 NEW: Store this tab's unique ID in Firestore
+const TAB_ID = `quiz-tab-${Date.now()}-${Math.random()}`;
 
 // Start sending heartbeats to indicate quiz page is open
 function startHeartbeat(userId) {
@@ -39,7 +46,7 @@ function startHeartbeat(userId) {
         clearInterval(heartbeatInterval);
     }
     
-    // Send heartbeat every 15 seconds
+    // Send heartbeat every 10 seconds
     heartbeatInterval = setInterval(async () => {
         if (!navigator.onLine) {
             console.log('Offline - skipping heartbeat');
@@ -49,15 +56,94 @@ function startHeartbeat(userId) {
         try {
             const activeQuizRef = doc(db, 'users', userId, 'activeQuiz', QUIZ_ID);
             await updateDoc(activeQuizRef, {
-                lastHeartbeat: serverTimestamp()
+                lastHeartbeat: serverTimestamp(),
+                tabId: TAB_ID, // 🔥 NEW: Store which tab is sending heartbeat
+                lastActive: Date.now()
             });
             console.log('💓 Heartbeat sent');
         } catch (error) {
             console.error('Error sending heartbeat:', error);
         }
-    }, 15000); // Every 15 seconds
+    }, HEARTBEAT_SEND_INTERVAL);
     
     console.log('✓ Heartbeat system started');
+    
+    // 🔥 NEW: Start monitoring for heartbeat changes (detect if quiz abandoned in another tab)
+    startHeartbeatMonitor(userId);
+}
+
+// 🔥 NEW: Monitor Firestore for heartbeat changes from other tabs
+function startHeartbeatMonitor(userId) {
+    if (heartbeatMonitorInterval) {
+        clearInterval(heartbeatMonitorInterval);
+    }
+    
+    heartbeatMonitorInterval = setInterval(async () => {
+        if (!navigator.onLine || !quizActive) {
+            return;
+        }
+        
+        try {
+            const activeQuizRef = doc(db, 'users', userId, 'activeQuiz', QUIZ_ID);
+            const sessionSnap = await getDoc(activeQuizRef);
+            
+            if (!sessionSnap.exists()) {
+                // Quiz session was deleted in another tab
+                console.log('🚨 Quiz session deleted in another tab!');
+                handleQuizAbandonedInOtherTab();
+                return;
+            }
+            
+            const sessionData = sessionSnap.data();
+            
+            // Check if heartbeat is from a different tab
+            if (sessionData.tabId && sessionData.tabId !== TAB_ID) {
+                console.log(`👀 Detected another tab: ${sessionData.tabId}`);
+                
+                // Check if that other tab's heartbeat is fresh
+                const lastHeartbeat = sessionData.lastHeartbeat?.toDate?.() || new Date(sessionData.lastActive || 0);
+                const now = new Date();
+                const timeSinceHeartbeat = now - lastHeartbeat;
+                
+                if (timeSinceHeartbeat < HEARTBEAT_TIMEOUT) {
+                    // Another tab is actively running the quiz - this is the secondary tab
+                    console.log(`⚠️ Another tab is actively running this quiz (heartbeat ${Math.round(timeSinceHeartbeat / 1000)}s ago)`);
+                    // Don't close yet - let the heartbeat timeout handle it
+                } else {
+                    console.log(`✓ Other tab's heartbeat is stale (${Math.round(timeSinceHeartbeat / 1000)}s ago) - claiming session`);
+                }
+            }
+            
+            // 🔥 CRITICAL: Check if heartbeat is stale (quiz abandoned)
+            const lastHeartbeat = sessionData.lastHeartbeat?.toDate?.() || new Date(sessionData.lastActive || 0);
+            const now = new Date();
+            const timeSinceHeartbeat = now - lastHeartbeat;
+            
+            if (timeSinceHeartbeat > HEARTBEAT_TIMEOUT) {
+                console.log(`🚨 Heartbeat is stale (${Math.round(timeSinceHeartbeat / 1000)}s ago) - quiz was abandoned!`);
+                handleQuizAbandonedInOtherTab();
+            }
+            
+        } catch (error) {
+            console.error('Error monitoring heartbeat:', error);
+        }
+    }, HEARTBEAT_CHECK_INTERVAL);
+    
+    console.log('✓ Heartbeat monitor started');
+}
+
+// 🔥 NEW: Handle when quiz is abandoned in another tab (detected via heartbeat)
+function handleQuizAbandonedInOtherTab() {
+    // Stop both heartbeat systems
+    stopHeartbeat();
+    
+    // Mark quiz as inactive
+    quizActive = false;
+    
+    // Show message and redirect
+    showAutoCloseMessage('Quiz was abandoned in another tab. Closing this tab...', () => {
+        window.location.href = '/HTML/Lesson/phrases.html';
+    });
 }
 
 // Stop sending heartbeats
@@ -66,6 +152,229 @@ function stopHeartbeat() {
         clearInterval(heartbeatInterval);
         heartbeatInterval = null;
         console.log('✓ Heartbeat system stopped');
+    }
+    
+    if (heartbeatMonitorInterval) {
+        clearInterval(heartbeatMonitorInterval);
+        heartbeatMonitorInterval = null;
+        console.log('✓ Heartbeat monitor stopped');
+    }
+}
+
+// ============================================================================
+// CROSS-TAB COMMUNICATION - Close other tabs when quiz is abandoned
+// ============================================================================
+
+let broadcastChannel = null;
+const BROADCAST_TAB_ID = `quiz-tab-${Date.now()}-${Math.random()}`;
+
+// Initialize cross-tab communication
+function initCrossTabCommunication() {
+    try {
+        // Create a BroadcastChannel for this quiz
+        broadcastChannel = new BroadcastChannel(QUIZ_ID);
+        
+        // Listen for messages from other tabs
+        broadcastChannel.onmessage = (event) => {
+            const { type, tabId, timestamp } = event.data;
+            
+            // Ignore messages from this tab
+            if (tabId === BROADCAST_TAB_ID) return;
+            
+            console.log(`📡 Received message from another tab: ${type}`);
+            
+            if (type === 'QUIZ_ABANDONED') {
+                // Another tab abandoned the quiz - close this tab too
+                console.log('🚪 Another tab abandoned the quiz. Closing this tab...');
+                handleOtherTabAbandoned();
+            } else if (type === 'QUIZ_COMPLETED') {
+                // Another tab completed the quiz - close this tab
+                console.log('✅ Another tab completed the quiz. Closing this tab...');
+                handleOtherTabCompleted();
+            } else if (type === 'QUIZ_ACTIVE') {
+                // Another tab is still active - send acknowledgment
+                console.log('👋 Another tab is active');
+            }
+        };
+        
+        // Announce this tab is active
+        broadcastChannel.postMessage({
+            type: 'QUIZ_ACTIVE',
+            tabId: BROADCAST_TAB_ID,
+            timestamp: Date.now()
+        });
+        
+        console.log('✓ Cross-tab communication initialized');
+    } catch (error) {
+        console.error('BroadcastChannel not supported:', error);
+        // Fallback to localStorage events for older browsers
+        initLocalStorageFallback();
+    }
+}
+
+// Fallback using localStorage for browsers that don't support BroadcastChannel
+function initLocalStorageFallback() {
+    window.addEventListener('storage', (event) => {
+        if (event.key === `${QUIZ_ID}_status`) {
+            const data = JSON.parse(event.newValue || '{}');
+            
+            if (data.tabId === BROADCAST_TAB_ID) return;
+            
+            if (data.type === 'QUIZ_ABANDONED' || data.type === 'QUIZ_COMPLETED') {
+                console.log(`📡 [Storage] Received ${data.type} from another tab`);
+                if (data.type === 'QUIZ_ABANDONED') {
+                    handleOtherTabAbandoned();
+                } else {
+                    handleOtherTabCompleted();
+                }
+            }
+        }
+    });
+    
+    console.log('✓ localStorage fallback initialized');
+}
+
+// Notify other tabs that quiz was abandoned
+function notifyQuizAbandoned() {
+    const message = {
+        type: 'QUIZ_ABANDONED',
+        tabId: BROADCAST_TAB_ID,
+        timestamp: Date.now()
+    };
+    
+    if (broadcastChannel) {
+        broadcastChannel.postMessage(message);
+    }
+    
+    // Also use localStorage as fallback
+    try {
+        localStorage.setItem(`${QUIZ_ID}_status`, JSON.stringify(message));
+        setTimeout(() => {
+            localStorage.removeItem(`${QUIZ_ID}_status`);
+        }, 1000);
+    } catch (e) {
+        console.error('localStorage write failed:', e);
+    }
+    
+    console.log('📢 Notified other tabs: Quiz abandoned');
+}
+
+// Notify other tabs that quiz was completed
+function notifyQuizCompleted() {
+    const message = {
+        type: 'QUIZ_COMPLETED',
+        tabId: BROADCAST_TAB_ID,
+        timestamp: Date.now()
+    };
+    
+    if (broadcastChannel) {
+        broadcastChannel.postMessage(message);
+    }
+    
+    try {
+        localStorage.setItem(`${QUIZ_ID}_status`, JSON.stringify(message));
+        setTimeout(() => {
+            localStorage.removeItem(`${QUIZ_ID}_status`);
+        }, 1000);
+    } catch (e) {
+        console.error('localStorage write failed:', e);
+    }
+    
+    console.log('📢 Notified other tabs: Quiz completed');
+}
+
+// Handle when another tab abandoned the quiz
+function handleOtherTabAbandoned() {
+    // Stop heartbeat
+    stopHeartbeat();
+    
+    // Close the broadcast channel
+    if (broadcastChannel) {
+        broadcastChannel.close();
+    }
+    
+    // Show message and redirect
+    showAutoCloseMessage('Another tab abandoned this quiz. Redirecting...', () => {
+        window.location.href = '/HTML/Lesson/phrases.html';
+    });
+}
+
+// Handle when another tab completed the quiz
+function handleOtherTabCompleted() {
+    // Stop heartbeat
+    stopHeartbeat();
+    
+    // Close the broadcast channel
+    if (broadcastChannel) {
+        broadcastChannel.close();
+    }
+    
+    // Show message and redirect
+    showAutoCloseMessage('Quiz completed in another tab. Redirecting...', () => {
+        window.location.href = '/HTML/Lesson/phrases.html';
+    });
+}
+
+// Show auto-close message overlay
+function showAutoCloseMessage(message, callback) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+        animation: fadeIn 0.3s ease;
+    `;
+    
+    overlay.innerHTML = `
+        <div style="
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        ">
+            <div style="font-size: 3rem; margin-bottom: 20px;">🚪</div>
+            <h2 style="color: #ef4444; margin-bottom: 15px; font-size: 1.5rem;">Tab Closed</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 1.1rem;">${message}</p>
+            <div style="
+                width: 100%;
+                height: 4px;
+                background: #e5e7eb;
+                border-radius: 2px;
+                overflow: hidden;
+                margin-top: 20px;
+            ">
+                <div style="
+                    width: 0%;
+                    height: 100%;
+                    background: linear-gradient(90deg, #6d42c7, #8b5cf6);
+                    animation: progressBar 2s ease-in-out;
+                "></div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    // Redirect after 2 seconds
+    setTimeout(() => {
+        if (callback) callback();
+    }, 2000);
+}
+
+// Cleanup when page is closed/unloaded
+function cleanupCrossTabCommunication() {
+    if (broadcastChannel) {
+        broadcastChannel.close();
+        broadcastChannel = null;
     }
 }
 
@@ -185,7 +494,6 @@ function shuffleArray(array) {
 // UPDATED: Generate quiz questions (dynamic length - max 10 or dataset size)
 function generateQuestions() {
     // FEATURE 1: Dynamic quiz length - max 10 or dataset size
-    // FIXED: Changed educationalData to phrasesData
     const maxQuestions = Math.min(10, phrasesData.length);
     const shuffled = shuffleArray([...phrasesData]);
     questions = shuffled.slice(0, maxQuestions).map(item => ({
@@ -198,7 +506,6 @@ function generateQuestions() {
 // UPDATED: Generate 3 options (1 correct + 2 random wrong answers)
 function generateOptions(correctAnswer) {
     const options = [correctAnswer];
-    // FIXED: Changed educationalData to phrasesData
     const availableOptions = phrasesData.map(item => item.phrase).filter(opt => opt !== correctAnswer);
     const shuffled = shuffleArray(availableOptions);
     
@@ -326,6 +633,9 @@ async function showResults() {
 
     // Stop heartbeat system
     stopHeartbeat();
+
+    // Notify other tabs that quiz is completed
+    notifyQuizCompleted();
 
     // Clear active quiz session and save results
     if (currentUser) {
@@ -480,11 +790,13 @@ async function saveActiveQuizSession() {
             active: true,
             startedAt: serverTimestamp(),
             lastHeartbeat: serverTimestamp(), // Initial heartbeat
+            tabId: TAB_ID, // Store this tab's ID
+            lastActive: Date.now(),
             currentQuestion: currentQuestion,
             score: score,
             questions: questions,
             tabSwitches: tabSwitchCount,
-            quizStartTime: quizStartTime.toISOString() // FEATURE 3: Save start time
+            quizStartTime: quizStartTime.toISOString()
         });
         console.log('Active quiz session saved with initial heartbeat');
         
@@ -529,14 +841,14 @@ async function checkActiveQuizSession() {
         if (sessionSnap.exists()) {
             const sessionData = sessionSnap.data();
             
-            // FEATURE 3: Check if heartbeat is recent (within last 30 seconds)
+            // Check if heartbeat is recent (within last 25 seconds)
             if (sessionData.lastHeartbeat) {
                 const lastHeartbeatTime = sessionData.lastHeartbeat.toDate();
                 const now = new Date();
                 const secondsSinceLastHeartbeat = (now - lastHeartbeatTime) / 1000;
                 
-                // If heartbeat is older than 30 seconds, quiz is NOT actively open
-                if (secondsSinceLastHeartbeat > 30) {
+                // If heartbeat is older than 25 seconds, quiz is NOT actively open
+                if (secondsSinceLastHeartbeat > (HEARTBEAT_TIMEOUT / 1000)) {
                     console.log(`⚠ Quiz session exists but heartbeat is stale (${Math.round(secondsSinceLastHeartbeat)}s ago)`);
                     console.log('Quiz is not actively open - clearing stale session');
                     
@@ -582,6 +894,9 @@ async function resetQuizDueToTabSwitches() {
     
     // Stop heartbeat
     stopHeartbeat();
+    
+    // Notify other tabs that quiz is abandoned
+    notifyQuizAbandoned();
     
     // Clear active session
     if (currentUser && navigator.onLine) {
@@ -712,6 +1027,9 @@ function handleBeforeUnload(event) {
         // Stop heartbeat when user tries to close
         stopHeartbeat();
         
+        // Notify other tabs that quiz is abandoned
+        notifyQuizAbandoned();
+        
         // Try to clear the session (may not complete before page closes)
         if (currentUser && navigator.onLine) {
             const sessionRef = doc(db, 'users', currentUser.uid, 'activeQuiz', QUIZ_ID);
@@ -724,11 +1042,26 @@ function handleBeforeUnload(event) {
     }
 }
 
-// UPDATED: Handle tab visibility changes with maximum limit
+// IMPROVED: Handle tab visibility changes - ONLY count when leaving tab and still on quiz page
 async function handleVisibilityChange() {
-    if (quizActive && document.hidden) {
+    // Only process if quiz is active
+    if (!quizActive) return;
+    
+    // Check if we're still on the quiz page URL
+    const currentPath = window.location.pathname;
+    const isOnQuizPage = currentPath.includes('phrasesquiz.html');
+    
+    if (!isOnQuizPage) {
+        console.log('Not on quiz page anymore - stopping visibility tracking');
+        quizActive = false;
+        stopHeartbeat();
+        return;
+    }
+    
+    // Only count tab switches when user LEAVES the tab (hidden = true)
+    if (document.hidden) {
         tabSwitchCount++;
-        console.log(`Tab switch detected. Count: ${tabSwitchCount}/${MAX_TAB_SWITCHES}`);
+        console.log(`Tab switch detected (leaving tab). Count: ${tabSwitchCount}/${MAX_TAB_SWITCHES}`);
         
         // Check if exceeded maximum
         if (tabSwitchCount > MAX_TAB_SWITCHES) {
@@ -797,6 +1130,9 @@ function confirmNavigationAway() {
     // Stop heartbeat
     stopHeartbeat();
     
+    // Notify other tabs that quiz is abandoned
+    notifyQuizAbandoned();
+    
     // Clear session
     if (currentUser && navigator.onLine) {
         clearActiveQuizSession();
@@ -821,9 +1157,12 @@ function cancelNavigationAway() {
 
 // UPDATED: Initialize quiz with state restoration
 async function initQuiz() {
+    // Initialize cross-tab communication
+    initCrossTabCommunication();
+    
     let activeSession = null;
     
-    // FEATURE 3: Check if user has active quiz session WITH RECENT HEARTBEAT
+    // Check if user has active quiz session WITH RECENT HEARTBEAT
     if (currentUser && navigator.onLine) {
         activeSession = await checkActiveQuizSession(); // Returns null if heartbeat is stale
         if (activeSession && activeSession.active) {
@@ -915,19 +1254,6 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         console.log('User authenticated:', user.uid);
-        
-        // Check if user should be redirected to active quiz (only if online)
-        if (navigator.onLine) {
-            const activeSession = await checkActiveQuizSession();
-            const currentPath = window.location.pathname;
-            const isOnQuizPage = currentPath.includes('phrasesquiz.html');
-            
-            if (activeSession && activeSession.active && !isOnQuizPage) {
-                console.log('Active quiz detected! Redirecting to quiz page...');
-                const basePath = window.location.origin;
-                window.location.href = basePath + '/HTML/Quiz/phrasesquiz.html';
-            }
-        }
     } else {
         currentUser = null;
         console.log('User not authenticated');
@@ -950,9 +1276,18 @@ document.addEventListener('DOMContentLoaded', async function() {
 // Cleanup on page unload
 window.addEventListener('unload', () => {
     stopHeartbeat();
+    cleanupCrossTabCommunication();
 });
 
-// UPDATED: Add CSS animations for warnings and reset notification
+// Also cleanup when page visibility changes to hidden (tab closed)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && quizActive) {
+        // Notify other tabs before this tab closes
+        notifyQuizAbandoned();
+    }
+});
+
+// UPDATED: Add CSS animations for warnings, reset notification, and auto-close
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideInRight {
@@ -983,6 +1318,15 @@ style.textContent = `
         }
         to {
             opacity: 1;
+        }
+    }
+    
+    @keyframes progressBar {
+        from {
+            width: 0%;
+        }
+        to {
+            width: 100%;
         }
     }
     
