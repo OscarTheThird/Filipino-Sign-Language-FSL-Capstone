@@ -1,6 +1,8 @@
+
 import { auth } from "./firebase.js";
 import {
   signInWithEmailAndPassword,
+  sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 // Show/hide error for login
@@ -19,24 +21,113 @@ function showLoginError(message) {
   errorDiv.textContent = message;
   errorDiv.style.display = "block";
 }
+
 function hideLoginError() {
   const errorDiv = document.getElementById("login-error");
   if (errorDiv) errorDiv.style.display = "none";
 }
+
 function showLoading(button, text = "Loading...") {
   button.disabled = true; button.textContent = text;
 }
+
 function hideLoading(button, text) {
   button.disabled = false; button.textContent = text;
 }
 
+// Show email not verified popup with resend option
+function showEmailNotVerifiedPopup(user) {
+  const modal = document.createElement('div');
+  modal.id = 'emailNotVerifiedModal';
+  modal.style.position = 'fixed';
+  modal.style.left = 0;
+  modal.style.top = 0;
+  modal.style.width = '100vw';
+  modal.style.height = '100vh';
+  modal.style.backgroundColor = 'rgba(0,0,0,0.35)';
+  modal.style.display = 'flex';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
+  modal.style.zIndex = 99999;
+
+  const box = document.createElement('div');
+  box.style.backgroundColor = '#fff';
+  box.style.borderRadius = '12px';
+  box.style.boxShadow = '0 4px 24px rgba(0,0,0,0.17)';
+  box.style.padding = '32px 28px 24px 28px';
+  box.style.maxWidth = '400px';
+  box.style.textAlign = 'center';
+
+  box.innerHTML = `
+    <div style="margin-bottom: 16px;">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <h2 style="font-size: 1.4rem; margin-bottom: 12px; color: #1f2937;">Email Not Verified</h2>
+    <p style="color: #6b7280; margin-bottom: 20px; line-height: 1.5;">
+      Please verify your email address before logging in to GestSure.
+    </p>
+    <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 24px;">
+      Check your inbox at <strong>${user.email}</strong> for the verification link.
+    </p>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <button id="resendVerificationBtn" style="padding: 10px 24px; border: none; border-radius: 6px; background: #2563eb; color: #fff; font-weight: 600; cursor: pointer;">
+        Resend Verification Email
+      </button>
+      <button id="closeVerificationBtn" style="padding: 10px 24px; border: none; border-radius: 6px; background: #e5e7eb; color: #374151; font-weight: 500; cursor: pointer;">
+        OK
+      </button>
+    </div>
+    <p id="resendMessage" style="color: #10b981; font-size: 0.85rem; margin-top: 12px; display: none;">
+      ✓ Verification email sent! Check your inbox.
+    </p>
+  `;
+
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+
+  document.getElementById('resendVerificationBtn').onclick = async () => {
+    const resendBtn = document.getElementById('resendVerificationBtn');
+    const resendMessage = document.getElementById('resendMessage');
+    
+    resendBtn.disabled = true;
+    resendBtn.textContent = 'Sending...';
+    
+    try {
+      await sendEmailVerification(user);
+      resendMessage.style.display = 'block';
+      resendBtn.textContent = 'Email Sent!';
+      setTimeout(() => {
+        resendBtn.disabled = false;
+        resendBtn.textContent = 'Resend Verification Email';
+      }, 3000);
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+      resendBtn.disabled = false;
+      resendBtn.textContent = 'Resend Verification Email';
+      alert('Failed to send email. Please try again.');
+    }
+  };
+
+  document.getElementById('closeVerificationBtn').onclick = () => {
+    document.body.removeChild(modal);
+  };
+
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  };
+}
+
 // Show welcome popup after successful login
 function showWelcomePopup(user) {
-  // Remove old modal if it exists
   let oldModal = document.getElementById('welcomeModal');
   if (oldModal) oldModal.remove();
 
-  // Create modal
   const modal = document.createElement('div');
   modal.id = 'welcomeModal';
   modal.style.position = 'fixed';
@@ -50,7 +141,6 @@ function showWelcomePopup(user) {
   modal.style.justifyContent = 'center';
   modal.style.zIndex = 99999;
 
-  // Modal box
   const box = document.createElement('div');
   box.style.backgroundColor = '#fff';
   box.style.borderRadius = '12px';
@@ -58,15 +148,13 @@ function showWelcomePopup(user) {
   box.style.padding = '32px 28px 24px 28px';
   box.style.maxWidth = '350px';
   box.style.textAlign = 'center';
-  box.style.position = 'relative';
 
-  // Get user's name if available
   const displayName = user.displayName || user.email || "User";
 
   box.innerHTML = `
-    <h2 style="font-size: 1.3rem; margin-bottom: 10px;">Welcome!</h2>
-    <p style="color:#444; margin-bottom: 24px;">Hello, <b>${displayName}</b> 👋<br>You're now logged in.</p>
-    <button id="welcomeOkBtn" style="padding:8px 18px; border:none; border-radius:6px; background:#2563eb; color:#fff; font-weight:600; font-size:1rem; cursor:pointer;">OK</button>
+    <h2 style="font-size: 1.3rem; margin-bottom: 10px;">Welcome Back!</h2>
+    <p style="color:#444; margin-bottom: 24px;">Hello, <b>${displayName}</b> 👋<br>Ready to translate FSL signs?</p>
+    <button id="welcomeOkBtn" style="padding:8px 18px; border:none; border-radius:6px; background:#2563eb; color:#fff; font-weight:600; font-size:1rem; cursor:pointer;">Let's Go!</button>
   `;
 
   modal.appendChild(box);
@@ -76,49 +164,61 @@ function showWelcomePopup(user) {
     document.body.removeChild(modal);
   };
 
-  // Also close on escape key or click outside box
   modal.onclick = (e) => {
     if (e.target === modal) {
       document.body.removeChild(modal);
     }
   };
-  document.addEventListener('keydown', function escListener(e) {
-    if (e.key === "Escape") {
-      if (document.body.contains(modal)) {
-        document.body.removeChild(modal);
-      }
-      document.removeEventListener('keydown', escListener);
-    }
-  });
 }
 
 async function handleLogin(email, password) {
   const loginBtn = document.querySelector(".login-btn");
   showLoading(loginBtn, "Signing In...");
   hideLoginError();
+  
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // Check if email is verified
+    if (!user.emailVerified) {
+      // Sign out the user
+      await auth.signOut();
+      
+      // Show email not verified popup
+      showEmailNotVerifiedPopup(user);
+      return;
+    }
+
+    // Email is verified - allow login
     window.closeLoginModal();
-    showWelcomePopup(userCredential.user);
+    showWelcomePopup(user);
+    
     if (window.intendedRoute) {
       setTimeout(() => {
         window.location.href = window.intendedRoute;
         window.intendedRoute = null;
-      }, 600); // Give a moment for popup to appear
+      }, 600);
     }
   } catch (error) {
     let errorMessage = "Login failed. Please try again.";
     switch (error.code) {
       case "auth/user-not-found":
-        errorMessage = "No account found with this email address."; break;
+        errorMessage = "No account found with this email address."; 
+        break;
       case "auth/wrong-password":
-        errorMessage = "Incorrect password. Please try again."; break;
+      case "auth/invalid-credential":
+        errorMessage = "Incorrect password. Please try again."; 
+        break;
       case "auth/invalid-email":
-        errorMessage = "Please enter a valid email address."; break;
+        errorMessage = "Please enter a valid email address."; 
+        break;
       case "auth/too-many-requests":
-        errorMessage = "Too many failed attempts. Please try again later."; break;
+        errorMessage = "Too many failed attempts. Please try again later."; 
+        break;
       case "auth/user-disabled":
-        errorMessage = "This account has been disabled. Please contact support."; break;
+        errorMessage = "This account has been disabled. Please contact support."; 
+        break;
     }
     showLoginError(errorMessage);
   } finally {
