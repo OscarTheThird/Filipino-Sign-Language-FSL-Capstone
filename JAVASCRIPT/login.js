@@ -1,9 +1,10 @@
-
-import { auth } from "./firebase.js";
+import { auth, db } from "./firebase.js";
 import {
-  signInWithEmailAndPassword,
-  sendEmailVerification
+  signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+import {
+  doc, getDoc
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
 // Show/hide error for login
 function showLoginError(message) {
@@ -35,8 +36,8 @@ function hideLoading(button, text) {
   button.disabled = false; button.textContent = text;
 }
 
-// Show email not verified popup with resend option
-function showEmailNotVerifiedPopup(user) {
+// Show email not verified popup
+function showEmailNotVerifiedPopup(email) {
   const modal = document.createElement('div');
   modal.id = 'emailNotVerifiedModal';
   modal.style.position = 'fixed';
@@ -71,46 +72,20 @@ function showEmailNotVerifiedPopup(user) {
       Please verify your email address before logging in to GestSure.
     </p>
     <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 24px;">
-      Check your inbox at <strong>${user.email}</strong> for the verification link.
+      Check your inbox at <strong>${email}</strong> for the verification link.
     </p>
     <div style="display: flex; flex-direction: column; gap: 10px;">
-      <button id="resendVerificationBtn" style="padding: 10px 24px; border: none; border-radius: 6px; background: #2563eb; color: #fff; font-weight: 600; cursor: pointer;">
-        Resend Verification Email
-      </button>
-      <button id="closeVerificationBtn" style="padding: 10px 24px; border: none; border-radius: 6px; background: #e5e7eb; color: #374151; font-weight: 500; cursor: pointer;">
+      <button id="closeVerificationBtn" style="padding: 10px 24px; border: none; border-radius: 6px; background: #2563eb; color: #fff; font-weight: 600; cursor: pointer;">
         OK
       </button>
     </div>
-    <p id="resendMessage" style="color: #10b981; font-size: 0.85rem; margin-top: 12px; display: none;">
-      ✓ Verification email sent! Check your inbox.
+    <p style="color: #6b7280; font-size: 0.85rem; margin-top: 12px;">
+      Didn't receive the email? Check your spam folder or contact support.
     </p>
   `;
 
   modal.appendChild(box);
   document.body.appendChild(modal);
-
-  document.getElementById('resendVerificationBtn').onclick = async () => {
-    const resendBtn = document.getElementById('resendVerificationBtn');
-    const resendMessage = document.getElementById('resendMessage');
-    
-    resendBtn.disabled = true;
-    resendBtn.textContent = 'Sending...';
-    
-    try {
-      await sendEmailVerification(user);
-      resendMessage.style.display = 'block';
-      resendBtn.textContent = 'Email Sent!';
-      setTimeout(() => {
-        resendBtn.disabled = false;
-        resendBtn.textContent = 'Resend Verification Email';
-      }, 3000);
-    } catch (error) {
-      console.error('Error sending verification email:', error);
-      resendBtn.disabled = false;
-      resendBtn.textContent = 'Resend Verification Email';
-      alert('Failed to send email. Please try again.');
-    }
-  };
 
   document.getElementById('closeVerificationBtn').onclick = () => {
     document.body.removeChild(modal);
@@ -180,13 +155,25 @@ async function handleLogin(email, password) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Check if email is verified
-    if (!user.emailVerified) {
+    // Check Firestore for email verification status
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      await auth.signOut();
+      showLoginError("User data not found. Please contact support.");
+      return;
+    }
+
+    const userData = userDoc.data();
+
+    // Check if email is verified in Firestore
+    if (!userData.emailVerified) {
       // Sign out the user
       await auth.signOut();
       
       // Show email not verified popup
-      showEmailNotVerifiedPopup(user);
+      showEmailNotVerifiedPopup(user.email);
       return;
     }
 

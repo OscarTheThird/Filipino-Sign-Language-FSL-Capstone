@@ -1,12 +1,13 @@
 import { auth, db } from "./firebase.js";
 import {
   createUserWithEmailAndPassword,
-  sendEmailVerification,
   updateProfile
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import {
   doc, setDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+// EmailJS is already initialized in home.html - no need to initialize again
 
 // Show/hide error for register
 function showRegisterError(message) {
@@ -36,6 +37,11 @@ function showLoading(button, text = "Loading...") {
 
 function hideLoading(button, text) {
   button.disabled = false; button.textContent = text;
+}
+
+// Generate verification token
+function generateVerificationToken() {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
 // Show success message with email verification notice
@@ -110,22 +116,46 @@ async function handleRegister(formData) {
       displayName: formData.name
     });
 
-    // Send verification email
-    await sendEmailVerification(user);
+    // Generate verification token
+    const verificationToken = generateVerificationToken();
 
-    // Save user data to Firestore
+    // Save user data to Firestore with verification token
     await setDoc(doc(db, "users", user.uid), {
       name: formData.name,
       email: formData.email,
       createdAt: serverTimestamp(),
-      emailVerified: false // Track verification status
+      emailVerified: false, // Track verification status in Firestore
+      verificationToken: verificationToken,
+      verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
     });
 
-    // CRITICAL FIX: Sign out the user immediately after registration
-    // This prevents them from accessing the app without email verification
+    // Create verification link
+    const verificationLink = `${window.location.origin}/HTML/verify.html?token=${verificationToken}&uid=${user.uid}`;
+
+    // Send custom verification email via EmailJS
+    try {
+      await emailjs.send(
+        "service_p9c6no9",  // Your Service ID
+        "template_eabclqh", // Your Template ID
+        {
+          email: formData.email,           // Changed from to_email to email
+          to_name: formData.name,
+          app_name: "GestSure",            // Added app_name
+          verification_link: verificationLink
+        }
+      );
+      console.log("Verification email sent successfully!");
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError);
+      showRegisterError("Account created, but failed to send verification email. Please contact support.");
+      return;
+    }
+
+    // IMPORTANT: Sign out the user immediately after registration
+    // This ensures they cannot access the app until email is verified
     await auth.signOut();
 
-    // Reset the registration form to clear all input fields
+    // Reset the registration form
     document.getElementById("registerForm").reset();
 
     // Close register modal

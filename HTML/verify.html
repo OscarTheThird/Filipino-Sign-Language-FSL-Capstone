@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification - GestSure</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            padding: 48px 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid rgba(59, 130, 246, 0.1);
+        }
+
+        .logo {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .logo .gest {
+            color: #1e40af;
+        }
+
+        .logo .sure {
+            color: #3b82f6;
+        }
+
+        .logo-tagline {
+            font-size: 0.72rem;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 500;
+            margin-bottom: 32px;
+            letter-spacing: 2px;
+        }
+
+        .status-icon {
+            margin-bottom: 24px;
+        }
+
+        .spinner {
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-icon {
+            color: #10b981;
+        }
+
+        .error-icon {
+            color: #ef4444;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        p {
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            font-size: 1rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 32px;
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        @media (max-width: 500px) {
+            .container {
+                padding: 32px 24px;
+                border-radius: 15px;
+            }
+
+            .logo {
+                font-size: 1.8rem;
+            }
+
+            .logo-tagline {
+                font-size: 0.65rem;
+                margin-bottom: 24px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            p {
+                font-size: 0.9rem;
+                margin-bottom: 20px;
+            }
+
+            .btn {
+                padding: 10px 24px;
+                font-size: 0.9rem;
+            }
+
+            .spinner {
+                width: 50px;
+                height: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <span class="gest">Gest</span><span class="sure">Sure</span>
+        </div>
+        <div class="logo-tagline">Filipino Sign Language</div>
+        
+        <div class="status-icon" id="statusIcon">
+            <div class="spinner"></div>
+        </div>
+
+        <h1 id="statusTitle">Verifying Email...</h1>
+        <p id="statusMessage">Please wait while we verify your email address.</p>
+
+        <div id="actionButton"></div>
+    </div>
+
+    <script type="module">
+        import { db } from "../JAVASCRIPT/firebase.js";
+        import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+        async function verifyEmail() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const uid = urlParams.get('uid');
+
+            const statusIcon = document.getElementById('statusIcon');
+            const statusTitle = document.getElementById('statusTitle');
+            const statusMessage = document.getElementById('statusMessage');
+            const actionButton = document.getElementById('actionButton');
+
+            if (!token || !uid) {
+                // Invalid link
+                statusIcon.innerHTML = `
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                `;
+                statusTitle.textContent = 'Invalid Verification Link';
+                statusMessage.textContent = 'This verification link is invalid or incomplete. Please request a new verification email.';
+                actionButton.innerHTML = '<a href="home.html" class="btn">Go to Home</a>';
+                return;
+            }
+
+            try {
+                // Get user document
+                const userDocRef = doc(db, "users", uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (!userDoc.exists()) {
+                    throw new Error('User not found');
+                }
+
+                const userData = userDoc.data();
+
+                // Check if already verified
+                if (userData.emailVerified) {
+                    statusIcon.innerHTML = `
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="success-icon">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    `;
+                    statusTitle.textContent = 'Already Verified!';
+                    statusMessage.textContent = 'Your email has already been verified. You can now log in to GestSure and start learning Filipino Sign Language.';
+                    actionButton.innerHTML = '<a href="home.html" class="btn">Go to Login</a>';
+                    return;
+                }
+
+                // Check token validity
+                if (userData.verificationToken !== token) {
+                    throw new Error('Invalid token');
+                }
+
+                // Check token expiry
+                const expiryDate = userData.verificationTokenExpiry?.toDate();
+                if (!expiryDate || new Date() > expiryDate) {
+                    statusIcon.innerHTML = `
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                    `;
+                    statusTitle.textContent = 'Link Expired';
+                    statusMessage.textContent = 'This verification link has expired. Please request a new verification email.';
+                    actionButton.innerHTML = '<a href="home.html" class="btn">Go to Home</a>';
+                    return;
+                }
+
+                // Update user verification status
+                await updateDoc(userDocRef, {
+                    emailVerified: true,
+                    verificationToken: null,
+                    verificationTokenExpiry: null,
+                    verifiedAt: new Date()
+                });
+
+                // Success!
+                statusIcon.innerHTML = `
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="success-icon">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                `;
+                statusTitle.textContent = 'Email Verified! 🎉';
+                statusMessage.textContent = 'Your email has been successfully verified. You can now log in to GestSure and start learning Filipino Sign Language!';
+                actionButton.innerHTML = '<a href="home.html" class="btn">Go to Login</a>';
+
+            } catch (error) {
+                console.error('Verification error:', error);
+                statusIcon.innerHTML = `
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                `;
+                statusTitle.textContent = 'Verification Failed';
+                statusMessage.textContent = 'We couldn\'t verify your email. The link may be invalid or expired. Please try again or contact support.';
+                actionButton.innerHTML = '<a href="home.html" class="btn">Go to Home</a>';
+            }
+        }
+
+        // Run verification when page loads
+        verifyEmail();
+    </script>
+</body>
+</html>
