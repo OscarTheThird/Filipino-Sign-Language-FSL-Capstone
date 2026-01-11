@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gemini API Connection Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f0f0f0; }
+        #output { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            border: 1px solid #ccc; 
+            white-space: pre-wrap; /* Keeps formatting */
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2>Gemini API Connectivity Test</h2>
+    <p>Status: <span id="status">Testing...</span></p>
+    
+    <h3>API Response:</h3>
+    <div id="output">Waiting for response...</div>
+
+    <script>
+        (async () => {
+            // ▼▼▼▼▼▼ REPLACE THIS STRING WITH YOUR ACTUAL KEY ▼▼▼▼▼▼
+            const apiKey = "AIzaSyB17ky04yV87b3JaRHYgRvYd_wnv3ocfdY"; 
+            // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+            const outputDiv = document.getElementById('output');
+            const statusSpan = document.getElementById('status');
+            const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.error) {
+                    // API returned an error (like 400 or 403)
+                    statusSpan.innerHTML = "❌ FAILED";
+                    statusSpan.className = "error";
+                    outputDiv.textContent = "ERROR DETAILS:\n" + JSON.stringify(data.error, null, 2);
+                } else {
+                    // Success!
+                    statusSpan.innerHTML = "✅ SUCCESS";
+                    statusSpan.className = "success";
+                    
+                    // Filter just the names for easy reading
+                    const modelNames = data.models.map(m => m.name);
+                    
+                    outputDiv.textContent = "AVAILABLE MODELS FOR YOUR KEY:\n" + 
+                                          "-----------------------------\n" +
+                                          modelNames.join("\n");
+                }
+
+            } catch (e) {
+                // Network error (internet down, bad URL, etc)
+                statusSpan.innerHTML = "❌ NETWORK ERROR";
+                statusSpan.className = "error";
+                outputDiv.textContent = e.toString();
+            }
+        })();
+    </script>
+</body>
+</html>

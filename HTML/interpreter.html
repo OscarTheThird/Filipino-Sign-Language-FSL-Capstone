@@ -6,10 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/CSS/interpreter.css">
     <title>GestSure - Interpreter</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@latest/dist/tf-backend-wasm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://code.responsivevoice.org/responsivevoice.js?key=1sHklYBU"></script>
 </head>
 
 <body>
-    <!-- Header Navigation -->
     <header class="header">
         <nav class="navbar">
             <div class="nav-links">
@@ -24,24 +29,26 @@
         </nav>
     </header>
 
-    <!-- Main Content -->
     <main class="main-content">
-        <!-- Left Section - Camera Feed -->
         <section class="camera-section">
+            
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">Loading AI Models...</span>
+                <span class="fps-counter" id="fpsCounter">FPS: 0</span>
+                </div>
+
             <div class="mode-buttons" role="tablist" aria-label="Interpreter Modes">
-                <button class="mode-btn active" id="btnAlphabet" role="tab" aria-selected="true">Alphabet</button>
-                <button class="mode-btn" id="btnNumbers" role="tab" aria-selected="false">Numbers</button>
-                <button class="mode-btn" id="btnWords" role="tab" aria-selected="false">Words</button>
+                <button class="mode-btn active" id="btnAlphabet" onclick="switchModel('alphabet')">Alphabet</button>
+                <button class="mode-btn" id="btnNumbers" onclick="switchModel('numbers')">Numbers</button>
+                <button class="mode-btn" id="btnWords" onclick="switchModel('words')">Words</button>
             </div>
 
             <div class="camera-container">
-                <video class="camera-feed" id="cameraFeed" autoplay muted>
-                    Your browser does not support the video element.
-                </video>
-                <canvas class="tracking-overlay" id="trackingOverlay"></canvas>
+                <video class="camera-feed" id="videoElement" playsinline style="display:none;"></video>
+                <canvas class="tracking-overlay" id="canvasElement"></canvas>
             </div>
 
-            <!-- Camera Controls -->
             <div class="camera-controls">
                 <button class="control-btn" id="startBtn">
                     <span>▶</span> Start Camera
@@ -49,60 +56,43 @@
                 <button class="control-btn stop" id="stopBtn" style="display: none;">
                     <span>⏹</span> Stop Camera
                 </button>
+                <button class="control-btn" id="clearBtn">
+                    <span>X</span> Clear Text
+                </button>
+                <button id="spaceBtn" class="control-btn" style="display:none;">SPACE</button>
+                <button id="undoBtn" class="control-btn">UNDO</button>
             </div>
 
-            <!-- Status Indicator -->
-            <div class="status-indicator">
-                <div class="status-dot" id="statusDot"></div>
-                <span class="status-text" id="statusText">Ready to start detection</span>
-                <span class="fps-counter" id="fpsCounter">FPS: 0</span>
-            </div>
         </section>
 
-        <!-- Right Section - Message Display -->
         <section class="message-section">
             <div class="message-header">
                 <h2 class="message-title">Message</h2>
                 <p class="message-subtitle">Real-time sign language interpretation</p>
+                <p id="model-status" style="font-size: 0.8rem; color: #3b82f6;">Model: Loading...</p>
             </div>
 
             <div class="message-display">
+                <button id="speakBtn" title="Read Aloud">
+                    <span>🔊</span> Translate and Speak
+                </button>
+
                 <div class="background-watermark">GestSure</div>
                 <div class="message-content">
-                    <div class="detected-text" id="detectedText">Hello, Thank</div>
-                    <div class="confidence-score" id="confidenceScore">Confidence: 94%</div>
-                    <div class="placeholder-text" id="placeholderText" style="display: none;">
-                        Start the camera to begin sign language detection.<br>
-                        Position your hands clearly within the camera view.
+                    <div class="detected-text" id="detectedText">...</div>
+                    <div class="confidence-score" id="confidenceScore">Confidence: 0%</div>
+                    
+                    <div class="placeholder-text" id="placeholderText">
+                        Wait for models to load, then click Start Camera.<br>
+                        Position your hands clearly within view.
                     </div>
                 </div>
             </div>
 
-            <!-- Message History -->
-            <div class="message-history">
-                <h3 class="history-title">Recent Detections</h3>
-                <div class="history-item">
-                    Hello
-                    <span class="history-time">2:34 PM</span>
-                </div>
-                <div class="history-item">
-                    Thank you
-                    <span class="history-time">2:33 PM</span>
-                </div>
-                <div class="history-item">
-                    Good morning
-                    <span class="history-time">2:32 PM</span>
-                </div>
-            </div>
+            
         </section>
     </main>
-
-    <!-- MediaPipe Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
     
-    <script src="/JAVASCRIPT/interpreter.js"></script>
+    <script src="/JAVASCRIPT/interpreter.js" type="module"></script>
 </body>
 </html>
